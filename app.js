@@ -27,3 +27,25 @@ function toggleLesson(headerEl) {
   var lesson = headerEl.parentElement;
   lesson.classList.toggle('open');
 }
+
+// Лайтбокс для скриншотов
+document.addEventListener('click', function(e) {
+  var card = e.target.closest('.screenshot-card');
+  if (card) {
+    var src = card.querySelector('img').src;
+    var lightbox = document.getElementById('lightbox');
+    lightbox.querySelector('img').src = src;
+    lightbox.classList.add('active');
+  }
+});
+
+function closeLightbox() {
+  document.getElementById('lightbox').classList.remove('active');
+}
+
+// Закрытие лайтбокса по Esc
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') {
+    closeLightbox();
+  }
+});

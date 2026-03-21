@@ -12,6 +12,11 @@
   <!-- Стили (отдельный файл) -->
   <link rel="stylesheet" href="styles.css">
 </head>
+<!-- Лайтбокс -->
+<div class="lightbox" id="lightbox" onclick="closeLightbox()">
+  <button class="lightbox-close" onclick="closeLightbox()">✕</button>
+  <img src="" alt="Скриншот" onclick="event.stopPropagation()">
+</div>
 <body>
 
 <!-- ════════════════════════════════════════════════════════
@@ -29,7 +34,7 @@
       </div>
       <div class="contacts">
         <a class="contact-badge support" href="https://t.me/UchiDomaSupport_U2035_bot" target="_blank" rel="noopener">
-          🛟 Тех. поддержка
+          🐱‍💻 Тех. поддержка
         </a>
         <a class="contact-badge teacher" href="https://t.me/Tim_Dev_13" target="_blank" rel="noopener">
           👨‍🏫 @Tim_Dev_13
