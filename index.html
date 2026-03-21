@@ -92,12 +92,13 @@
 
 <!-- Загрузка модулей из отдельных файлов -->
 <script>
-  // Загружаем содержимое каждого модуля из его файла
   ['module1.html', 'module2.html', 'module3.html', 'module4.html'].forEach(function(file, i) {
     fetch(file)
       .then(function(r) { return r.text(); })
       .then(function(html) {
-        document.getElementById('module-' + (i + 1)).innerHTML = html;
+        var panel = document.getElementById('module-' + (i + 1));
+        panel.innerHTML = html;
+        processModule(panel);
       })
       .catch(function() {
         document.getElementById('module-' + (i + 1)).innerHTML =
