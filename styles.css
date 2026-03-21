@@ -189,6 +189,7 @@ body::before {
 
 .lesson-badges { display: flex; align-items: center; gap: 10px; font-family: var(--mono); font-size: 11px; color: var(--text-muted); }
 .badge-has { color: #34D399; }
+.badge-zero { color: #EF4444; }
 
 .chevron { font-size: 16px; color: var(--text-muted); transition: transform 0.2s; flex-shrink: 0; margin-left: 4px; }
 .lesson.open .chevron { transform: rotate(180deg); }
@@ -201,6 +202,8 @@ body::before {
 .lesson.open .lesson-body { display: block; animation: fadeUp 0.2s ease; }
 
 .lesson-desc { font-size: 13px; color: var(--text-dim); margin-bottom: 4px; line-height: 1.5; }
+
+
 
 .section-label {
   font-family: var(--mono); font-size: 10px; font-weight: 700;
