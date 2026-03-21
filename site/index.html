@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Python Academy — Учебная платформа</title>
+
+  <!-- Шрифты -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+
+  <!-- Стили (отдельный файл) -->
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<!-- ════════════════════════════════════════════════════════
+     ШАПКА САЙТА
+     ════════════════════════════════════════════════════════ -->
+<header class="header">
+  <div class="header-inner">
+    <div class="header-top">
+      <div class="logo">
+        <div class="logo-icon">Py</div>
+        <div>
+          <div class="logo-text">Python Academy</div>
+          <div class="logo-sub">Учебная платформа</div>
+        </div>
+      </div>
+      <div class="contacts">
+        <a class="contact-badge support" href="https://t.me/UchiDomaSupport_U2035_bot" target="_blank" rel="noopener">
+          🛟 Тех. поддержка
+        </a>
+        <a class="contact-badge teacher" href="https://t.me/Tim_Dev_13" target="_blank" rel="noopener">
+          👨‍🏫 @Tim_Dev_13
+        </a>
+      </div>
+    </div>
+
+    <!-- Вкладки модулей -->
+    <nav class="tabs">
+      <button class="tab active" data-mod="1" onclick="switchModule(1)">
+        <span class="tab-icon">🐍</span> Модуль 1
+        <span class="tab-label-sub">• Основы Python</span>
+      </button>
+      <button class="tab" data-mod="2" onclick="switchModule(2)">
+        <span class="tab-icon">📦</span> Модуль 2
+        <span class="tab-label-sub">• Строки, функции, циклы</span>
+      </button>
+      <button class="tab" data-mod="3" onclick="switchModule(3)">
+        <span class="tab-icon">⚙️</span> Модуль 3
+        <span class="tab-label-sub">• Коллекции</span>
+      </button>
+      <button class="tab" data-mod="4" onclick="switchModule(4)">
+        <span class="tab-icon">🚀</span> Модуль 4
+        <span class="tab-label-sub">• ООП и проекты</span>
+      </button>
+    </nav>
+  </div>
+</header>
+
+
+<!-- ════════════════════════════════════════════════════════
+     КОНТЕНТ МОДУЛЕЙ
+     Каждый модуль загружается из отдельного файла:
+     module1.html, module2.html, module3.html, module4.html
+     ════════════════════════════════════════════════════════ -->
+<main class="content">
+  <div class="module-panel active" id="module-1" data-mod="1">Загрузка...</div>
+  <div class="module-panel"        id="module-2" data-mod="2">Загрузка...</div>
+  <div class="module-panel"        id="module-3" data-mod="3">Загрузка...</div>
+  <div class="module-panel"        id="module-4" data-mod="4">Загрузка...</div>
+</main>
+
+
+<!-- ════════════════════════════════════════════════════════
+     ПОДВАЛ
+     ════════════════════════════════════════════════════════ -->
+<footer class="footer">
+  Python Academy © 2026 • Все материалы предоставлены для учебных целей
+</footer>
+
+
+<!-- Логика (отдельный файл) -->
+<script src="app.js"></script>
+
+<!-- Загрузка модулей из отдельных файлов -->
+<script>
+  // Загружаем содержимое каждого модуля из его файла
+  ['module1.html', 'module2.html', 'module3.html', 'module4.html'].forEach(function(file, i) {
+    fetch(file)
+      .then(function(r) { return r.text(); })
+      .then(function(html) {
+        document.getElementById('module-' + (i + 1)).innerHTML = html;
+      })
+      .catch(function() {
+        document.getElementById('module-' + (i + 1)).innerHTML =
+          '<div class="empty-state">⚠️ Не удалось загрузить модуль. Проверьте что файл ' + file + ' находится рядом с index.html</div>';
+      });
+  });
+</script>
+
+</body>
+</html>
