@@ -248,9 +248,11 @@ body::before {
   border-radius: 10px; overflow: hidden;
   border: 1px solid var(--border); cursor: pointer;
   transition: all 0.15s;
+  display: flex;
+  flex-direction: column;
 }
 .screenshot-card:hover { border-color: var(--border-active); transform: scale(1.02); }
-.screenshot-card img { width: 100%; display: block; }
+.screenshot-card img { width: 100%; height: 100%; object-fit: cover; display: block; flex: 1; }
 .screenshot-card .s-caption {
   padding: 6px 10px; font-size: 11px; color: var(--text-dim);
   font-family: var(--mono); background: rgba(0,0,0,0.3);
