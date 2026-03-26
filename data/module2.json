@@ -1,0 +1,161 @@
+{
+  "id": 2,
+  "icon": "📦",
+  "title": "Модуль 2: Строки, функции и циклы",
+  "lessons": [
+    {
+      "num": "2.1",
+      "title": "Срезы строк. Использование срезов",
+      "desc": "Индексы и срезы строк в Python.",
+      "videos": [
+        { "id": "ITI2kJ6j8Ho", "title": "Срезы и индексы" }
+      ],
+      "links": [
+        { "url": "https://kurshub.ru/journal/blog/srezy-v-python-eto/", "title": "Срезы в Python — KursHub" }
+      ],
+      "screenshots": [
+        { "src": "screenshots/lesson2.1-Syntax.jpg", "caption": "Какие есть параметры у срезов" }
+      ]
+    },
+    {
+      "num": "2.2",
+      "title": "Метод find и rfind",
+      "desc": "Поиск подстрок в строках.",
+      "videos": [
+        { "id": "GmMD6gQYWe4", "title": "Методы строк" }
+      ],
+      "links": [
+        { "url": "https://stavis-dev.github.io/python/types/python-types-string/", "title": "Все методы строк — Stavis Dev" },
+        { "url": "https://cs-labs.netlify.app/docs/python/06_str", "title": "Применение строк для решения задач — CS Labs" }
+      ]
+    },
+    {
+      "num": "2.3",
+      "title": "Методы replace и count",
+      "desc": "Замена и подсчёт подстрок.",
+      "videos": [
+        { "id": "62Uad9E3No4", "title": "Решаем задачи | Методы replace count" }
+      ],
+      "links": [
+        { "url": "https://python-academy.org/ru/handbook/replace", "title": "Справочник по строчным методам — Python Academy" },
+        { "url": "https://metanit.com/python/tutorial/5.2.php", "title": "Все методы строк — MetaNit" }
+      ]
+    },
+    {
+      "num": "2.4",
+      "title": "Применение строковых методов",
+      "desc": "Повторяем методы строк и их применение. На занятии будем решать сложные задачки.",
+      "badges": ["📝 практика"],
+      "screenshots": [
+        { "src": "screenshots/lesson2.4-usage-example.jpg", "caption": "Пример работы со срезами, индексами и заменами" },
+        { "src": "screenshots/lesson2.4-solution-method_1.jpg", "caption": "1.Способ решения с заменой символа" },
+        { "src": "screenshots/lesson2.4-solution-method_2.jpg", "caption": "2.Способ решения с заменой символа" }
+      ]
+    },
+    {
+      "num": "2.5",
+      "title": "Функции",
+      "desc": "Создание и вызов функций, параметры и аргументы.",
+      "videos": [
+        { "id": "DJAlfolEv9A", "title": "Определение и вызов функций" },
+        { "id": "NUrEyTW4JuU", "title": "Функции: первое знакомство, определение def и их вызов" }
+      ],
+      "links": [
+        { "url": "https://python-academy.org/ru/guide/functions", "title": "Функции в Python — Python Academy" },
+        { "url": "https://thecode.media/funkcii-v-python/", "title": "Функции в Python — TheCode" }
+      ],
+      "screenshots": [
+        { "src": "screenshots/lesson2.5-usage-example.jpg", "caption": "Как писать Функции в Python" }
+      ]
+    },
+    {
+      "num": "2.6",
+      "title": "Локальные и глобальные переменные",
+      "desc": "Область видимости переменных в Python.",
+      "videos": [
+        { "id": "TacyWpUF1Kk", "title": "Области видимости. Ключевые слова global и nonlocal" },
+        { "id": "8NDjlmCRCsk", "title": "Локальная, глобальная и встроенная области видимости" },
+        { "id": "D2uB3vqMTzI", "title": "Оператор return в Функциях" },
+        { "id": "jvVhV35uIRs", "title": "Оператор return в Функциях" }
+      ],
+      "links": [
+        { "url": "https://python-academy.org/ru/guide/variable-scope", "title": "Области видимости переменных — Python Academy" },
+        { "url": "https://metanit.com/python/tutorial/2.9.php", "title": "Области видимости переменных — MetaNit" }
+      ],
+      "screenshots": [
+        { "src": "screenshots/lesson2.6-usage-example1.jpg", "caption": "Как НЕ нужно делать" },
+        { "src": "screenshots/lesson2.6-usage-example2.jpg", "caption": "Пример правильного возвращения информации из Ф-ии" }
+      ]
+    },
+    {
+      "num": "2.7",
+      "title": "Рекурсия. Использование рекурсии",
+      "desc": "Что такое рекурсия и как её применять.",
+      "videos": [
+        { "id": "dtzoBXL11oo", "title": "Рекурсивные функции" },
+        { "id": "jvFULnNpNLg", "title": "Рекурсия в Python. Часть 1" },
+        { "id": "rzGCxtZdMuM", "title": "Рекурсия в Python. Часть 2" },
+        { "id": "wZvk8nyPQCY", "title": "Рекурсивный обход файлов Python" },
+        { "id": "mcAB5dBXMp4", "title": "*args и **kwargs. Передача аргументов в функцию" }
+      ],
+      "links": [
+        { "url": "https://habr.com/ru/articles/991714/", "title": "Рекурсия в Python: от матрешки до стека вызовов — Habr" }
+      ]
+    },
+    {
+      "num": "2.8",
+      "title": "Рекурсия. Свой мини-проект",
+      "desc": "Практикуем рекурсии: Создаём мини-проект.",
+      "badges": ["🛠️ проект"]
+    },
+    {
+      "num": "2.9",
+      "title": "Функция range, цикл for",
+      "desc": "Цикл for и генератор range().",
+      "videos": [
+        { "id": "9J0fvF4k4F4", "title": "Функция range и итерируемые объекты" },
+        { "id": "yPUA8xBEyzM", "title": "Цикл for. Обход элементов функции range" }
+      ],
+      "links": [
+        { "url": "https://javarush.com/groups/posts/cikl-for-v-python", "title": "Цикл for в Python — JavaRush" },
+        { "url": "https://metanit.com/python/tutorial/2.7.php", "title": "Циклы — MetaNit" },
+        { "url": "https://cs-labs.netlify.app/docs/python/04_for", "title": "Решение задач с циклом for — CS Labs" }
+      ]
+    },
+    {
+      "num": "2.10",
+      "title": "Отработка задач с циклом for",
+      "desc": "Практические задачи на цикл for.",
+      "badges": ["📝 практика"]
+    },
+    {
+      "num": "2.11",
+      "title": "Метод split",
+      "desc": "Разбиение строк на части с помощью split() и объединение с join().",
+      "videos": [
+        { "id": "M5DB3Yun8gU", "title": "Метод split и метод join Python" }
+      ],
+      "links": [
+        { "url": "https://stavis-dev.github.io/python/types/python-types-string/", "title": "Работа со строками — Stavis Dev" },
+        { "url": "https://cs-labs.netlify.app/docs/python/07_list", "title": "Применение списков для решения задач — CS Labs" }
+      ]
+    },
+    {
+      "num": "2.12",
+      "title": "Мини-проект с циклом for",
+      "desc": "Создаём мини-проект с использованием цикла for.",
+      "badges": ["🛠️ проект"]
+    },
+    {
+      "num": "📝",
+      "title": "Промежуточная аттестация",
+      "attestation": true
+    }
+  ],
+  "extra": {
+    "screenshots": [
+      { "src": "screenshots/allModule-SyntaxFuncANDMethod.jpg", "caption": "Синтаксис использованя Ф-ий и Методов" },
+      { "src": "screenshots/example-methods-loops-empty-strings.jpg", "caption": "Пример работы методов, циклов и пустых строк" }
+    ]
+  }
+}

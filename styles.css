@@ -1,6 +1,5 @@
 /* ══════════════════════════════════════════════════════════
-   Python Academy — Styles
-   Этот файл отвечает за ВСЕ стили сайта.
+   Python Academy — Styles (Refactored)
    ══════════════════════════════════════════════════════════ */
 
 /* ── Reset ─────────────────────────────────────────────── */
@@ -18,13 +17,16 @@
   --text-muted: #475569;
   --font: 'Outfit', sans-serif;
   --mono: 'JetBrains Mono', monospace;
-  --mod1: #E86B2A;
-  --mod2: #2A8FE8;
-  --mod3: #8B5CF6;
-  --mod4: #10B981;
   --radius: 12px;
   --anim: 0.25s ease;
 }
+
+/* Цвет модуля задаётся одной переменной */
+[data-mod="1"] { --mod-color: #E86B2A; }
+[data-mod="2"] { --mod-color: #2A8FE8; }
+[data-mod="3"] { --mod-color: #8B5CF6; }
+[data-mod="4"] { --mod-color: #10B981; }
+[data-mod="5"] { --mod-color: #F59E0B; }
 
 body {
   font-family: var(--font);
@@ -79,11 +81,7 @@ body::before {
 .logo-sub { font-family: var(--mono); font-size: 11px; color: var(--text-dim); letter-spacing: 0.1em; text-transform: uppercase; }
 
 /* ── Contact badges ────────────────────────────────────── */
-.contacts {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
+.contacts { display: flex; align-items: center; gap: 8px; }
 
 .contact-badge {
   display: inline-flex; align-items: center; gap: 6px;
@@ -119,11 +117,7 @@ body::before {
 
 .tab:hover { color: var(--text); background: rgba(255,255,255,0.02); }
 .tab.active { color: var(--text-bright); font-weight: 700; background: rgba(255,255,255,0.04); }
-
-.tab.active[data-mod="1"]::after { background: var(--mod1); }
-.tab.active[data-mod="2"]::after { background: var(--mod2); }
-.tab.active[data-mod="3"]::after { background: var(--mod3); }
-.tab.active[data-mod="4"]::after { background: var(--mod4); }
+.tab.active::after { background: var(--mod-color); }
 
 .tab-icon { font-size: 16px; }
 .tab-label-sub { font-size: 11px; opacity: 0.45; }
@@ -131,24 +125,29 @@ body::before {
 /* ── Content ───────────────────────────────────────────── */
 .content { max-width: 960px; margin: 0 auto; padding: 28px 24px 60px; }
 
-.module-panel { display: none; }
-.module-panel.active { display: block; animation: fadeUp 0.3s ease; }
+.fade-up { animation: fadeUp 0.3s ease; }
 
 @keyframes fadeUp {
   from { opacity: 0; transform: translateY(8px); }
-  to { opacity: 1; transform: translateY(0); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
-/* ── Module Header ─────────────────────────────────────── */
+/* ── Module Header (единый стиль через --mod-color) ───── */
 .module-header {
   display: flex; align-items: center; gap: 16px;
-  padding: 22px 24px; border-radius: 14px; margin-bottom: 24px; border: 1px solid;
+  padding: 22px 24px; border-radius: 14px; margin-bottom: 24px;
+  background: linear-gradient(135deg, rgba(from var(--mod-color) r g b / 0.08), rgba(from var(--mod-color) r g b / 0.02));
+  border: 1px solid rgba(from var(--mod-color) r g b / 0.15);
 }
 
-.module-header[data-mod="1"] { background: linear-gradient(135deg, rgba(232,107,42,0.08), rgba(232,107,42,0.02)); border-color: rgba(232,107,42,0.15); }
-.module-header[data-mod="2"] { background: linear-gradient(135deg, rgba(42,143,232,0.08), rgba(42,143,232,0.02)); border-color: rgba(42,143,232,0.15); }
-.module-header[data-mod="3"] { background: linear-gradient(135deg, rgba(139,92,246,0.08), rgba(139,92,246,0.02)); border-color: rgba(139,92,246,0.15); }
-.module-header[data-mod="4"] { background: linear-gradient(135deg, rgba(16,185,129,0.08), rgba(16,185,129,0.02)); border-color: rgba(16,185,129,0.15); }
+/* Fallback для браузеров без relative-color-syntax */
+@supports not (background: rgba(from red r g b / 1)) {
+  .module-header[data-mod="1"] { background: linear-gradient(135deg, rgba(232,107,42,0.08), rgba(232,107,42,0.02)); border-color: rgba(232,107,42,0.15); }
+  .module-header[data-mod="2"] { background: linear-gradient(135deg, rgba(42,143,232,0.08), rgba(42,143,232,0.02)); border-color: rgba(42,143,232,0.15); }
+  .module-header[data-mod="3"] { background: linear-gradient(135deg, rgba(139,92,246,0.08), rgba(139,92,246,0.02)); border-color: rgba(139,92,246,0.15); }
+  .module-header[data-mod="4"] { background: linear-gradient(135deg, rgba(16,185,129,0.08), rgba(16,185,129,0.02)); border-color: rgba(16,185,129,0.15); }
+  .module-header[data-mod="5"] { background: linear-gradient(135deg, rgba(245,158,11,0.08), rgba(245,158,11,0.02)); border-color: rgba(245,158,11,0.15); }
+}
 
 .module-header .icon { font-size: 34px; }
 .module-header .title { font-size: 22px; font-weight: 800; color: var(--text-bright); letter-spacing: -0.02em; }
@@ -163,7 +162,6 @@ body::before {
 
 .lesson.open { background: var(--bg-card-open); border-color: var(--border-active); margin-bottom: 10px; }
 
-/* Аттестация — особый стиль */
 .lesson.attestation { border-color: rgba(251,191,36,0.15); background: rgba(251,191,36,0.03); }
 .lesson.attestation.open { border-color: rgba(251,191,36,0.3); background: rgba(251,191,36,0.06); }
 
@@ -176,12 +174,18 @@ body::before {
 .lesson-num {
   font-family: var(--mono); font-size: 12px; font-weight: 700;
   padding: 4px 10px; border-radius: 6px; flex-shrink: 0;
+  color: var(--mod-color);
+  background: rgba(from var(--mod-color) r g b / 0.1);
 }
 
-[data-mod="1"] .lesson-num { color: var(--mod1); background: rgba(232,107,42,0.1); }
-[data-mod="2"] .lesson-num { color: var(--mod2); background: rgba(42,143,232,0.1); }
-[data-mod="3"] .lesson-num { color: var(--mod3); background: rgba(139,92,246,0.1); }
-[data-mod="4"] .lesson-num { color: var(--mod4); background: rgba(16,185,129,0.1); }
+/* Fallback */
+@supports not (background: rgba(from red r g b / 1)) {
+  [data-mod="1"] .lesson-num { color: #E86B2A; background: rgba(232,107,42,0.1); }
+  [data-mod="2"] .lesson-num { color: #2A8FE8; background: rgba(42,143,232,0.1); }
+  [data-mod="3"] .lesson-num { color: #8B5CF6; background: rgba(139,92,246,0.1); }
+  [data-mod="4"] .lesson-num { color: #10B981; background: rgba(16,185,129,0.1); }
+  [data-mod="5"] .lesson-num { color: #F59E0B; background: rgba(245,158,11,0.1); }
+}
 
 .lesson.attestation .lesson-num { color: #FBBF24; background: rgba(251,191,36,0.12); }
 
@@ -190,6 +194,7 @@ body::before {
 .lesson-badges { display: flex; align-items: center; gap: 10px; font-family: var(--mono); font-size: 11px; color: var(--text-muted); }
 .badge-has { color: #34D399; }
 .badge-zero { color: #EF4444; }
+.badge-attest { color: #FBBF24; }
 
 .chevron { font-size: 16px; color: var(--text-muted); transition: transform 0.2s; flex-shrink: 0; margin-left: 4px; }
 .lesson.open .chevron { transform: rotate(180deg); }
@@ -203,7 +208,12 @@ body::before {
 
 .lesson-desc { font-size: 13px; color: var(--text-dim); margin-bottom: 4px; line-height: 1.5; }
 
+.attest-desc { color: #FBBF24; text-align: center; }
 
+.lesson.attestation .lesson-body { text-align: center; }
+
+/* Разделитель между секциями (вместо br+hr) */
+.section-divider { height: 1px; background: var(--border); margin: 16px 0; }
 
 .section-label {
   font-family: var(--mono); font-size: 10px; font-weight: 700;
@@ -237,7 +247,7 @@ body::before {
 .link-item .arrow { margin-left: auto; font-size: 14px; opacity: 0.3; transition: opacity 0.15s; }
 .link-item:hover .arrow { opacity: 0.7; }
 
-/* ── Screenshots section ───────────────────────────────── */
+/* ── Screenshots ───────────────────────────────────────── */
 .screenshots-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
@@ -245,13 +255,12 @@ body::before {
 }
 
 .screenshot-card {
-  border-radius: 10px; overflow: hidden;
-  border: 1px solid var(--border); cursor: pointer;
-  transition: all 0.15s;
-  display: flex;
-  flex-direction: column;
+  border-radius: 8px; overflow: hidden; cursor: pointer;
+  border: 1px solid rgba(255,255,255,0.06);
+  display: flex; flex-direction: column;
+  transition: border-color 0.15s;
 }
-.screenshot-card:hover { border-color: var(--border-active); transform: scale(1.02); }
+.screenshot-card:hover { border-color: rgba(255,255,255,0.15); }
 .screenshot-card img { width: 100%; height: 100%; object-fit: cover; display: block; flex: 1; }
 .screenshot-card .s-caption {
   padding: 6px 10px; font-size: 11px; color: var(--text-dim);
@@ -271,15 +280,138 @@ body::before {
   color: #FBBF24; margin-bottom: 10px;
 }
 
-.extra-block .extra-text {
-  font-size: 13px; color: var(--text-dim); line-height: 1.6;
-}
+.extra-block .extra-text { font-size: 13px; color: var(--text-dim); line-height: 1.6; }
 
 /* ── Empty State ───────────────────────────────────────── */
 .empty-state { color: var(--text-muted); font-size: 13px; font-style: italic; padding: 16px 0; display: flex; align-items: center; gap: 8px; }
 
 /* ── Footer ────────────────────────────────────────────── */
 .footer { text-align: center; padding: 32px 24px; border-top: 1px solid var(--border); font-family: var(--mono); font-size: 11px; color: var(--text-muted); }
+
+/* ── Lightbox ──────────────────────────────────────────── */
+.lightbox {
+  display: none; position: fixed; inset: 0; z-index: 10000;
+  background: rgba(0,0,0,0.85);
+  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+  align-items: center; justify-content: center; cursor: pointer;
+}
+.lightbox.active { display: flex; }
+.lightbox img {
+  max-width: 90vw; max-height: 90vh; border-radius: 8px;
+  box-shadow: 0 8px 40px rgba(0,0,0,0.5); cursor: default;
+}
+.lightbox-close {
+  position: absolute; top: 20px; right: 24px;
+  font-size: 32px; color: #fff; cursor: pointer; opacity: 0.7;
+  transition: opacity 0.15s; background: none; border: none;
+  font-family: var(--mono);
+}
+.lightbox-close:hover { opacity: 1; }
+
+/* ── Course cards (Module 5) ───────────────────────────── */
+.course-author {
+  font-family: var(--mono); font-size: 12px; font-weight: 700;
+  color: var(--text-dim); margin: 16px 0 8px; padding-left: 2px;
+  letter-spacing: 0.02em;
+}
+.course-author::before { content: '👤 '; }
+
+.course-list { display: flex; flex-direction: column; gap: 6px; margin-bottom: 4px; }
+
+.course-card {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px; padding: 12px 16px; border-radius: 10px;
+  background: rgba(255,255,255,0.02); border: 1px solid var(--border);
+  text-decoration: none; transition: all 0.15s; flex-wrap: wrap;
+}
+.course-card:hover { background: rgba(255,255,255,0.05); border-color: var(--border-active); transform: translateX(3px); }
+
+.course-name { font-size: 13px; font-weight: 600; color: var(--text-bright); flex: 1; min-width: 200px; }
+
+.course-tags { display: flex; gap: 6px; flex-wrap: nowrap; margin-left: auto; flex-shrink: 0; }
+
+.tag {
+  font-family: var(--mono); font-size: 10px; font-weight: 700;
+  padding: 3px 8px; border-radius: 4px; white-space: nowrap;
+  letter-spacing: 0.02em; min-width: 90px; text-align: center;
+}
+
+.tag-free    { color: #34D399; background: rgba(52,211,153,0.1);  border: 1px solid rgba(52,211,153,0.2); }
+.tag-paid    { color: #EF4444; background: rgba(239,68,68,0.1);   border: 1px solid rgba(239,68,68,0.2); }
+.tag-easy    { color: #34D399; background: rgba(52,211,153,0.08); border: 1px solid rgba(52,211,153,0.15); }
+.tag-medium  { color: #FBBF24; background: rgba(251,191,36,0.08); border: 1px solid rgba(251,191,36,0.15); }
+.tag-hard    { color: #F97316; background: rgba(249,115,22,0.08); border: 1px solid rgba(249,115,22,0.15); }
+.tag-heavy   { color: #EF4444; background: rgba(239,68,68,0.08);  border: 1px solid rgba(239,68,68,0.15); }
+.tag-super   { color: #22D3EE; background: rgba(34,211,238,0.1);  border: 1px solid rgba(34,211,238,0.25); text-transform: uppercase; }
+.tag-useful  { color: #34D399; background: rgba(52,211,153,0.08); border: 1px solid rgba(52,211,153,0.15); }
+.tag-optional{ color: var(--text-muted); background: rgba(255,255,255,0.03); border: 1px solid var(--border); }
+.tag-unknown { color: var(--text-muted); background: transparent;  border: 1px dashed var(--border); }
+
+/* ── Auth Gate (Модуль 5) ───────────────────────────────── */
+.auth-gate {
+  display: flex; align-items: center; justify-content: center;
+  min-height: 50vh; padding: 40px 20px;
+}
+
+.auth-card {
+  max-width: 400px; width: 100%; text-align: center;
+  padding: 40px 32px; border-radius: 16px;
+  background: var(--bg-card-open); border: 1px solid var(--border-active);
+}
+
+.auth-icon { font-size: 48px; margin-bottom: 16px; }
+
+.auth-title {
+  font-size: 22px; font-weight: 800; color: var(--text-bright);
+  margin-bottom: 8px; letter-spacing: -0.02em;
+}
+
+.auth-desc {
+  font-size: 13px; color: var(--text-dim); line-height: 1.6;
+  margin-bottom: 24px;
+}
+
+.auth-error {
+  font-family: var(--mono); font-size: 12px; color: #EF4444;
+  background: rgba(239,68,68,0.08); border: 1px solid rgba(239,68,68,0.2);
+  border-radius: 8px; padding: 10px 14px; margin-bottom: 16px;
+}
+
+.auth-field { margin-bottom: 16px; }
+
+.auth-input {
+  width: 100%; padding: 12px 16px; border-radius: 10px;
+  background: rgba(255,255,255,0.04); border: 1px solid var(--border);
+  color: var(--text-bright); font-family: var(--mono); font-size: 15px;
+  text-align: center; letter-spacing: 0.05em;
+  outline: none; transition: border-color 0.2s;
+}
+
+.auth-input::placeholder { color: var(--text-muted); font-size: 13px; letter-spacing: 0; }
+.auth-input:focus { border-color: #F59E0B; }
+
+.auth-btn {
+  width: 100%; padding: 12px; border: none; border-radius: 10px;
+  background: linear-gradient(135deg, #F59E0B, #E86B2A);
+  color: #fff; font-family: var(--font); font-size: 15px; font-weight: 700;
+  cursor: pointer; transition: opacity 0.15s;
+}
+
+.auth-btn:hover { opacity: 0.9; }
+.auth-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.auth-hint {
+  font-size: 11px; color: var(--text-muted); margin-top: 16px;
+  font-family: var(--mono);
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20%, 60% { transform: translateX(-6px); }
+  40%, 80% { transform: translateX(6px); }
+}
+
+.shake { animation: shake 0.4s ease; }
 
 /* ── Responsive ────────────────────────────────────────── */
 @media (max-width: 640px) {
@@ -296,48 +428,7 @@ body::before {
   .video-grid { grid-template-columns: 1fr; }
   .screenshots-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
   .lesson-body { padding: 4px 14px 16px; }
+  .course-card { flex-wrap: nowrap; }
+  .course-name { min-width: unset; }
+  .course-tags { width: 100%; }
 }
-
-.lesson.attestation .lesson-body {
-  text-align: center;
-}
-
-/* ── Lightbox (просмотр скриншотов) ────────────────────── */
-.lightbox {
-  display: none;
-  position: fixed;
-  inset: 0;
-  z-index: 10000;
-  background: rgba(0,0,0,0.85);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-}
-
-.lightbox.active { display: flex; }
-
-.lightbox img {
-  max-width: 90vw;
-  max-height: 90vh;
-  border-radius: 8px;
-  box-shadow: 0 8px 40px rgba(0,0,0,0.5);
-  cursor: default;
-}
-
-.lightbox-close {
-  position: absolute;
-  top: 20px;
-  right: 24px;
-  font-size: 32px;
-  color: #fff;
-  cursor: pointer;
-  opacity: 0.7;
-  transition: opacity 0.15s;
-  background: none;
-  border: none;
-  font-family: var(--mono);
-}
-
-.lightbox-close:hover { opacity: 1; }

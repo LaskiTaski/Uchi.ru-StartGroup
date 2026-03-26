@@ -1,0 +1,188 @@
+{
+  "id": 1,
+  "icon": "🐍",
+  "title": "Модуль 1: Основы Python",
+  "lessons": [
+    {
+      "num": "1.0",
+      "title": "Самостоятельная установка PyCharm",
+      "desc": "Как установить и настроить среду разработки PyCharm.",
+      "videos": [
+        { "id": "HLrLz4CJtrY", "title": "Самостоятельная установка Python + PyCharm" },
+        { "id": "-TzZtXl3r3Q", "title": "Установка и настройка PyCharm" }
+      ]
+    },
+    {
+      "num": "1.1",
+      "title": "Введение в язык программирования",
+      "desc": "Знакомство с Python и функцией print().",
+      "videos": [
+        { "id": "xVEuHyR2ePA", "title": "Функция print() — подробный разбор" }
+      ],
+      "links": [
+        { "url": "https://tproger.ru/articles/kak-rabotaet-funkciya-print-v-python", "title": "Как работает функция print() в Python" }
+      ],
+      "screenshots": [
+        { "src": "screenshots/lesson1.1-int-float-str.jpg", "caption": "Название типов данных и ф-ий" }
+      ]
+    },
+    {
+      "num": "1.2",
+      "title": "Типы данных и переменные",
+      "desc": "Ввод данных от пользователя, переменные и преобразование типов.",
+      "videos": [
+        { "id": "KP4mhrDxaWw", "title": "Переменные в Python" },
+        { "id": "yuyq2BrHMJE", "title": "Функция input()" }
+      ],
+      "links": [
+        { "url": "https://thecode.media/funkciya-input-v-python/", "title": "Функция input и преобразование типов" }
+      ]
+    },
+    {
+      "num": "1.3",
+      "title": "Операции с числами",
+      "desc": "Арифметические операции: сложение, вычитание, умножение, деление, остаток, степень.",
+      "videos": [
+        { "id": "fF1ZqTKMR6I", "title": "Арифметика в Python" },
+        { "id": "RlfSygvBeZE", "title": "Числа и операции" }
+      ],
+      "links": [
+        { "url": "https://metanit.com/python/tutorial/2.3.php", "title": "Арифметические операции — Metanit" },
+        { "url": "https://javarush.com/groups/posts/arifmeticheskie-operacii-v-python", "title": "Арифметические операции — JavaRush" },
+        { "url": "https://cs-labs.netlify.app/docs/python/01_numbers", "title": "Арифметические операции — CS Labs" }
+      ]
+    },
+    {
+      "num": "1.4",
+      "title": "Операции над строками",
+      "desc": "Основы работы со строками: создание, индексация, срезы.",
+      "videos": [
+        { "id": "YUMJxjsfNt4", "title": "Строки в Python" }
+      ],
+      "links": [
+        { "url": "https://course-python-basics-six.vercel.app/docs/python/strings", "title": "Строки — Course Python Basics" },
+        { "url": "https://cs-labs.netlify.app/docs/python/06_str", "title": "Строки — CS Labs" },
+        { "url": "https://stavis-dev.github.io/python/types/python-types-string/", "title": "Строки — Stavis Dev" }
+      ]
+    },
+    {
+      "num": "1.5",
+      "title": "Форматирование строк",
+      "desc": "F-строки, format, % | Способы форматирования текста |",
+      "videos": [
+        { "id": "QlkQNWQUCLc", "title": "F-строки в Python" },
+        { "id": "Yab7gE8K1Ko", "title": ".format" },
+        { "id": "43hM21SksVQ", "title": "Все методы форматирования строк" }
+      ],
+      "links": [
+        { "url": "https://habr.com/ru/articles/830282/", "title": "Форматирование строк - Habr" },
+        { "url": "https://stavis-dev.github.io/python/functions/f-string/?ysclid=mn04jg03nd667491295", "title": "Форматирование строк - Stavis Dev" }
+      ]
+    },
+    {
+      "num": "1.6",
+      "title": "Логический тип данных",
+      "desc": "True, False, логические операции и сравнения.",
+      "videos": [
+        { "id": "vLgf3wJzmAg", "title": "Логический тип данных" }
+      ],
+      "links": [
+        { "url": "https://python-academy.org/ru/guide/boolean-data-types?ysclid=mn04n94ih8418675997", "title": "Тип данных Bool - Python Academy" }
+      ]
+    },
+    {
+      "num": "1.7",
+      "title": "Условный оператор",
+      "desc": "Условные операторы — if и else.",
+      "videos": [
+        { "id": "EggJRTzid1M", "title": "Условия if / else" },
+        { "id": "8YshxYHIeeI", "title": "Подробнее об условиях" }
+      ],
+      "links": [
+        { "url": "https://tproger.ru/articles/kak-rabotayut-upravlyayushhie-konstrukcii-v-python--if--else--switch--for--while", "title": "Управляющие конструкции - Tproger" }
+      ],
+      "screenshots": [
+        { "src": "screenshots/lesson1.7-Syntax.jpg", "caption": "Синтаксис условного оператора if/else" },
+        { "src": "screenshots/lesson1.7-usage-example.jpg", "caption": "Пример использования if/else" },
+        { "src": "screenshots/lesson1.7-usage-exampleANDcomments.jpg", "caption": "Пример использования if/else" },
+        { "src": "screenshots/lesson1.7-usage-exampleANDflag.jpg", "caption": "Пример использования if/else" }
+      ]
+    },
+    {
+      "num": "1.8",
+      "title": "Вложенные и каскадные условия",
+      "desc": "elif, вложенные if и сложные проверки.",
+      "videos": [
+        { "id": "8F-EfhsKHCI", "title": "elif в Python" }
+      ],
+      "links": [
+        { "url": "https://kozhevnikovamn.ru/vlozhennye-i-kaskadnye-usloviya/?ysclid=mn04yghybt554506635", "title": "Вложенные и каскадные условия - KozhevnikovaM.N." }
+      ],
+      "screenshots": [
+        { "src": "screenshots/lesson1.8-usage-example.jpg", "caption": "Пример работы каскадного оператора" }
+      ]
+    },
+    {
+      "num": "1.9",
+      "title": "Цикл while",
+      "desc": "Цикл while",
+      "videos": [
+        { "id": "Ll3AN1FXXfE", "title": "Цикл while" }
+      ],
+      "links": [
+        { "url": "https://python-academy.org/ru/guide/loops?ysclid=mn0597zvf2823949622", "title": "Итерации и циклы - Python Academy" },
+        { "url": "https://javarush.com/groups/posts/cikl-while-v-python", "title": "Цикл while в Python - JavaRush" }
+      ],
+      "screenshots": [
+        { "src": "screenshots/lesson1.9-usage-example.jpg", "caption": "Пример использования цикла while" }
+      ]
+    },
+    {
+      "num": "1.10",
+      "title": "Операторы continue и break",
+      "desc": "Управление циклами: continue, break, else в циклах.",
+      "videos": [
+        { "id": "Myh7OdxoYsA&list=PLQAt0m1f9OHvv2wxPGSCWjgy1qER_FvB6&index=24", "title": "Инструкции break, continue, else" }
+      ],
+      "links": [
+        { "url": "https://metanit.com/python/tutorial/2.7.php?ysclid=mn05bsiigx355510593", "title": "Циклы - MetaNit" },
+        { "url": "https://javarush.com/groups/posts/operatorih-break-continue-i-return-v-python", "title": "Операторы break, continue и return - JavaRush" }
+      ],
+      "screenshots": [
+        { "src": "screenshots/lesson1.10-usage-example1.jpg", "caption": "Пример использования цикла while break / continue" },
+        { "src": "screenshots/lesson1.10-usage-example2.jpg", "caption": "Пример использования цикла for break" }
+      ]
+    },
+    {
+      "num": "1.11",
+      "title": "Округление чисел",
+      "desc": "Функции round(), math.floor(), math.ceil() и форматирование чисел.",
+      "videos": [
+        { "id": "f5WoQ7sGpp0", "title": "Функции trunc, floor, ceil. Округление вверх и вниз в python" }
+      ],
+      "links": [
+        { "url": "https://thecode.media/kak-rabotaet-okruglenie-v-python/?ysclid=mn05j44dni38887246", "title": "Округление - TheCode" },
+        { "url": "https://metanit.com/python/tutorial/2.3.php?ysclid=mn05j7gn9995613690", "title": "Арифметические операции с числами - MetaNit" }
+      ]
+    },
+    {
+      "num": "1.12",
+      "title": "Мини-проект «Калькулятор»",
+      "desc": "Создаём консольный калькулятор, применяя все знания модуля.",
+      "badges": ["🛠️ проект"],
+      "videos": [
+        { "id": "x5ffiDJCgX8", "title": "Если сложно, смотрим видео" }
+      ]
+    },
+    {
+      "num": "📝",
+      "title": "Промежуточная аттестация",
+      "attestation": true
+    }
+  ],
+  "extra": {
+    "screenshots": [
+      { "src": "screenshots/allModule-SyntaxFunc.jpg", "caption": "Пример использования цикла while break / continue" }
+    ]
+  }
+}
