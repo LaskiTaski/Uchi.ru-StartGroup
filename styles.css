@@ -400,10 +400,12 @@ body::before {
 .auth-btn:hover { opacity: 0.9; }
 .auth-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
-.auth-hint {
-  font-size: 11px; color: var(--text-muted); margin-top: 16px;
-  font-family: var(--mono);
+.auth-remember {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 12px; color: var(--text-muted);
+  cursor: pointer; margin-top: 4px; user-select: none;
 }
+.auth-remember input[type="checkbox"] { accent-color: #F59E0B; cursor: pointer; }
 
 @keyframes shake {
   0%, 100% { transform: translateX(0); }

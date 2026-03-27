@@ -26,12 +26,13 @@
     optional: ['Необязательно', 'tag-optional'], unknown: ['Неизвестно', 'tag-unknown']
   };
 
-  // ── URL бэкенда (поменяй на свой после деплоя) ─────────
-  var API_URL = 'http://localhost:8000';
+  // ── Простой пароль для 5-го раздела ────────────────────
+  var SECRET_PASSWORD = 'NwrBJQF92k&=';
+  var REMEMBER_KEY    = 'pa_m5_unlocked';
 
   var activeModule = 1;
   var cache = {};
-  var authToken = localStorage.getItem('pa_token') || null;
+  var authToken = localStorage.getItem(REMEMBER_KEY) === '1' ? '1' : null;
 
   /* ── Утилиты ─────────────────────────────────────────── */
   function esc(str) {
@@ -64,36 +65,10 @@
   function loadModule(modId) {
     var content = document.getElementById('content');
 
-    // Модуль 5 требует авторизации
-    if (modId === 5) {
-      if (!authToken) {
-        content.innerHTML = renderLoginForm();
-        content.className = 'content fade-up';
-        return;
-      }
-      // Проверяем токен на сервере
-      fetch(API_URL + '/api/validate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token: authToken }),
-      })
-        .then(function (r) {
-          if (!r.ok) {
-            authToken = null;
-            localStorage.removeItem('pa_token');
-            content.innerHTML = renderLoginForm('Сессия истекла. Войдите заново.');
-            content.className = 'content fade-up';
-            return;
-          }
-          return r.json();
-        })
-        .then(function (data) {
-          if (data) loadModuleData(modId);
-        })
-        .catch(function () {
-          content.innerHTML = renderLoginForm('Сервер недоступен. Попробуйте позже.');
-          content.className = 'content fade-up';
-        });
+    // Модуль 5 требует пароля
+    if (modId === 5 && !authToken) {
+      content.innerHTML = renderLoginForm();
+      content.className = 'content fade-up';
       return;
     }
 
@@ -115,6 +90,7 @@
     fetch(meta.file)
       .then(function (r) { return r.json(); })
       .then(function (data) {
+        if (activeModule !== modId) return; // устарело — пользователь уже ушёл
         cache[modId] = data;
         content.innerHTML = renderModule(data);
         content.className = 'content fade-up';
@@ -125,30 +101,6 @@
       });
   }
 
-  /* ── Device ID (fingerprint) ─────────────────────────── */
-  function getDeviceId() {
-    var stored = localStorage.getItem('pa_device_id');
-    if (stored) return stored;
-
-    // Генерируем уникальный ID устройства
-    var raw = [
-      navigator.userAgent,
-      screen.width + 'x' + screen.height,
-      Intl.DateTimeFormat().resolvedOptions().timeZone,
-      navigator.language,
-      new Date().getTimezoneOffset(),
-    ].join('|');
-
-    // Простой hash
-    var hash = 0;
-    for (var i = 0; i < raw.length; i++) {
-      hash = ((hash << 5) - hash) + raw.charCodeAt(i);
-      hash = hash & hash;
-    }
-    var deviceId = 'dev_' + Math.abs(hash).toString(36) + '_' + Date.now().toString(36);
-    localStorage.setItem('pa_device_id', deviceId);
-    return deviceId;
-  }
 
   /* ── Форма входа ─────────────────────────────────────── */
   function renderLoginForm(errorMsg) {
@@ -160,13 +112,15 @@
       '<div class="auth-card">' +
         '<div class="auth-icon">🔐</div>' +
         '<h2 class="auth-title">Дополнительные курсы</h2>' +
-        '<p class="auth-desc">Этот раздел доступен только выпускникам.<br>Введите номер вашего сертификата для входа.</p>' +
+        '<p class="auth-desc">Этот раздел доступен только выпускникам.<br>Введите пароль для входа.</p>' +
         errorHtml +
         '<div class="auth-field">' +
-          '<input type="text" id="cert-input" class="auth-input" placeholder="Например: PA-2026-001" autocomplete="off" spellcheck="false">' +
+          '<input type="password" id="cert-input" class="auth-input" placeholder="Пароль" autocomplete="off" spellcheck="false">' +
         '</div>' +
+        '<label class="auth-remember">' +
+          '<input type="checkbox" id="remember-check"> Запомнить на этом устройстве' +
+        '</label>' +
         '<button class="auth-btn" id="auth-submit">Войти</button>' +
-        '<p class="auth-hint">Номер указан на вашем сертификате об окончании курса.</p>' +
       '</div>' +
     '</div>';
   }
@@ -174,41 +128,30 @@
   /* ── Обработка входа ─────────────────────────────────── */
   function handleLogin() {
     var input = document.getElementById('cert-input');
-    var btn = document.getElementById('auth-submit');
+    var btn   = document.getElementById('auth-submit');
+    var remember = document.getElementById('remember-check');
     if (!input || !btn) return;
 
-    var certNumber = input.value.trim();
-    if (!certNumber) {
+    var password = input.value.trim();
+    if (!password) {
       input.classList.add('shake');
       setTimeout(function () { input.classList.remove('shake'); }, 500);
       return;
     }
 
-    btn.textContent = 'Проверяем...';
-    btn.disabled = true;
+    if (password !== SECRET_PASSWORD) {
+      var content = document.getElementById('content');
+      content.innerHTML = renderLoginForm('Неверный пароль. Попробуйте ещё раз.');
+      content.className = 'content fade-up';
+      return;
+    }
 
-    fetch(API_URL + '/api/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        cert_number: certNumber,
-        device_id: getDeviceId(),
-      }),
-    })
-      .then(function (r) {
-        if (!r.ok) return r.json().then(function (d) { throw new Error(d.detail); });
-        return r.json();
-      })
-      .then(function (data) {
-        authToken = data.token;
-        localStorage.setItem('pa_token', authToken);
-        loadModuleData(5);
-      })
-      .catch(function (err) {
-        var content = document.getElementById('content');
-        content.innerHTML = renderLoginForm(err.message || 'Ошибка подключения к серверу');
-        content.className = 'content fade-up';
-      });
+    // Пароль верный
+    authToken = '1';
+    if (remember && remember.checked) {
+      localStorage.setItem(REMEMBER_KEY, '1');
+    }
+    loadModuleData(5);
   }
 
   /* ── Рендер модуля ───────────────────────────────────── */
@@ -298,7 +241,7 @@
     data.sections.forEach(function (section) {
       var bodyParts = '<p class="lesson-desc">' + esc(section.desc) + '</p>';
 
-      section.groups.forEach(function (group) {
+      (section.groups || []).forEach(function (group) {
         if (group.author) {
           bodyParts += '<div class="course-author">' + esc(group.author) + '</div>';
         }

@@ -1,0 +1,446 @@
+{
+  "id": 5,
+  "icon": "📚",
+  "title": "Дополнительные курсы",
+  "subtitle": "Подборка курсов и материалов для дальнейшего развития",
+  "type": "courses",
+  "sections": [
+    {
+      "num": "01",
+      "title": "Основы языка Python",
+      "desc": "Достаточно выбрать одного автора из трёх и пройти его курсы.",
+      "groups": [
+        {
+          "author": "Тимур Гуев",
+          "courses": [
+            { "name": "«Поколение Python»: курс для начинающих",   "url": "https://stepik.org/course/58852/syllabus",  "price": "free", "difficulty": "easy",    "value": "useful" },
+            { "name": "«Поколение Python»: курс для продвинутых",  "url": "https://stepik.org/course/68343/syllabus",  "price": "free", "difficulty": "easy",    "value": "useful" },
+            { "name": "«Поколение Python»: курс для профессионалов","url": "https://stepik.org/course/82541/promo?search=9020131034", "price": "paid", "difficulty": "unknown", "value": "unknown" }
+          ]
+        },
+        {
+          "author": "Егоров Артём",
+          "courses": [
+            { "name": "Инди-курс программирования на Python", "url": "https://stepik.org/course/63085/syllabus", "price": "free", "difficulty": "medium", "value": "useful" }
+          ]
+        },
+        {
+          "author": "Bioinformatics Institute",
+          "courses": [
+            { "name": "Программирование на Python", "url": "https://stepik.org/course/67/syllabus", "price": "free", "difficulty": "hard", "value": "useful" }
+          ]
+        }
+      ]
+    },
+    {
+      "num": "02",
+      "title": "ООП: Объектно-ориентированное программирование",
+      "desc": "Углублённое изучение ООП в Python.",
+      "groups": [
+        {
+          "author": "Merion Academy",
+          "courses": [
+            { "name": "Что такое ООП", "url": "https://www.youtube.com/watch?v=ChEdFh7Q-Vw", "price": "free", "difficulty": "easy", "value": "useful" }
+          ]
+        },
+        {
+          "author": "Ulbi TV",
+          "courses": [
+            { "name": "ООП на простых примерах", "url": "https://www.youtube.com/watch?v=-6DWwR_R4Xk", "price": "free", "difficulty": "hard", "value": "useful" }
+          ]
+        },
+        {
+          "author": "Сергей Балакирев",
+          "courses": [
+            { "name": "Курс по ООП", "url": "https://www.youtube.com/watch?v=Z7AY41tE-3U&list=PLA0M1Bcd0w8zPwP7t-FgwONhZOHt9rz9E", "price": "free", "difficulty": "hard", "value": "useful" }
+          ]
+        },
+        {
+          "author": "Егоров Артём",
+          "courses": [
+            { "name": "ООП: Объектно-ориентированное программирование на Python", "url": "#", "price": "paid", "difficulty": "hard", "value": "super" }
+          ]
+        }
+      ]
+    },
+    {
+      "num": "03",
+      "title": "Git & GitHub",
+      "desc": "Система контроля версий — must have для любого разработчика.",
+      "groups": [
+        {
+          "courses": [
+            { "name": "LearnGitBranching — интерактивный тренажёр", "url": "https://learngitbranching.js.org/?locale=ru_RU", "price": "free", "difficulty": "medium", "value": "useful" }
+          ]
+        },
+        {
+          "author": "ITDoctor",
+          "courses": [
+            { "name": "Git и GitHub для начинающих", "url": "https://www.youtube.com/watch?v=7uiM8BJ_ZMM&list=PLeLN0qH0-mCVQKZ8-W1LhxDcVlWtTALCS", "price": "free", "difficulty": "medium", "value": "useful" }
+          ]
+        }
+      ]
+    },
+    {
+      "num": "04",
+      "title": "Регулярные выражения",
+      "desc": "Мощный инструмент для работы с текстом и поиска паттернов.",
+      "groups": [
+        {
+          "author": "Сергей Балакирев",
+          "courses": [
+            { "name": "Регулярные выражения", "url": "https://www.youtube.com/watch?v=TwnCXdCa8qg&list=PLA0M1Bcd0w8x4Inr5oYttMK6J47vxgv6J", "price": "free", "difficulty": "unknown", "value": "unknown" }
+          ]
+        }
+      ]
+    },
+    {
+      "num": "05",
+      "title": "SQL",
+      "desc": "Язык запросов к базам данных.",
+      "groups": [
+        {
+          "courses": [
+            { "name": "Интерактивный тренажер по SQL",       "url": "https://stepik.org/course/63054/syllabus",   "price": "free", "difficulty": "hard", "value": "useful" },
+            { "name": "Задания SQL тренажера — SQL Academy", "url": "https://sql-academy.org/ru/trainer",          "price": "free", "difficulty": "easy", "value": "useful" },
+            { "name": "SQL Базовый курс",                    "url": "https://www.youtube.com/watch?v=Zeh-Icitlrg&list=PLdHSST5L9mqaE3d8RlkqamRV6mpLcetoh", "price": "free", "difficulty": "medium", "value": "useful" }
+          ]
+        },
+        {
+          "author": "Crunchydata",
+          "courses": [
+            { "name": "Курс по SQL и разным базам данных", "url": "https://www.crunchydata.com/developers/tutorials", "price": "free", "difficulty": "unknown", "value": "unknown" },
+            { "name": "Курс по MongoDB",                   "url": "https://learn.mongodb.com/catalog",               "price": "free", "difficulty": "unknown", "value": "unknown" }
+          ]
+        },
+        {
+          "author": "Диджитализируй",
+          "courses": [
+            { "name": "База по оптимизации PostgreSQL", "url": "https://www.youtube.com/watch?v=gA3A_epB3So&t=5801s", "price": "free", "difficulty": "hard", "value": "useful" }
+          ]
+        },
+        {
+          "author": "Antosha Korsakov",
+          "courses": [
+            { "name": "Шардирование и Партиционирование Базы Данных", "url": "https://www.youtube.com/watch?v=7fLi3o7TCPE&ab_channel=AntoshaKorsakov", "price": "free", "difficulty": "medium", "value": "useful" }
+          ]
+        }
+      ]
+    },
+    {
+      "num": "06",
+      "title": "HTML / CSS / JavaScript",
+      "desc": "Вёрстка и фронтенд-разработка.",
+      "groups": [
+        {
+          "courses": [
+            { "name": "Основы HTML и CSS",                     "url": "https://stepik.org/course/52164/syllabus",  "price": "free", "difficulty": "easy", "value": "useful" },
+            { "name": "Инди-курс по HTML и CSS",               "url": "https://stepik.org/course/120494/syllabus", "price": "free", "difficulty": "easy", "value": "useful" },
+            { "name": "10 игр для изучения HTML/CSS/JS",       "url": "https://proglib.io/p/10-fun-web-games",     "price": "free", "difficulty": "easy", "value": "useful" },
+            { "name": "verstaem.online — тренажёр по вёрстке", "url": "https://verstaem.online/tasks/",            "price": "free", "difficulty": "easy", "value": "useful" }
+          ]
+        },
+        {
+          "author": "Исмаил Усеинов",
+          "courses": [
+            { "name": "Frontend разработчик на HTML, CSS и JavaScript",     "url": "https://stepik.org/course/113402/syllabus", "price": "free", "difficulty": "heavy",   "value": "useful" },
+            { "name": "Практический мини-курс по JavaScript и Bootstrap 5", "url": "https://stepik.org/course/125756/syllabus", "price": "free", "difficulty": "unknown", "value": "unknown" },
+            { "name": "Тренажер по вёрстке, плагин Emmet",                 "url": "https://stepik.org/course/113654/syllabus", "price": "free", "difficulty": "unknown", "value": "unknown" }
+          ]
+        }
+      ]
+    },
+    {
+      "num": "07",
+      "title": "JavaScript — углублённо",
+      "desc": "Учебники и тренажёры для изучения JavaScript.",
+      "groups": [
+        {
+          "courses": [
+            { "name": "Современный учебник JavaScript",         "url": "https://learn.javascript.ru/",           "price": "free", "difficulty": "medium", "value": "useful" },
+            { "name": "schoolsw3 — интерактивный JS тренажёр", "url": "https://www.schoolsw3.com/js/index.php", "price": "free", "difficulty": "easy",   "value": "useful" }
+          ]
+        }
+      ]
+    },
+    {
+      "num": "08",
+      "title": "Фреймворки (Django, FastAPI)",
+      "desc": "Веб-фреймворки для создания серверных приложений.",
+      "groups": [
+        {
+          "courses": [
+            { "name": "Быстрый старт в FastAPI Python", "url": "https://stepik.org/course/179694/syllabus", "price": "free", "difficulty": "medium", "value": "optional" },
+            { "name": "Django, потанцуем?",             "url": "https://stepik.org/course/114288/syllabus", "price": "paid", "difficulty": "hard",   "value": "useful" }
+          ]
+        },
+        {
+          "author": "Артём Шумейко",
+          "courses": [
+            { "name": "Курс по FastAPI", "url": "https://www.youtube.com/watch?v=JqfbfraMjW8&list=PLeLN0qH0-mCVQKZ8-W1LhxDcVlWtTALCS", "price": "free", "difficulty": "medium", "value": "super" }
+          ]
+        },
+        {
+          "author": "Сурен Хоренян",
+          "courses": [
+            { "name": "Веб-приложение на FastAPI", "url": "https://www.youtube.com/watch?v=z4pbneT6SLw&list=PLYnH8mpFQ4akzzS1D9IHkMuXacb-bD4Cl&index=3", "price": "free", "difficulty": "medium", "value": "super" }
+          ]
+        },
+        {
+          "author": "Сергей Балакирев",
+          "courses": [
+            { "name": "Django REST Framework", "url": "https://www.youtube.com/watch?v=i-uvtDKeFgE&list=PLA0M1Bcd0w8xZA3Kl1fYmOH_MfLpiYMRs", "price": "free", "difficulty": "medium", "value": "super" },
+            { "name": "Django v.4.0",          "url": "https://www.youtube.com/watch?v=FyTL1bnUx5I&list=PLA0M1Bcd0w8xO_39zZll2u1lz_Q-Mwn1F", "price": "free", "difficulty": "medium", "value": "super" },
+            { "name": "Django v.3.0",          "url": "https://www.youtube.com/watch?v=oBU83uojltE&list=PLA0M1Bcd0w8yU5h2vwZ4LO7h1xt8COUXl", "price": "free", "difficulty": "medium", "value": "super" }
+          ]
+        },
+        {
+          "author": "Amvera | Habr",
+          "courses": [
+            { "name": "SQLAlchemy — часть 1", "url": "https://habr.com/ru/companies/amvera/articles/849836/", "price": "free", "difficulty": "medium", "value": "useful" },
+            { "name": "SQLAlchemy — часть 2", "url": "https://habr.com/ru/companies/amvera/articles/850470/", "price": "free", "difficulty": "medium", "value": "useful" },
+            { "name": "SQLAlchemy — часть 3", "url": "https://habr.com/ru/companies/amvera/articles/855740/", "price": "free", "difficulty": "medium", "value": "useful" }
+          ]
+        }
+      ]
+    },
+    {
+      "num": "09",
+      "title": "Телеграм-боты / Git / Docker / БД и многое другое",
+      "desc": "⭐ Многие проходят мимо этого курса, а там кроме ТГ-ботов много полезного и нужного: Git, GitHub, Docker, базы данных и многое другое!",
+      "badges": ["⭐ рекомендуем"],
+      "groups": [
+        {
+          "courses": [
+            { "name": "Телеграм-боты и не только на Python и AIOgram. Введение в профессию", "url": "https://stepik.org/course/104774/syllabus", "price": "free", "difficulty": "hard", "value": "super" }
+          ]
+        }
+      ]
+    },
+    {
+      "num": "10",
+      "title": "Парсинг веб-сайтов и автоматизация",
+      "desc": "Сбор данных с сайтов и автоматизация задач.",
+      "groups": [
+        {
+          "author": "Павел Хошев",
+          "courses": [
+            { "name": "Парсинг веб-сайтов на Python", "url": "https://stepik.org/course/104774/syllabus", "price": "paid", "difficulty": "medium", "value": "useful" }
+          ]
+        }
+      ]
+    },
+    {
+      "num": "11",
+      "title": "Docker и Docker Compose",
+      "desc": "Контейнеризация приложений.",
+      "groups": [
+        {
+          "author": "Merion Academy",
+          "courses": [
+            { "name": "Что такое Docker?", "url": "https://www.youtube.com/watch?v=aZTL2zRmOnA", "price": "free", "difficulty": "easy", "value": "useful" }
+          ]
+        },
+        {
+          "author": "Vlad Mishustin",
+          "courses": [
+            { "name": "Docker Для Начинающих за 1 Час", "url": "https://www.youtube.com/watch?v=lr1rYnUubpQ", "price": "free", "difficulty": "medium", "value": "super" }
+          ]
+        },
+        {
+          "author": "Python Hub Studio",
+          "courses": [
+            { "name": "Docker и Docker Compose — Полный курс для начинающих (4 часа)", "url": "https://www.youtube.com/watch?v=wgA3yntF_ek", "price": "free", "difficulty": "hard", "value": "useful" }
+          ]
+        },
+        {
+          "author": "Сергей Балакирев",
+          "courses": [
+            { "name": "Docker для начинающих", "url": "https://www.youtube.com/watch?v=4Yc9xfuEo2w&list=PLA0M1Bcd0w8zznkO6nZoG8pWfKGK0RqBo", "price": "free", "difficulty": "hard", "value": "useful" }
+          ]
+        },
+        {
+          "author": "Bogdan Stashchuk",
+          "courses": [
+            { "name": "Docker — Полный курс для начинающих (3 часа)", "url": "https://www.youtube.com/watch?v=_uZQtRyF6Eg", "price": "free", "difficulty": "heavy", "value": "useful" }
+          ]
+        }
+      ]
+    },
+    {
+      "num": "12",
+      "title": "CI/CD",
+      "desc": "Непрерывная интеграция и доставка — автоматизация сборки и деплоя.",
+      "groups": [
+        {
+          "author": "Бинарный поиск",
+          "courses": [
+            { "name": "Всё что нужно знать о деплое, Docker, CI/CD, если ты новичок", "url": "https://www.youtube.com/watch?v=2yoRWrc0MA0", "price": "free", "difficulty": "medium", "value": "start" }
+          ],
+          "author": "ADV-IT",
+          "courses": [
+            { "name": "GitLab и GitLab CI/CD для DevOps", "url": "https://www.youtube.com/watch?v=R1a-1JYfiQA&list=PLg5SS_4L6LYuJxTrdU5vzBaVGlZko8Hsy", "price": "free", "difficulty": "medium", "value": "useful" }
+          ]
+        }
+      ]
+    },
+    {
+      "num": "13",
+      "title": "Kubernetes",
+      "desc": "Оркестрация контейнеров.",
+      "groups": [
+        {
+          "author": "Merion Academy",
+          "courses": [
+            { "name": "Что такое Kubernetes?", "url": "https://www.youtube.com/watch?v=klmpiHLSuXA", "price": "free", "difficulty": "easy", "value": "useful" }
+          ]
+        },
+        {
+          "author": "Артём Шумейко",
+          "courses": [
+            { "name": "Kubernetes — Простым Языком", "url": "https://www.youtube.com/watch?v=TwyhnBDOHPw", "price": "free", "difficulty": "easy", "value": "useful" }
+          ]
+        },
+        {
+          "author": "Anton Bakavets",
+          "courses": [
+            { "name": "K8s уроки", "url": "https://www.youtube.com/watch?v=Amkkr4_nsyc&list=PL3SzV1_k2H1VDePbSWUqERqlBXIk02wCQ", "price": "free", "difficulty": "hard", "value": "useful" }
+          ]
+        }
+      ]
+    },
+    {
+      "num": "14",
+      "title": "Брокеры сообщений (Kafka & RabbitMQ & Redis)",
+      "desc": "Асинхронный обмен сообщениями между сервисами — основа распределённых систем.",
+      "groups": [
+        {
+          "author": "ListenIT",
+          "courses": [
+            { "name": "Что такое RabbitMQ и чем он отличается от Apache Kafka за 10 минут", "url": "https://www.youtube.com/watch?v=QRmGgixERKs", "price": "free", "difficulty": "medium", "value": "start" }
+          ]
+        },
+        {
+          "author": "Vlad Mishustin",
+          "courses": [
+            { "name": "Лучший Гайд по Kafka для Начинающих За 1 Час", "url": "https://www.youtube.com/watch?v=hbseyn-CfXY", "price": "free", "difficulty": "medium", "value": "start" }
+          ]
+        },
+        {
+          "author": "Артём Шумейко",
+          "courses": [
+            { "name": "Пишем Микросервисы на Python + Брокер RabbitMQ", "url": "https://www.youtube.com/watch?v=oqIvVBQMECc", "price": "free", "difficulty": "medium", "value": "useful", "github": "https://github.com/artemonsh/microservices_notifier" },
+            { "name": "RabbitMQ на ПРАКТИКЕ — Как пользоваться Брокерами сообщений через Python", "url": "https://www.youtube.com/watch?v=cn-XfCgE_Kk", "price": "free", "difficulty": "medium", "value": "useful", "github": "https://github.com/artemonsh/rabbitmq-python-example" }
+          ]
+        }
+      ]
+    },
+    {
+      "num": "15",
+      "title": "Нейросети и машинное обучение",
+      "desc": "Введение в ML, нейронные сети и генетические алгоритмы.",
+      "groups": [
+        {
+          "author": "Сергей Балакирев",
+          "courses": [
+            { "name": "Нейронные сети на PyTorch",  "url": "https://www.youtube.com/watch?v=PvXDWPVJUPg&list=PLA0M1Bcd0w8xUIMIPSoiW05lDyPNPt4tf", "price": "free", "difficulty": "unknown", "value": "unknown" },
+            { "name": "Машинное обучение",          "url": "https://www.youtube.com/watch?v=ZpYj02xMImc&list=PLA0M1Bcd0w8zxDIDOTQHsX68MCDOAJDtj", "price": "free", "difficulty": "unknown", "value": "unknown" },
+            { "name": "Генетические алгоритмы",     "url": "https://www.youtube.com/watch?v=52g2Qi_4X3E&list=PLA0M1Bcd0w8zkG8DJSyqrKyBfDtRJ2Ohh", "price": "free", "difficulty": "unknown", "value": "unknown" }
+          ]
+        },
+        {
+          "author": "Статьи",
+          "courses": [
+            { "name": "Ландшафт основных терминов в области генеративного AI",             "url": "https://habr.com/ru/articles/950600/", "price": "free", "difficulty": "medium",  "value": "unknown" },
+            { "name": "Как LangChain и LangGraph упрощают жизнь разработчика ИИ-Агентов", "url": "https://habr.com/ru/articles/881372/", "price": "free", "difficulty": "unknown", "value": "unknown" }
+          ]
+        }
+      ]
+    },
+    {
+      "num": "16",
+      "title": "Linux",
+      "desc": "Основы работы с операционной системой Linux для разработчиков.",
+      "groups": [
+        {
+          "author": "Гоша Дударь",
+          "courses": [
+            { "name": "Уроки Linux для начинающих", "url": "https://www.youtube.com/playlist?list=PL0lO_mIqDDFUwVWvVitxG2oXA6a-Nq-Qq&si=gWWb2RxcnNOhxbqt", "price": "free", "difficulty": "medium", "value": "start" }
+          ]
+        },
+        {
+          "author": "REBRAIN",
+          "courses": [
+            { "name": "Linux базовые знания", "url": "https://www.youtube.com/watch?v=hltUg3T1MJU&list=PL_jzYoo7u8dErAbv4gKmOaoNSJ1ZD0kZL", "price": "free", "difficulty": "hard", "value": "useful" }
+          ]
+        },
+        {
+          "author": "Новая образовательная система",
+          "courses": [
+            { "name": "Администрирование Linux", "url": "https://www.youtube.com/watch?v=K8W4VUJQdX4&t=51s", "price": "free", "difficulty": "hard", "value": "useful" }
+          ]
+        }
+      ]
+    },
+    {
+      "num": "17",
+      "title": "Микросервисная архитектура",
+      "desc": "Паттерны и подходы к проектированию микросервисов.",
+      "groups": [
+        {
+          "author": "Статьи",
+          "courses": [
+            { "name": "26 основных паттернов микросервисной разработки — VK Cloud", "url": "https://cloud.vk.com/blog/26-osnovnyh-patternov-mikroservisnoj-razrabotki/",  "price": "free", "difficulty": "medium", "value": "useful" },
+            { "name": "Микросервисная архитектура — Habr",                          "url": "https://habr.com/ru/companies/serverspace/articles/692916/",                   "price": "free", "difficulty": "medium", "value": "useful" }
+          ]
+        }
+      ]
+    },
+    {
+      "num": "18",
+      "title": "Архитектурные шаблоны",
+      "desc": "Шаблоны проектирования архитектуры приложений.",
+      "groups": [
+        {
+          "author": "Статьи",
+          "courses": [
+            { "name": "Архитектурные шаблоны — Habr",                             "url": "https://habr.com/ru/companies/alconost/articles/522662/",                            "price": "free", "difficulty": "medium", "value": "useful" },
+            { "name": "Топовые паттерны для разработки архитектуры ПО — Tproger", "url": "https://tproger.ru/articles/topovye-patterny-dlya-razrabotki-arhitektury-po",       "price": "free", "difficulty": "medium", "value": "useful" }
+          ]
+        }
+      ]
+    },
+    {
+      "num": "19",
+      "title": "Паттерны проектирования & рефакторинг",
+      "desc": "Продвинутые концепции для написания качественного кода.",
+      "groups": [
+        {
+          "courses": [
+            { "name": "Рефакторинг — Refactoring Guru",             "url": "https://refactoringguru.cn/ru/refactoring",    "price": "free", "difficulty": "medium", "value": "super" },
+            { "name": "Паттерны проектирования — Refactoring Guru", "url": "https://refactoringguru.cn/ru/design-patterns", "price": "free", "difficulty": "heavy",  "value": "super" }
+          ]
+        },
+        {
+          "author": "Dpereverza | Habr",
+          "courses": [
+            { "name": "Всё, что вы хотите узнать о Driven Development", "url": "https://habr.com/ru/articles/459620/", "price": "free", "difficulty": "medium", "value": "useful" }
+          ]
+        }
+      ]
+    },
+    {
+      "num": "20",
+      "title": "Аннотация типов",
+      "desc": "Типизированный Python для профессиональной разработки.",
+      "groups": [
+        {
+          "author": "Диджитализируй",
+          "courses": [
+            { "name": "Типизированный Python для профессиональной разработки", "url": "https://www.youtube.com/watch?v=dKxiHlZvULQ&t=3s", "price": "free", "difficulty": "hard", "value": "useful" }
+          ]
+        }
+      ]
+    }
+  ]
+}
