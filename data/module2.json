@@ -100,6 +100,12 @@
       ],
       "links": [
         { "url": "https://habr.com/ru/articles/991714/", "title": "Рекурсия в Python: от матрешки до стека вызовов — Habr" }
+      ],
+      "screenshots": [
+        { "src": "screenshots/lesson2.7-usage-example.jpg", "caption": "Работа рекурсивной функции & стек вызова" },
+        { "src": "screenshots/lesson2.7-usage-example2.jpg", "caption": "Описание работы рекурсивной функции" },
+        { "src": "screenshots/lesson2.7-usage-example3.jpg", "caption": "Описание работы стека вызово LIFO" },
+        { "src": "screenshots/lesson2.7-usage-example4.jpg", "caption": "Раскрытие стека вызовов" }
       ]
     },
     {
