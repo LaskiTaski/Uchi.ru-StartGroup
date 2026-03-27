@@ -187,6 +187,12 @@
           ]
         },
         {
+          "author": "luchanos",
+          "courses": [
+            { "name": "УРОКИ FASTAPI НА БОЕВОМ СЕРВИСЕ", "url": "https://www.youtube.com/watch?v=UkwpJyvf8CA&list=PLlKID9PnOE5jiWTTsshCXdz5qvg8JWezX", "price": "free", "difficulty": "medium", "value": "super" }
+          ]
+        },
+        {
           "author": "Сергей Балакирев",
           "courses": [
             { "name": "Django REST Framework", "url": "https://www.youtube.com/watch?v=i-uvtDKeFgE&list=PLA0M1Bcd0w8xZA3Kl1fYmOH_MfLpiYMRs", "price": "free", "difficulty": "medium", "value": "super" },
