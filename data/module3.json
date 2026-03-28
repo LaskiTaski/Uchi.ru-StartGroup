@@ -13,6 +13,10 @@
       "num": "3.2",
       "title": "Списки",
       "desc": "Создание списков, индексация и базовые операции.",
+      "articles": [
+        { "source": "stavis-dev", "url": "https://stavis-dev.github.io/python/types/python-types-list" },
+        { "source": "python-academy", "url": "https://python-academy.org/ru/guide/lists" }
+      ],
       "videos": [
         {
           "author": "Егоров Артём",
@@ -34,6 +38,10 @@
       "num": "3.3",
       "title": "Методы работы со списками",
       "desc": "append, insert, remove, pop, sort и другие методы.",
+      "articles": [
+        { "source": "stavis-dev", "url": "https://stavis-dev.github.io/python/types/python-types-list" },
+        { "source": "python-academy", "url": "https://python-academy.org/ru/guide/lists" }
+      ],
       "videos": [
         {
           "author": "Егоров Артём",
@@ -60,6 +68,10 @@
       "num": "3.5",
       "title": "Кортежи",
       "desc": "Неизменяемые последовательности — tuple.",
+      "articles": [
+        { "source": "stavis-dev", "url": "https://stavis-dev.github.io/python/types/python-types-tuple" },
+        { "source": "python-academy", "url": "https://python-academy.org/ru/guide/tuples" }
+      ],
       "videos": [
         {
           "author": "Егоров Артём",
@@ -79,6 +91,12 @@
       "num": "3.6",
       "title": "Сортировка",
       "desc": "Сортировка коллекций в Python.",
+      "articles": [
+        { "source": "stavis-dev", "url": "https://stavis-dev.github.io/python/functions/map" },
+        { "source": "stavis-dev", "url": "https://stavis-dev.github.io/python/functions/python-sorted" },
+        { "source": "python-academy", "url": "https://python-academy.org/ru/guide/lists" },
+        { "source": "Pythonist", "url": "https://pythonist.ru/map-filter-i-reduce-funkczii-v-python/?ysclid=mnali84to527730580" }
+      ],
       "videos": [
         {
           "author": "Егоров Артём",
@@ -93,6 +111,10 @@
       "num": "3.7",
       "title": "Лямбда-функции",
       "desc": "Анонимные функции и их применение.",
+      "articles": [
+        { "source": "stavis-dev", "url": "https://stavis-dev.github.io/python/functions/lambda" },
+        { "source": "python-academy", "url": "https://python-academy.org/ru/guide/lambda-functions?ysclid=mnalg16agl309845329" }
+      ],
       "videos": [
         {
           "author": "Егоров Артём",
@@ -113,6 +135,10 @@
       "num": "3.8",
       "title": "Словари",
       "desc": "Хранение данных в формате ключ-значение.",
+      "articles": [
+        { "source": "stavis-dev", "url": "https://stavis-dev.github.io/python/types/python-types-dict" },
+        { "source": "python-academy", "url": "https://python-academy.org/ru/guide/dictionaries" }
+      ],
       "videos": [
         {
           "author": "Егоров Артём",
@@ -133,6 +159,10 @@
       "num": "3.9",
       "title": "Методы работы со словарями",
       "desc": "keys, values, items, get, update и другие методы.",
+      "articles": [
+        { "source": "stavis-dev", "url": "https://stavis-dev.github.io/python/types/python-types-dict" },
+        { "source": "python-academy", "url": "https://python-academy.org/ru/guide/dictionaries" }
+      ],
       "videos": [
         {
           "author": "Егоров Артём",
@@ -152,6 +182,10 @@
       "num": "3.10",
       "title": "Создание и работа с множествами",
       "desc": "Уникальные коллекции элементов — set.",
+      "articles": [
+        { "source": "stavis-dev", "url": "https://stavis-dev.github.io/python/types/python-types-set" },
+        { "source": "python-academy", "url": "https://python-academy.org/ru/guide/sets" }
+      ],
       "videos": [
         {
           "author": "Егоров Артём",
@@ -172,6 +206,10 @@
       "title": "Решение задач с множествами",
       "desc": "Практические задачи на работу с множествами.",
       "badges": ["📝 практика"],
+      "articles": [
+        { "source": "stavis-dev", "url": "https://stavis-dev.github.io/python/types/python-types-set" },
+        { "source": "python-academy", "url": "https://python-academy.org/ru/guide/sets" }
+      ],
       "videos": [
         {
           "author": "Сергей Балакирев",
