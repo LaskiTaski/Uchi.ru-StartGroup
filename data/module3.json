@@ -3,19 +3,196 @@
   "icon": "⚙️",
   "title": "Модуль 3: Коллекции и структуры данных",
   "lessons": [
-    { "num": "3.1",  "title": "Повторение",                          "desc": "Повторение материала предыдущих модулей." },
-    { "num": "3.2",  "title": "Списки",                              "desc": "Создание списков, индексация и базовые операции." },
-    { "num": "3.3",  "title": "Методы работы со списками",            "desc": "append, insert, remove, pop, sort и другие методы." },
-    { "num": "3.4",  "title": "Решение задач со списками",            "desc": "Практические задачи на работу со списками.", "badges": ["📝 практика"] },
-    { "num": "3.5",  "title": "Кортежи",                             "desc": "Неизменяемые последовательности — tuple." },
-    { "num": "3.6",  "title": "Словари",                             "desc": "Хранение данных в формате ключ-значение." },
-    { "num": "3.7",  "title": "Методы работы со словарями",           "desc": "keys, values, items, get, update и другие методы." },
-    { "num": "3.8",  "title": "Решение задач со словарями",           "desc": "Практические задачи на работу со словарями.", "badges": ["📝 практика"] },
-    { "num": "3.9",  "title": "Множества",                           "desc": "Уникальные коллекции элементов — set." },
-    { "num": "3.10", "title": "Решение задач с множествами",          "desc": "Практические задачи на работу с множествами.", "badges": ["📝 практика"] },
-    { "num": "3.11", "title": "Вложенные структуры данных",          "desc": "Комбинирование списков, словарей, кортежей." },
-    { "num": "3.12", "title": "Мини-проект с коллекциями",            "desc": "Создаём мини-проект с использованием коллекций.", "badges": ["🛠️ проект"] },
-    { "num": "📝",   "title": "Промежуточная аттестация",             "attestation": true }
+    {
+      "num": "3.1",
+      "title": "Повторение",
+      "desc": "Повторение материала предыдущих модулей.",
+      "badges": ["📝 практика"]
+    },
+    {
+      "num": "3.2",
+      "title": "Списки",
+      "desc": "Создание списков, индексация и базовые операции.",
+      "videos": [
+        {
+          "author": "Егоров Артём",
+          "list": [
+            { "title": "Списки и операции над ними", "url": "https://www.youtube.com/watch?v=CEQZYZMPJSU&list=PLQAt0m1f9OHvv2wxPGSCWjgy1qER_FvB6&index=15" },
+            { "title": "Списки: индексы и срезы", "url": "https://www.youtube.com/watch?v=z8WWOnxUOb8&list=PLQAt0m1f9OHvv2wxPGSCWjgy1qER_FvB6&index=16" }
+          ]
+        },
+        {
+          "author": "Сергей Балакирев",
+          "list": [
+            { "title": "Списки - операторы и функции работы с ними", "url": "https://www.youtube.com/watch?v=HgFGVQG20Oc" },
+            { "title": "Срезы списков и сравнение списков", "url": "https://www.youtube.com/watch?v=Vx3s01Yb1P8" }
+          ]
+        }
+      ]
+    },
+    {
+      "num": "3.3",
+      "title": "Методы работы со списками",
+      "desc": "append, insert, remove, pop, sort и другие методы.",
+      "videos": [
+        {
+          "author": "Егоров Артём",
+          "list": [
+            { "title": "Списки и их методы", "url": "https://www.youtube.com/watch?v=e0If6CJZs4s&list=PLQAt0m1f9OHvv2wxPGSCWjgy1qER_FvB6&index=16" }
+          ]
+        },
+        {
+          "author": "Сергей Балакирев",
+          "list": [
+            { "title": "Основные методы списков", "url": "https://www.youtube.com/watch?v=1r9X3drypHk" },
+            { "title": "Вложенные списки, многомерные списки", "url": "https://www.youtube.com/watch?v=FBCufeNGQio" }
+          ]
+        }
+      ]
+    },
+    {
+      "num": "3.4",
+      "title": "Решение задач со списками",
+      "desc": "Практические задачи на работу со списками.",
+      "badges": ["📝 практика"]
+    },
+    {
+      "num": "3.5",
+      "title": "Кортежи",
+      "desc": "Неизменяемые последовательности — tuple.",
+      "videos": [
+        {
+          "author": "Егоров Артём",
+          "list": [
+            { "title": "Кортежи (tuple) в Python", "url": "https://www.youtube.com/watch?v=pf3V5rr30Ts&list=PLQAt0m1f9OHvv2wxPGSCWjgy1qER_FvB6&index=36" }
+          ]
+        },
+        {
+          "author": "Сергей Балакирев",
+          "list": [
+            { "title": "Кортежи (tuple) и их методы", "url": "https://www.youtube.com/watch?v=JVEBE7pviE0" }
+          ]
+        }
+      ]
+    },
+    {
+      "num": "3.6",
+      "title": "Сортировка",
+      "desc": "Сортировка коллекций в Python.",
+      "videos": [
+        {
+          "author": "Егоров Артём",
+          "list": [
+            { "title": "Сортировка коллекций в Python. Метод sort и функция sorted", "url": "https://www.youtube.com/watch?v=Qi5HEyla4_U" },
+            { "title": "Сортировка по ключу Python. Аргумент key", "url": "https://www.youtube.com/watch?v=I4u5dth91G0" }
+          ]
+        }
+      ]
+    },
+    {
+      "num": "3.7",
+      "title": "Лямбда-функции",
+      "desc": "Анонимные функции и их применение.",
+      "videos": [
+        {
+          "author": "Егоров Артём",
+          "list": [
+            { "title": "Lambda функция Python. Lambda выражение. Анонимная функция Lambda", "url": "https://www.youtube.com/watch?v=8fzrm1tX5lI" },
+            { "title": "Генераторы списков & List comprehension", "url": "https://www.youtube.com/watch?v=_zBTBr6XdZo" }
+          ]
+        },
+        {
+          "author": "Сергей Балакирев",
+          "list": [
+            { "title": "Анонимные (lambda) функции", "url": "https://www.youtube.com/watch?v=UAYeh7pSqXw" }
+          ]
+        }
+      ]
+    },
+    {
+      "num": "3.8",
+      "title": "Словари",
+      "desc": "Хранение данных в формате ключ-значение.",
+      "videos": [
+        {
+          "author": "Егоров Артём",
+          "list": [
+            { "title": "Словари (dict) Python", "url": "https://www.youtube.com/watch?v=7_Zrh1--d5o&list=PLQAt0m1f9OHvv2wxPGSCWjgy1qER_FvB6&index=34" },
+            { "title": "Ситуации, где полезно использовать словарь", "url": "https://www.youtube.com/watch?v=dZ474oWml9k&list=PLQAt0m1f9OHvv2wxPGSCWjgy1qER_FvB6&index=35" }
+          ]
+        },
+        {
+          "author": "Сергей Балакирев",
+          "list": [
+            { "title": "Введение в словари (dict). Базовые операции над словарями", "url": "https://www.youtube.com/watch?v=JV2olufru8Q" }
+          ]
+        }
+      ]
+    },
+    {
+      "num": "3.9",
+      "title": "Методы работы со словарями",
+      "desc": "keys, values, items, get, update и другие методы.",
+      "videos": [
+        {
+          "author": "Егоров Артём",
+          "list": [
+            { "title": "Операции и методы словаря", "url": "https://www.youtube.com/watch?v=7_Zrh1--d5o&list=PLQAt0m1f9OHvv2wxPGSCWjgy1qER_FvB6&index=34" }
+          ]
+        },
+        {
+          "author": "Сергей Балакирев",
+          "list": [
+            { "title": "Методы словаря, перебор элементов словаря в цикле", "url": "https://www.youtube.com/watch?v=pZqll5OVbLo" }
+          ]
+        }
+      ]
+    },
+    {
+      "num": "3.10",
+      "title": "Создание и работа с множествами",
+      "desc": "Уникальные коллекции элементов — set.",
+      "videos": [
+        {
+          "author": "Егоров Артём",
+          "list": [
+            { "title": "Множества в Python. Тип данных set", "url": "https://www.youtube.com/watch?v=KMGRXDxUw18&list=PLQAt0m1f9OHvv2wxPGSCWjgy1qER_FvB6&index=33" }
+          ]
+        },
+        {
+          "author": "Сергей Балакирев",
+          "list": [
+            { "title": "Множества (set) и их методы", "url": "https://www.youtube.com/watch?v=Z3lw-yMZKuQ" }
+          ]
+        }
+      ]
+    },
+    {
+      "num": "3.11",
+      "title": "Решение задач с множествами",
+      "desc": "Практические задачи на работу с множествами.",
+      "badges": ["📝 практика"],
+      "videos": [
+        {
+          "author": "Сергей Балакирев",
+          "list": [
+            { "title": "Операции над множествами, сравнение множеств", "url": "https://www.youtube.com/watch?v=0lPDdSX76z4" },
+            { "title": "Генераторы множеств и генераторы словарей", "url": "https://www.youtube.com/watch?v=xbTeGaWxrdY" }
+          ]
+        }
+      ]
+    },
+    {
+      "num": "3.12",
+      "title": "Проект «Мини-бот»",
+      "desc": "Создаём мини-проект с использованием коллекций.",
+      "badges": ["🛠️ проект"]
+    },
+    {
+      "num": "📝",
+      "title": "Промежуточная аттестация",
+      "attestation": true
+    }
   ],
   "extra": {
     "text": "Дополнительные материалы к модулю 3 будут размещены здесь."
