@@ -13,49 +13,29 @@
       "num": "3.2",
       "title": "Списки",
       "desc": "Создание списков, индексация и базовые операции.",
-      "articles": [
-        { "source": "stavis-dev", "url": "https://stavis-dev.github.io/python/types/python-types-list" },
-        { "source": "python-academy", "url": "https://python-academy.org/ru/guide/lists" }
-      ],
       "videos": [
-        {
-          "author": "Егоров Артём",
-          "list": [
-            { "title": "Списки и операции над ними", "url": "https://www.youtube.com/watch?v=CEQZYZMPJSU&list=PLQAt0m1f9OHvv2wxPGSCWjgy1qER_FvB6&index=15" },
-            { "title": "Списки: индексы и срезы", "url": "https://www.youtube.com/watch?v=z8WWOnxUOb8&list=PLQAt0m1f9OHvv2wxPGSCWjgy1qER_FvB6&index=16" }
-          ]
-        },
-        {
-          "author": "Сергей Балакирев",
-          "list": [
-            { "title": "Списки - операторы и функции работы с ними", "url": "https://www.youtube.com/watch?v=HgFGVQG20Oc" },
-            { "title": "Срезы списков и сравнение списков", "url": "https://www.youtube.com/watch?v=Vx3s01Yb1P8" }
-          ]
-        }
+        { "id": "CEQZYZMPJSU", "title": "Списки и операции над ними" },
+        { "id": "z8WWOnxUOb8", "title": "Списки: индексы и срезы" },
+        { "id": "HgFGVQG20Oc", "title": "Списки - операторы и функции работы с ними" },
+        { "id": "Vx3s01Yb1P8", "title": "Срезы списков и сравнение списков" }
+      ],
+      "links": [
+        { "url": "https://stavis-dev.github.io/python/types/python-types-list", "title": "Списки в Python — Stavis Dev" },
+        { "url": "https://python-academy.org/ru/guide/lists", "title": "Списки в Python — Python Academy" }
       ]
     },
     {
       "num": "3.3",
       "title": "Методы работы со списками",
       "desc": "append, insert, remove, pop, sort и другие методы.",
-      "articles": [
-        { "source": "stavis-dev", "url": "https://stavis-dev.github.io/python/types/python-types-list" },
-        { "source": "python-academy", "url": "https://python-academy.org/ru/guide/lists" }
-      ],
       "videos": [
-        {
-          "author": "Егоров Артём",
-          "list": [
-            { "title": "Списки и их методы", "url": "https://www.youtube.com/watch?v=e0If6CJZs4s&list=PLQAt0m1f9OHvv2wxPGSCWjgy1qER_FvB6&index=16" }
-          ]
-        },
-        {
-          "author": "Сергей Балакирев",
-          "list": [
-            { "title": "Основные методы списков", "url": "https://www.youtube.com/watch?v=1r9X3drypHk" },
-            { "title": "Вложенные списки, многомерные списки", "url": "https://www.youtube.com/watch?v=FBCufeNGQio" }
-          ]
-        }
+        { "id": "e0If6CJZs4s", "title": "Списки и их методы" },
+        { "id": "1r9X3drypHk", "title": "Основные методы списков" },
+        { "id": "FBCufeNGQio", "title": "Вложенные списки, многомерные списки" }
+      ],
+      "links": [
+        { "url": "https://stavis-dev.github.io/python/types/python-types-list", "title": "Списки в Python — Stavis Dev" },
+        { "url": "https://python-academy.org/ru/guide/lists", "title": "Списки в Python — Python Academy" }
       ]
     },
     {
@@ -68,137 +48,82 @@
       "num": "3.5",
       "title": "Кортежи",
       "desc": "Неизменяемые последовательности — tuple.",
-      "articles": [
-        { "source": "stavis-dev", "url": "https://stavis-dev.github.io/python/types/python-types-tuple" },
-        { "source": "python-academy", "url": "https://python-academy.org/ru/guide/tuples" }
-      ],
       "videos": [
-        {
-          "author": "Егоров Артём",
-          "list": [
-            { "title": "Кортежи (tuple) в Python", "url": "https://www.youtube.com/watch?v=pf3V5rr30Ts&list=PLQAt0m1f9OHvv2wxPGSCWjgy1qER_FvB6&index=36" }
-          ]
-        },
-        {
-          "author": "Сергей Балакирев",
-          "list": [
-            { "title": "Кортежи (tuple) и их методы", "url": "https://www.youtube.com/watch?v=JVEBE7pviE0" }
-          ]
-        }
+        { "id": "pf3V5rr30Ts", "title": "Кортежи (tuple) в Python" },
+        { "id": "JVEBE7pviE0", "title": "Кортежи (tuple) и их методы" }
+      ],
+      "links": [
+        { "url": "https://stavis-dev.github.io/python/types/python-types-tuple", "title": "Кортежи в Python — Stavis Dev" },
+        { "url": "https://python-academy.org/ru/guide/tuples", "title": "Кортежи в Python — Python Academy" }
       ]
     },
     {
       "num": "3.6",
       "title": "Сортировка",
       "desc": "Сортировка коллекций в Python.",
-      "articles": [
-        { "source": "stavis-dev", "url": "https://stavis-dev.github.io/python/functions/map" },
-        { "source": "stavis-dev", "url": "https://stavis-dev.github.io/python/functions/python-sorted" },
-        { "source": "python-academy", "url": "https://python-academy.org/ru/guide/lists" },
-        { "source": "Pythonist", "url": "https://pythonist.ru/map-filter-i-reduce-funkczii-v-python/?ysclid=mnali84to527730580" }
-      ],
       "videos": [
-        {
-          "author": "Егоров Артём",
-          "list": [
-            { "title": "Сортировка коллекций в Python. Метод sort и функция sorted", "url": "https://www.youtube.com/watch?v=Qi5HEyla4_U" },
-            { "title": "Сортировка по ключу Python. Аргумент key", "url": "https://www.youtube.com/watch?v=I4u5dth91G0" }
-          ]
-        }
+        { "id": "Qi5HEyla4_U", "title": "Сортировка коллекций в Python. Метод sort и функция sorted" },
+        { "id": "I4u5dth91G0", "title": "Сортировка по ключу Python. Аргумент key" }
+      ],
+      "links": [
+        { "url": "https://stavis-dev.github.io/python/functions/map", "title": "Функция map — Stavis Dev" },
+        { "url": "https://stavis-dev.github.io/python/functions/python-sorted", "title": "Функция sorted — Stavis Dev" },
+        { "url": "https://python-academy.org/ru/guide/lists", "title": "Списки в Python — Python Academy" },
+        { "url": "https://pythonist.ru/map-filter-i-reduce-funkczii-v-python/?ysclid=mnali84to527730580", "title": "map, filter и reduce функции в Python — Pythonist" }
       ]
     },
     {
       "num": "3.7",
       "title": "Лямбда-функции",
       "desc": "Анонимные функции и их применение.",
-      "articles": [
-        { "source": "stavis-dev", "url": "https://stavis-dev.github.io/python/functions/lambda" },
-        { "source": "python-academy", "url": "https://python-academy.org/ru/guide/lambda-functions?ysclid=mnalg16agl309845329" }
-      ],
       "videos": [
-        {
-          "author": "Егоров Артём",
-          "list": [
-            { "title": "Lambda функция Python. Lambda выражение. Анонимная функция Lambda", "url": "https://www.youtube.com/watch?v=8fzrm1tX5lI" },
-            { "title": "Генераторы списков & List comprehension", "url": "https://www.youtube.com/watch?v=_zBTBr6XdZo" }
-          ]
-        },
-        {
-          "author": "Сергей Балакирев",
-          "list": [
-            { "title": "Анонимные (lambda) функции", "url": "https://www.youtube.com/watch?v=UAYeh7pSqXw" }
-          ]
-        }
+        { "id": "8fzrm1tX5lI", "title": "Lambda функция Python. Lambda выражение. Анонимная функция Lambda" },
+        { "id": "_zBTBr6XdZo", "title": "Генераторы списков & List comprehension" },
+        { "id": "UAYeh7pSqXw", "title": "Анонимные (lambda) функции" }
+      ],
+      "links": [
+        { "url": "https://stavis-dev.github.io/python/functions/lambda", "title": "Lambda-функции — Stavis Dev" },
+        { "url": "https://python-academy.org/ru/guide/lambda-functions?ysclid=mnalg16agl309845329", "title": "Lambda-функции — Python Academy" }
       ]
     },
     {
       "num": "3.8",
       "title": "Словари",
       "desc": "Хранение данных в формате ключ-значение.",
-      "articles": [
-        { "source": "stavis-dev", "url": "https://stavis-dev.github.io/python/types/python-types-dict" },
-        { "source": "python-academy", "url": "https://python-academy.org/ru/guide/dictionaries" }
-      ],
       "videos": [
-        {
-          "author": "Егоров Артём",
-          "list": [
-            { "title": "Словари (dict) Python", "url": "https://www.youtube.com/watch?v=7_Zrh1--d5o&list=PLQAt0m1f9OHvv2wxPGSCWjgy1qER_FvB6&index=34" },
-            { "title": "Ситуации, где полезно использовать словарь", "url": "https://www.youtube.com/watch?v=dZ474oWml9k&list=PLQAt0m1f9OHvv2wxPGSCWjgy1qER_FvB6&index=35" }
-          ]
-        },
-        {
-          "author": "Сергей Балакирев",
-          "list": [
-            { "title": "Введение в словари (dict). Базовые операции над словарями", "url": "https://www.youtube.com/watch?v=JV2olufru8Q" }
-          ]
-        }
+        { "id": "7_Zrh1--d5o", "title": "Словари (dict) Python" },
+        { "id": "dZ474oWml9k", "title": "Ситуации, где полезно использовать словарь" },
+        { "id": "JV2olufru8Q", "title": "Введение в словари (dict). Базовые операции над словарями" }
+      ],
+      "links": [
+        { "url": "https://stavis-dev.github.io/python/types/python-types-dict", "title": "Словари в Python — Stavis Dev" },
+        { "url": "https://python-academy.org/ru/guide/dictionaries", "title": "Словари в Python — Python Academy" }
       ]
     },
     {
       "num": "3.9",
       "title": "Методы работы со словарями",
       "desc": "keys, values, items, get, update и другие методы.",
-      "articles": [
-        { "source": "stavis-dev", "url": "https://stavis-dev.github.io/python/types/python-types-dict" },
-        { "source": "python-academy", "url": "https://python-academy.org/ru/guide/dictionaries" }
-      ],
       "videos": [
-        {
-          "author": "Егоров Артём",
-          "list": [
-            { "title": "Операции и методы словаря", "url": "https://www.youtube.com/watch?v=7_Zrh1--d5o&list=PLQAt0m1f9OHvv2wxPGSCWjgy1qER_FvB6&index=34" }
-          ]
-        },
-        {
-          "author": "Сергей Балакирев",
-          "list": [
-            { "title": "Методы словаря, перебор элементов словаря в цикле", "url": "https://www.youtube.com/watch?v=pZqll5OVbLo" }
-          ]
-        }
+        { "id": "7_Zrh1--d5o", "title": "Операции и методы словаря" },
+        { "id": "pZqll5OVbLo", "title": "Методы словаря, перебор элементов словаря в цикле" }
+      ],
+      "links": [
+        { "url": "https://stavis-dev.github.io/python/types/python-types-dict", "title": "Словари в Python — Stavis Dev" },
+        { "url": "https://python-academy.org/ru/guide/dictionaries", "title": "Словари в Python — Python Academy" }
       ]
     },
     {
       "num": "3.10",
       "title": "Создание и работа с множествами",
       "desc": "Уникальные коллекции элементов — set.",
-      "articles": [
-        { "source": "stavis-dev", "url": "https://stavis-dev.github.io/python/types/python-types-set" },
-        { "source": "python-academy", "url": "https://python-academy.org/ru/guide/sets" }
-      ],
       "videos": [
-        {
-          "author": "Егоров Артём",
-          "list": [
-            { "title": "Множества в Python. Тип данных set", "url": "https://www.youtube.com/watch?v=KMGRXDxUw18&list=PLQAt0m1f9OHvv2wxPGSCWjgy1qER_FvB6&index=33" }
-          ]
-        },
-        {
-          "author": "Сергей Балакирев",
-          "list": [
-            { "title": "Множества (set) и их методы", "url": "https://www.youtube.com/watch?v=Z3lw-yMZKuQ" }
-          ]
-        }
+        { "id": "KMGRXDxUw18", "title": "Множества в Python. Тип данных set" },
+        { "id": "Z3lw-yMZKuQ", "title": "Множества (set) и их методы" }
+      ],
+      "links": [
+        { "url": "https://stavis-dev.github.io/python/types/python-types-set", "title": "Множества в Python — Stavis Dev" },
+        { "url": "https://python-academy.org/ru/guide/sets", "title": "Множества в Python — Python Academy" }
       ]
     },
     {
@@ -206,18 +131,13 @@
       "title": "Решение задач с множествами",
       "desc": "Практические задачи на работу с множествами.",
       "badges": ["📝 практика"],
-      "articles": [
-        { "source": "stavis-dev", "url": "https://stavis-dev.github.io/python/types/python-types-set" },
-        { "source": "python-academy", "url": "https://python-academy.org/ru/guide/sets" }
-      ],
       "videos": [
-        {
-          "author": "Сергей Балакирев",
-          "list": [
-            { "title": "Операции над множествами, сравнение множеств", "url": "https://www.youtube.com/watch?v=0lPDdSX76z4" },
-            { "title": "Генераторы множеств и генераторы словарей", "url": "https://www.youtube.com/watch?v=xbTeGaWxrdY" }
-          ]
-        }
+        { "id": "0lPDdSX76z4", "title": "Операции над множествами, сравнение множеств" },
+        { "id": "xbTeGaWxrdY", "title": "Генераторы множеств и генераторы словарей" }
+      ],
+      "links": [
+        { "url": "https://stavis-dev.github.io/python/types/python-types-set", "title": "Множества в Python — Stavis Dev" },
+        { "url": "https://python-academy.org/ru/guide/sets", "title": "Множества в Python — Python Academy" }
       ]
     },
     {
