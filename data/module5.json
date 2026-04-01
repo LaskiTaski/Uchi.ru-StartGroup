@@ -301,7 +301,9 @@
           "author": "Бинарный поиск",
           "courses": [
             { "name": "Всё что нужно знать о деплое, Docker, CI/CD, если ты новичок", "url": "https://www.youtube.com/watch?v=2yoRWrc0MA0", "price": "free", "difficulty": "medium", "value": "start" }
-          ],
+          ]
+        },
+        {
           "author": "ADV-IT",
           "courses": [
             { "name": "GitLab и GitLab CI/CD для DevOps", "url": "https://www.youtube.com/watch?v=R1a-1JYfiQA&list=PLg5SS_4L6LYuJxTrdU5vzBaVGlZko8Hsy", "price": "free", "difficulty": "medium", "value": "useful" }
@@ -470,10 +472,3 @@
   ]
 }
 
-Добавить новый раздел:
-Написание тестов & Тестирование:
-Артём Шумейко:
-  Курс по Pytest | https://www.youtube.com/playlist?list=PLeLN0qH0-mCVdHgdjlnKTl4jKuJgCK-4b |Бесплатно | Нормально | ПОЛЕЗНО
-
-luchanos:
-  Pytest Тестирование | https://www.youtube.com/playlist?list=PLlKID9PnOE5hCuNW8L-qxC12U7WPWG6YS |Бесплатно | Нормально | ПОЛЕЗНО
