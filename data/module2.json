@@ -26,7 +26,8 @@
       ],
       "links": [
         { "url": "https://stavis-dev.github.io/python/types/python-types-string/", "title": "Все методы строк — Stavis Dev" },
-        { "url": "https://cs-labs.netlify.app/docs/python/06_str", "title": "Применение строк для решения задач — CS Labs" }
+        { "url": "https://cs-labs.netlify.app/docs/python/06_str", "title": "Применение строк для решения задач — CS Labs" },
+        { "url": "https://pythonlib.ru/43", "title": "Все строчные методы Python — PythonLib" }
       ]
     },
     {
@@ -38,7 +39,8 @@
       ],
       "links": [
         { "url": "https://python-academy.org/ru/handbook/replace", "title": "Справочник по строчным методам — Python Academy" },
-        { "url": "https://metanit.com/python/tutorial/5.2.php", "title": "Все методы строк — MetaNit" }
+        { "url": "https://metanit.com/python/tutorial/5.2.php", "title": "Все методы строк — MetaNit" },
+        { "url": "https://pythonlib.ru/43", "title": "Все строчные методы Python — PythonLib" }
       ]
     },
     {
@@ -46,6 +48,9 @@
       "title": "Применение строковых методов",
       "desc": "Повторяем методы строк и их применение. На занятии будем решать сложные задачки.",
       "badges": ["📝 практика"],
+      "links": [
+        { "url": "https://pythonlib.ru/43", "title": "Все строчные методы Python — PythonLib" }
+      ],
       "screenshots": [
         { "src": "screenshots/lesson2.4-usage-example.jpg", "caption": "Пример работы со срезами, индексами и заменами" },
         { "src": "screenshots/lesson2.4-solution-method_1.jpg", "caption": "1.Способ решения с заменой символа" },
