@@ -44,7 +44,7 @@
       "desc": "Практические задачи на работу со списками.",
       "badges": ["📝 практика"],
       "videos": [
-        { "id": "_zBTBr6XdZo", "title": "Генераторы списков & List comprehension" },
+        { "id": "_zBTBr6XdZo", "title": "Генераторы списков & List comprehension" }
       ]
     },
     {
