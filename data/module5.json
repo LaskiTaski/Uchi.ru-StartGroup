@@ -108,7 +108,7 @@
           "courses": [
             {
               "name": "ООП: Объектно-ориентированное программирование на Python",
-              "url": "#",
+              "url": "https://stepik.org/course/114354/syllabus",
               "price": "paid",
               "difficulty": "hard",
               "value": "super"
