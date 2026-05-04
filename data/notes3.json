@@ -1,0 +1,670 @@
+{
+  "id": 8,
+  "icon": "🧩",
+  "title": "Функции",
+  "subtitle": "Определение, аргументы, возврат, области видимости • Python 3.10+",
+  "type": "notes",
+  "sections": [
+    {
+      "num": "🧩",
+      "anchor": "func",
+      "chip": "def",
+      "chipNote": "основы",
+      "title": "Определение и вызов функции",
+      "desc": "Как оформить кусок кода в функцию и зачем это делать.",
+      "blocks": [
+        {
+          "type": "text",
+          "text": "Функция — это именованный блок кода, который можно вызывать сколько угодно раз. Она решает три задачи: убирает повторы, даёт коду понятное имя и позволяет тестировать части программы по отдельности."
+        },
+        {
+          "type": "code",
+          "title": "Определение и вызов",
+          "code": "def greet():          # определение — код пока не выполняется\n    print('Привет!')\n    print('Как дела?')\n\ngreet()  # вызов — вот теперь выполнится\ngreet()  # можно сколько угодно раз"
+        },
+        {
+          "type": "note",
+          "text": "Определение (`def`) только запоминает функцию. Код внутри выполняется исключительно при вызове — по имени со скобками."
+        },
+        {
+          "type": "warn",
+          "text": "Скобки обязательны. `greet` без скобок — это сама функция как объект, а не её вызов. `print(greet)` выведет что-то вроде `<function greet at 0x...>`."
+        },
+        {
+          "type": "heading",
+          "text": "Параметры: функция принимает данные"
+        },
+        {
+          "type": "code",
+          "code": "def greet(name):        # name — параметр\n    print(f'Привет, {name}!')\n\ngreet('Аня')           # 'Аня' — аргумент\ngreet('Боря')\n\nnames = ['Вика', 'Гена']\nfor n in names:\n    greet(n)"
+        },
+        {
+          "type": "table",
+          "head": [
+            "Термин",
+            "Что это"
+          ],
+          "rows": [
+            [
+              "**Параметр**",
+              "Имя в определении функции: `def f(x)`"
+            ],
+            [
+              "**Аргумент**",
+              "Конкретное значение при вызове: `f(5)`"
+            ],
+            [
+              "**Вызов**",
+              "`f(5)` — команда выполнить функцию"
+            ],
+            [
+              "**Возврат**",
+              "Что функция отдаёт наружу через [`return`](#return)"
+            ]
+          ]
+        },
+        {
+          "type": "code",
+          "title": "Несколько параметров — порядок важен",
+          "code": "def introduce(name, age, city):\n    print(f'{name}, {age} лет, из города {city}')\n\nintroduce('Тим', 20, 'Москва')                # по порядку\nintroduce(age=20, name='Тим', city='Москва')  # по именам — порядок свободный\n\nintroduce('Тим', 20)\n# TypeError: missing 1 required positional argument: 'city'"
+        },
+        {
+          "type": "heading",
+          "text": "Зачем выносить код в функцию"
+        },
+        {
+          "type": "compare",
+          "good": {
+            "title": "Одна функция",
+            "code": "def area(a, b):\n    return a * b\n\nprint(area(3, 4))\nprint(area(10, 2))\nprint(area(7, 7))\n\n# Формулу правим в одном месте"
+          },
+          "bad": {
+            "title": "Копипаста",
+            "code": "a, b = 3, 4\nprint(a * b)\n\na, b = 10, 2\nprint(a * b)\n\na, b = 7, 7\nprint(a * b)\n# Ошибку придётся править трижды"
+          }
+        },
+        {
+          "type": "heading",
+          "text": "Документация функции"
+        },
+        {
+          "type": "code",
+          "code": "def area(a, b):\n    \"\"\"Возвращает площадь прямоугольника со сторонами a и b.\"\"\"\n    return a * b\n\nprint(area.__doc__)\n# Возвращает площадь прямоугольника со сторонами a и b."
+        },
+        {
+          "type": "note",
+          "text": "Строка сразу после `def` в тройных кавычках называется docstring. PyCharm показывает её подсказкой при наведении на вызов функции — очень удобно для учеников, читающих чужой код."
+        },
+        {
+          "type": "warn",
+          "text": "Функцию нужно определить **до** первого вызова в порядке выполнения программы. Вызов раньше определения даст `NameError`."
+        }
+      ]
+    },
+    {
+      "num": "↩️",
+      "anchor": "return",
+      "chip": "return",
+      "chipNote": "возврат",
+      "title": "Возврат значений: return",
+      "desc": "Как функция отдаёт результат наружу и чем это отличается от print.",
+      "blocks": [
+        {
+          "type": "text",
+          "text": "`return` завершает работу функции и **отдаёт значение** в место вызова. Это принципиально отличается от `print`, который просто рисует текст на экране."
+        },
+        {
+          "type": "compare",
+          "good": {
+            "title": "return — значение можно использовать",
+            "code": "def total(a, b):\n    return a + b\n\nx = total(2, 3)\nprint(x * 10)      # 50"
+          },
+          "bad": {
+            "title": "print — значение потеряно",
+            "code": "def total(a, b):\n    print(a + b)\n\nx = total(2, 3)  # печатает 5\nprint(x * 10)    # TypeError:\n# unsupported operand type NoneType"
+          }
+        },
+        {
+          "type": "warn",
+          "text": "Функция без `return` возвращает `None`. Это самая частая причина ошибки `TypeError` с `NoneType` у новичков. Подробнее про `None` — в разделе [None](#none) первого справочника."
+        },
+        {
+          "type": "heading",
+          "text": "return прерывает функцию"
+        },
+        {
+          "type": "code",
+          "code": "def check(n):\n    if n < 0:\n        return 'отрицательное'    # выходим сразу\n    print('эта строка не выполнится при n < 0')\n    return 'неотрицательное'\n\nprint(check(-5))  # отрицательное\nprint(check(5))   # печатает строку, затем: неотрицательное"
+        },
+        {
+          "type": "note",
+          "text": "Приём «ранний выход»: сначала отсекаем особые случаи через `return`, а основной код пишем без вложенности. Читается заметно лучше, чем длинная лесенка из `if/else`."
+        },
+        {
+          "type": "compare",
+          "good": {
+            "title": "Ранний выход",
+            "code": "def grade(score):\n    if score < 0:\n        return 'ошибка'\n    if score >= 90:\n        return 'отлично'\n    if score >= 70:\n        return 'хорошо'\n    return 'нужно подтянуть'"
+          },
+          "bad": {
+            "title": "Лесенка",
+            "code": "def grade(score):\n    if score < 0:\n        result = 'ошибка'\n    else:\n        if score >= 90:\n            result = 'отлично'\n        else:\n            if score >= 70:\n                result = 'хорошо'\n            else:\n                result = 'подтянуть'\n    return result"
+          }
+        },
+        {
+          "type": "heading",
+          "text": "Возврат нескольких значений"
+        },
+        {
+          "type": "code",
+          "code": "def min_max(numbers):\n    return min(numbers), max(numbers)      # это кортеж\n\nlowest, highest = min_max([5, 2, 8])  # распаковка\nprint(lowest, highest)                # 2 8\n\nresult = min_max([5, 2, 8])\nprint(result)        # (2, 8) — кортеж целиком\nprint(type(result))  # <class 'tuple'>"
+        },
+        {
+          "type": "text",
+          "text": "Технически возвращается один объект — [кортеж](#tuple). Механику распаковки разбирает раздел [Кортежи](#tuple) первого справочника."
+        },
+        {
+          "type": "heading",
+          "text": "return для выхода из вложенных циклов"
+        },
+        {
+          "type": "code",
+          "code": "def find_position(matrix, target):\n    for i in range(len(matrix)):\n        for j in range(len(matrix[i])):\n            if matrix[i][j] == target:\n                return i, j  # выходит сразу из обоих циклов\n    return None              # не нашли\n\nprint(find_position([[1, 2], [3, 4]], 4))  # (1, 1)\nprint(find_position([[1, 2], [3, 4]], 9))  # None"
+        },
+        {
+          "type": "note",
+          "text": "Это самый чистый способ прервать вложенные циклы — в отличие от флагов и двойного `break`, о которых говорится в разделе [break и continue](#breakcont) второго справочника."
+        },
+        {
+          "type": "code",
+          "title": "Пустой return",
+          "code": "def process(data):\n    if not data:\n        return          # просто выйти, вернув None\n    print('обрабатываю', len(data), 'элементов')\n\nprocess([])      # ничего не печатает\nprocess([1, 2])  # обрабатываю 2 элементов"
+        },
+        {
+          "type": "warn",
+          "text": "Код после `return` в том же блоке никогда не выполнится. PyCharm подсветит его как недостижимый — это верный признак ошибки в логике."
+        }
+      ]
+    },
+    {
+      "num": "📥",
+      "anchor": "args",
+      "chip": "аргументы",
+      "chipNote": "*args / **kwargs",
+      "title": "Аргументы: позиционные, именованные, произвольные",
+      "desc": "Все способы передать данные в функцию.",
+      "blocks": [
+        {
+          "type": "heading",
+          "text": "Позиционные и именованные"
+        },
+        {
+          "type": "code",
+          "code": "def save(name, age, city):\n    print(name, age, city)\n\nsave('Тим', 20, 'Москва')                # позиционные — по порядку\nsave(name='Тим', age=20, city='Москва')  # именованные\nsave('Тим', city='Москва', age=20)       # смешанно\n\nsave(name='Тим', 20, 'Москва')\n# SyntaxError: positional argument follows keyword argument"
+        },
+        {
+          "type": "warn",
+          "text": "Позиционные аргументы всегда идут **перед** именованными. Обратный порядок — синтаксическая ошибка."
+        },
+        {
+          "type": "heading",
+          "text": "Значения по умолчанию"
+        },
+        {
+          "type": "code",
+          "code": "def greeting(name, phrase='Привет'):\n    print(f'{phrase}, {name}!')\n\ngreeting('Аня')                   # Привет, Аня!\ngreeting('Боря', 'Здорово')       # Здорово, Боря!\ngreeting('Вика', phrase='Салют')  # Салют, Вика!"
+        },
+        {
+          "type": "warn",
+          "text": "Параметры со значением по умолчанию идут **после** обычных. `def f(a=1, b)` — синтаксическая ошибка."
+        },
+        {
+          "type": "text",
+          "text": "Изменяемое значение по умолчанию — отдельная большая ловушка, ей посвящён раздел [Изменяемые значения по умолчанию](#defaults)."
+        },
+        {
+          "type": "heading",
+          "text": "*args: сколько угодно позиционных"
+        },
+        {
+          "type": "code",
+          "code": "def total(*numbers):              # numbers станет кортежем\n    print(type(numbers), numbers)\n    return sum(numbers)\n\nprint(total(1, 2))           # <class 'tuple'> (1, 2) → 3\nprint(total(1, 2, 3, 4, 5))  # → 15\nprint(total())               # → 0"
+        },
+        {
+          "type": "note",
+          "text": "Звёздочка — это синтаксис, имя может быть любым. `*args` — просто общепринятое сокращение от arguments. По той же логике `print()` принимает сколько угодно значений."
+        },
+        {
+          "type": "heading",
+          "text": "**kwargs: сколько угодно именованных"
+        },
+        {
+          "type": "code",
+          "code": "def profile(**data):           # data станет словарём\n    for key, value in data.items():\n        print(f'{key}: {value}')\n\nprofile(name='Тим', age=20, city='Москва')\n# name: Тим\n# age: 20\n# city: Москва"
+        },
+        {
+          "type": "code",
+          "title": "Всё вместе — строгий порядок",
+          "code": "def universal(required, default=0, *args, **kwargs):\n    print('обязательный:', required)\n    print('по умолчанию:', default)\n    print('лишние позиционные:', args)\n    print('лишние именованные:', kwargs)\n\nuniversal('A', 5, 'x', 'y', color='красный')\n# обязательный: A\n# по умолчанию: 5\n# лишние позиционные: ('x', 'y')\n# лишние именованные: {'color': 'красный'}"
+        },
+        {
+          "type": "heading",
+          "text": "Распаковка при вызове"
+        },
+        {
+          "type": "code",
+          "code": "def point(x, y, z):\n    print(x, y, z)\n\ncoords = [1, 2, 3]\npoint(*coords)          # распаковали список в три аргумента\n\ndata = {'x': 1, 'y': 2, 'z': 3}\npoint(**data)             # распаковали словарь по именам\n\npoint(coords)\n# TypeError: missing 2 required positional arguments"
+        },
+        {
+          "type": "note",
+          "text": "Одна звёздочка распаковывает последовательность в позиционные аргументы, две — [словарь](#dict) в именованные. Ключи словаря должны совпадать с именами параметров."
+        }
+      ]
+    },
+    {
+      "num": "🔭",
+      "anchor": "scope",
+      "chip": "область видимости",
+      "chipNote": "scope",
+      "title": "Области видимости переменных",
+      "desc": "Какие переменные функция видит, какие может менять и почему.",
+      "blocks": [
+        {
+          "type": "text",
+          "text": "Переменная, созданная внутри функции, называется **локальной**. Она существует только во время работы функции и снаружи недоступна."
+        },
+        {
+          "type": "code",
+          "code": "def calculate():\n    result = 42    # локальная переменная\n    print(result)  # 42\n\ncalculate()\nprint(result)          # NameError: name 'result' is not defined"
+        },
+        {
+          "type": "heading",
+          "text": "Чтение внешних переменных разрешено"
+        },
+        {
+          "type": "code",
+          "code": "rate = 0.13             # глобальная переменная\n\ndef tax(income):\n    return income * rate  # читать глобальную — можно\n\nprint(tax(1000))        # 130.0"
+        },
+        {
+          "type": "heading",
+          "text": "А вот запись создаёт новую локальную"
+        },
+        {
+          "type": "code",
+          "code": "balance = 0\n\ndef add():\n    balance = 100            # создаётся НОВАЯ локальная переменная\n    print('внутри:', balance)\n\nadd()                       # внутри: 100\nprint('снаружи:', balance)  # снаружи: 0 — глобальная не изменилась"
+        },
+        {
+          "type": "warn",
+          "text": "Если внутри функции есть присваивание переменной, Python считает её локальной **во всей функции** — даже в строках выше присваивания. Отсюда неочевидная ошибка `UnboundLocalError`."
+        },
+        {
+          "type": "code",
+          "title": "UnboundLocalError — как он возникает",
+          "code": "balance = 0\n\ndef add():\n    print(balance)  # UnboundLocalError!\n    balance = 100   # из-за этой строки balance считается локальной\n\nadd()"
+        },
+        {
+          "type": "heading",
+          "text": "global: разрешить изменение"
+        },
+        {
+          "type": "code",
+          "code": "balance = 0\n\ndef add():\n    global balance       # заявляем: работаем с глобальной\n    balance += 100\n\nadd()\nadd()\nprint(balance)           # 200"
+        },
+        {
+          "type": "compare",
+          "good": {
+            "title": "Через параметр и return",
+            "code": "def add(balance, amount):\n    return balance + amount\n\nbalance = 0\nbalance = add(balance, 100)\nbalance = add(balance, 50)\nprint(balance)     # 150"
+          },
+          "bad": {
+            "title": "Через global",
+            "code": "balance = 0\n\ndef add(amount):\n    global balance\n    balance += amount\n\nadd(100)\nadd(50)\nprint(balance)     # 150"
+          }
+        },
+        {
+          "type": "note",
+          "text": "Оба варианта работают, но первый предпочтительнее: функция зависит только от своих аргументов, её легко проверить и переиспользовать. `global` делает поведение функции зависимым от состояния всей программы."
+        },
+        {
+          "type": "heading",
+          "text": "Правило поиска имени"
+        },
+        {
+          "type": "text",
+          "text": "Встретив имя, Python ищет его по порядку: сначала **локальная** область функции, затем область **объемлющей** функции (если есть), затем **глобальная** область модуля, и в конце — **встроенные** имена языка."
+        },
+        {
+          "type": "code",
+          "title": "Затенение встроенных имён",
+          "code": "list = [1, 2, 3]    # перекрыли встроенную функцию list!\nprint(list('кот'))  # TypeError: 'list' object is not callable\n\n# Не используйте как имена переменных:\n# list, dict, set, str, int, float, sum, min, max, type, id, input"
+        },
+        {
+          "type": "warn",
+          "text": "Затенение встроенных имён — коварная ошибка: код падает не там, где переменная создана, а там, где позже понадобилась настоящая функция. PyCharm подсвечивает такие имена — не игнорируйте подсказку."
+        }
+      ]
+    },
+    {
+      "num": "🧨",
+      "anchor": "mutable-args",
+      "chip": "изменяемые",
+      "chipNote": "аргументы",
+      "title": "Изменяемые аргументы: функция может испортить ваши данные",
+      "desc": "Почему список, переданный в функцию, меняется снаружи, а число — нет.",
+      "blocks": [
+        {
+          "type": "text",
+          "text": "В функцию передаётся не копия объекта, а **ссылка** на него. Что произойдёт дальше, зависит от того, изменяемый объект или нет — механика подробно разобрана в разделе [Ссылки и копирование](#refs) первого справочника."
+        },
+        {
+          "type": "compare",
+          "good": {
+            "title": "Неизменяемое — снаружи цело",
+            "code": "def increase(n):\n    n += 1\n    print('внутри:', n)\n\nnumber = 5\nincrease(number)  # внутри: 6\nprint(number)     # 5 — не тронуто"
+          },
+          "bad": {
+            "title": "Изменяемое — меняется снаружи",
+            "code": "def add(lst):\n    lst.append(99)\n    print('внутри:', lst)\n\nitems = [1, 2]\nadd(items)    # внутри: [1, 2, 99]\nprint(items)  # [1, 2, 99] (!)"
+          }
+        },
+        {
+          "type": "warn",
+          "text": "Это не ошибка языка, а его правило. Но функция, незаметно меняющая переданные ей данные, — источник тяжело находимых багов."
+        },
+        {
+          "type": "heading",
+          "text": "Два честных варианта поведения"
+        },
+        {
+          "type": "code",
+          "title": "1. Менять намеренно и назвать это в имени",
+          "code": "def add_grade(grades, new_grade):\n    \"\"\"Дописывает оценку в переданный список (меняет его).\"\"\"\n    grades.append(new_grade)\n\nmy_grades = [5, 4]\nadd_grade(my_grades, 5)\nprint(my_grades)     # [5, 4, 5] — так и задумано"
+        },
+        {
+          "type": "code",
+          "title": "2. Не трогать оригинал, вернуть новый объект",
+          "code": "def with_grade(grades, new_grade):\n    \"\"\"Возвращает новый список, исходный не меняет.\"\"\"\n    copied = grades.copy()\n    copied.append(new_grade)\n    return copied\n\nmy_grades = [5, 4]\nother = with_grade(my_grades, 3)\nprint(my_grades)  # [5, 4] — цел\nprint(other)      # [5, 4, 3]"
+        },
+        {
+          "type": "note",
+          "text": "Так же ведут себя и встроенные инструменты: `items.sort()` меняет на месте и возвращает `None`, а `sorted(items)` возвращает новый список. Имя без глагола-действия обычно намекает на возврат нового объекта."
+        },
+        {
+          "type": "heading",
+          "text": "Не полагайтесь на присваивание внутри функции"
+        },
+        {
+          "type": "code",
+          "code": "def clear_list(lst):\n    lst = []            # переприсвоили ЛОКАЛЬНОЕ имя\n    print('внутри:', lst)\n\nitems = [1, 2, 3]\nclear_list(items)  # внутри: []\nprint(items)       # [1, 2, 3] — снаружи ничего не изменилось\n\ndef clear_properly(lst):\n    lst.clear()         # меняем сам объект\n\nclear_properly(items)\nprint(items)           # []"
+        },
+        {
+          "type": "text",
+          "text": "Разница в том, что `lst = []` вешает локальный ярлык на новый пустой список, а `lst.clear()` меняет тот самый объект, на который ссылается вызывающая сторона."
+        },
+        {
+          "type": "code",
+          "title": "Защита от случайных правок — копия на входе",
+          "code": "def process(data):\n    data = data.copy()      # работаем с копией\n    data.append('служебное')\n    return data\n\noriginal = [1, 2]\nresult = process(original)\nprint(original)  # [1, 2] — в безопасности\nprint(result)    # [1, 2, 'служебное']"
+        },
+        {
+          "type": "warn",
+          "text": "`.copy()` — копия **поверхностная**. Если внутри списка лежат другие списки, они останутся общими. Для вложенных структур нужен ручной обход, см. [Ссылки и копирование](#refs)."
+        }
+      ]
+    },
+    {
+      "num": "🪤",
+      "anchor": "defaults",
+      "chip": "def f(x=[])",
+      "chipNote": "ловушка",
+      "title": "Изменяемое значение по умолчанию",
+      "desc": "Одна из самых известных ловушек Python. Разбираем, почему список в параметрах по умолчанию — плохая идея.",
+      "blocks": [
+        {
+          "type": "text",
+          "text": "Значение по умолчанию вычисляется **один раз** — в момент определения функции, а не при каждом вызове. Для чисел и строк это незаметно, а для списка и словаря приводит к неожиданному накоплению."
+        },
+        {
+          "type": "code",
+          "title": "Ловушка в чистом виде",
+          "code": "def add(item, storage=[]):\n    storage.append(item)\n    return storage\n\nprint(add(1))  # [1]        — ожидаемо\nprint(add(2))  # [1, 2]     (!) откуда единица?\nprint(add(3))  # [1, 2, 3]  (!!)"
+        },
+        {
+          "type": "text",
+          "text": "Список создался ровно один раз, при выполнении строки `def`. Все вызовы без второго аргумента работают с **одним и тем же** списком."
+        },
+        {
+          "type": "code",
+          "title": "Доказательство",
+          "code": "def add(item, storage=[]):\n    print(id(storage))    # один и тот же адрес при каждом вызове\n    storage.append(item)\n    return storage\n\nadd(1)\nadd(2)   # id совпадает — объект тот же самый"
+        },
+        {
+          "type": "heading",
+          "text": "Правильное решение"
+        },
+        {
+          "type": "compare",
+          "good": {
+            "title": "None как маркер",
+            "code": "def add(item, storage=None):\n    if storage is None:\n        storage = []        # новый список\n    storage.append(item)\n    return storage\n\nprint(add(1))  # [1]\nprint(add(2))  # [2] — как и ожидалось\nprint(add(3))  # [3]"
+          },
+          "bad": {
+            "title": "Список по умолчанию",
+            "code": "def add(item, storage=[]):\n    storage.append(item)\n    return storage\n\nprint(add(1))  # [1]\nprint(add(2))  # [1, 2]\nprint(add(3))  # [1, 2, 3]"
+          }
+        },
+        {
+          "type": "note",
+          "text": "`None` здесь используется как маркер «значение не передали» — это стандартный приём. Про сам объект `None` — раздел [None](#none) первого справочника."
+        },
+        {
+          "type": "heading",
+          "text": "Какие значения по умолчанию безопасны"
+        },
+        {
+          "type": "table",
+          "head": [
+            "Значение по умолчанию",
+            "Безопасно?",
+            "Почему"
+          ],
+          "rows": [
+            [
+              "`0`, `3.14`",
+              "Да",
+              "[Числа](#numbers) неизменяемы"
+            ],
+            [
+              "`'текст'`",
+              "Да",
+              "[Строки](#str) неизменяемы"
+            ],
+            [
+              "`True`, `False`",
+              "Да",
+              "[bool](#bool) неизменяем"
+            ],
+            [
+              "`None`",
+              "Да",
+              "Неизменяем, идеальный маркер"
+            ],
+            [
+              "`(1, 2)`",
+              "Да",
+              "[Кортеж](#tuple) неизменяем"
+            ],
+            [
+              "`[]`",
+              "**Нет**",
+              "[Список](#list) изменяем — накопит данные"
+            ],
+            [
+              "`{}`",
+              "**Нет**",
+              "[Словарь](#dict) изменяем"
+            ],
+            [
+              "`set()`",
+              "**Нет**",
+              "[Множество](#set) изменяемо"
+            ]
+          ]
+        },
+        {
+          "type": "code",
+          "title": "Та же ловушка со словарём",
+          "code": "def save(key, value, storage={}):\n    storage[key] = value\n    return storage\n\nprint(save('a', 1))  # {'a': 1}\nprint(save('b', 2))  # {'a': 1, 'b': 2} (!)\n\n# Правильно:\ndef save(key, value, storage=None):\n    if storage is None:\n        storage = {}\n    storage[key] = value\n    return storage"
+        },
+        {
+          "type": "warn",
+          "text": "Значение по умолчанию вычисляется один раз и для любых выражений. `def f(t=time.time())` зафиксирует момент запуска программы, а не момент вызова функции."
+        }
+      ]
+    },
+    {
+      "num": "⚡",
+      "anchor": "lambda",
+      "chip": "lambda",
+      "chipNote": "короткие функции",
+      "title": "lambda и функции как значения",
+      "desc": "Функция — такой же объект, как число или строка. Её можно передавать и хранить.",
+      "blocks": [
+        {
+          "type": "text",
+          "text": "Имя функции без скобок — это ссылка на объект-функцию. Её можно присвоить переменной, положить в [список](#list) или передать в другую функцию."
+        },
+        {
+          "type": "code",
+          "code": "def greeting():\n    print('Привет!')\n\nlink = greeting  # без скобок — копируем ссылку\nlink()           # Привет! — вызов через новое имя\n\nprint(type(greeting))  # <class 'function'>"
+        },
+        {
+          "type": "heading",
+          "text": "lambda: функция в одну строку"
+        },
+        {
+          "type": "code",
+          "code": "square = lambda x: x ** 2\nprint(square(5))      # 25\n\n# Полный эквивалент:\ndef square(x):\n    return x ** 2"
+        },
+        {
+          "type": "note",
+          "text": "`lambda` не может содержать несколько инструкций, циклов или `if`-блоков — только одно выражение, результат которого возвращается автоматически. Слово `return` внутри не пишут."
+        },
+        {
+          "type": "warn",
+          "text": "Присваивать `lambda` переменной обычно не стоит: `def` в этом случае и читаемее, и даёт функции нормальное имя в сообщениях об ошибках. `lambda` хороша именно там, где функция нужна на один раз."
+        },
+        {
+          "type": "heading",
+          "text": "Главное применение: параметр key"
+        },
+        {
+          "type": "code",
+          "title": "Сортировка по своему правилу",
+          "code": "words = ['груша', 'ям', 'ананас']\n\nprint(sorted(words))                       # по алфавиту\nprint(sorted(words, key=len))              # по длине: ['ям', 'груша', 'ананас']\nprint(sorted(words, key=lambda w: w[-1]))  # по последней букве"
+        },
+        {
+          "type": "code",
+          "title": "Сортировка списка словарей",
+          "code": "students = [\n    {'name': 'Аня',  'score': 78},\n    {'name': 'Боря', 'score': 92},\n    {'name': 'Вика', 'score': 85},\n]\n\nby_score = sorted(students, key=lambda s: s['score'], reverse=True)\nfor s in by_score:\n    print(s['name'], s['score'])\n\n# Боря 92 / Вика 85 / Аня 78"
+        },
+        {
+          "type": "text",
+          "text": "`key` принимает функцию, которая для каждого элемента возвращает значение для сравнения. Тот же приём работает в `max`, `min` и `sorted`."
+        },
+        {
+          "type": "code",
+          "title": "max и min с key",
+          "code": "students = [{'name': 'Аня', 'score': 78}, {'name': 'Боря', 'score': 92}]\n\nbest = max(students, key=lambda s: s['score'])\nprint(best['name'])       # Боря\n\ncounter = {'а': 5, 'б': 2}\nprint(max(counter, key=counter.get))   # 'а' — ключ с наибольшим значением"
+        },
+        {
+          "type": "heading",
+          "text": "Функция как аргумент функции"
+        },
+        {
+          "type": "code",
+          "code": "def apply_to_all(func, values):\n    result = []\n    for v in values:\n        result.append(func(v))\n    return result\n\nprint(apply_to_all(lambda x: x * 2, [1, 2, 3]))  # [2, 4, 6]\nprint(apply_to_all(str.upper, ['a', 'b']))       # ['A', 'B']\nprint(apply_to_all(len, ['кот', 'слон']))        # [3, 4]"
+        },
+        {
+          "type": "note",
+          "text": "Тот же результат обычно короче записывается генератором списка: `[x * 2 for x in [1, 2, 3]]`. Генераторы разобраны в разделе [Списки](#list) первого справочника."
+        }
+      ]
+    },
+    {
+      "num": "🌀",
+      "anchor": "recursion",
+      "chip": "рекурсия",
+      "chipNote": "функция сама себя",
+      "title": "Рекурсия",
+      "desc": "Функция, вызывающая саму себя: как это работает и когда уместно.",
+      "blocks": [
+        {
+          "type": "text",
+          "text": "Рекурсивная функция вызывает саму себя на упрощённой задаче, пока не дойдёт до случая, который решается напрямую. Этот случай называют **базовым**."
+        },
+        {
+          "type": "code",
+          "title": "Факториал",
+          "code": "def factorial(n):\n    if n <= 1:            # базовый случай — выход из рекурсии\n        return 1\n    return n * factorial(n - 1)   # шаг к базовому случаю\n\nprint(factorial(5))       # 120\n\n# Как это разворачивается:\n# факториал(5) = 5 * факториал(4)\n#              = 5 * 4 * факториал(3)\n#              = 5 * 4 * 3 * 2 * 1 = 120"
+        },
+        {
+          "type": "warn",
+          "text": "Без базового случая рекурсия уходит в бесконечность и падает с `RecursionError`. Предел глубины по умолчанию — около 1000 вызовов."
+        },
+        {
+          "type": "compare",
+          "good": {
+            "title": "Есть выход",
+            "code": "def countdown(n):\n    if n == 0:\n        print('Пуск!')\n        return\n    print(n)\n    countdown(n - 1)\n\ncountdown(3)   # 3, 2, 1, Пуск!"
+          },
+          "bad": {
+            "title": "Выхода нет",
+            "code": "def countdown(n):\n    print(n)\n    countdown(n - 1)\n\ncountdown(3)\n# 3, 2, 1, 0, -1, -2 ...\n# RecursionError"
+          }
+        },
+        {
+          "type": "heading",
+          "text": "Где рекурсия действительно уместна"
+        },
+        {
+          "type": "code",
+          "title": "Обход вложенной структуры неизвестной глубины",
+          "code": "def flatten(data):\n    \"\"\"Превращает список любой вложенности в плоский.\"\"\"\n    result = []\n    for item in data:\n        if isinstance(item, list):\n            result.extend(flatten(item))   # рекурсия\n        else:\n            result.append(item)\n    return result\n\nprint(flatten([1, [2, [3, [4]], 5]]))   # [1, 2, 3, 4, 5]"
+        },
+        {
+          "type": "note",
+          "text": "Здесь рекурсия выигрывает у цикла: заранее неизвестно, насколько глубоко вложены данные. Про такие структуры — раздел [Вложенные структуры](#nested) первого справочника."
+        },
+        {
+          "type": "heading",
+          "text": "Где лучше обычный цикл"
+        },
+        {
+          "type": "compare",
+          "good": {
+            "title": "Цикл — быстро и просто",
+            "code": "def factorial(n):\n    result = 1\n    for i in range(2, n + 1):\n        result *= i\n    return result\n\nprint(factorial(1000))   # работает"
+          },
+          "bad": {
+            "title": "Рекурсия — упрётся в предел",
+            "code": "def factorial(n):\n    if n <= 1:\n        return 1\n    return n * factorial(n - 1)\n\nprint(factorial(1000))\n# RecursionError:\n# maximum recursion depth exceeded"
+          }
+        },
+        {
+          "type": "warn",
+          "text": "Наивная рекурсия для чисел Фибоначчи (`fib(n-1) + fib(n-2)`) пересчитывает одни и те же значения многократно: при `n = 40` это уже больше миллиарда вызовов. Для таких задач берите цикл."
+        },
+        {
+          "type": "code",
+          "title": "Фибоначчи через цикл",
+          "code": "def fibonacci(n):\n    a, b = 0, 1\n    for _ in range(n):\n        a, b = b, a + b       # обмен через кортеж\n    return a\n\nprint(fibonacci(40))     # 102334155 — мгновенно"
+        },
+        {
+          "type": "text",
+          "text": "Приём `a, b = b, a + b` — это распаковка [кортежа](#tuple): правая часть вычисляется целиком до присваивания, поэтому временная переменная не нужна."
+        }
+      ]
+    }
+  ]
+}
