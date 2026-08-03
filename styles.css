@@ -31,6 +31,8 @@
 [data-mod="7"] { --mod-color: #F472B6; }
 [data-mod="8"] { --mod-color: #A3E635; }
 [data-mod="9"] { --mod-color: #6366F1; }
+[data-mod="10"] { --mod-color: #C084FC; }
+[data-mod="11"] { --mod-color: #FB923C; }
 
 body {
   /* JetBrains Mono склеивает != в ≠ и == в ⩵ — в учебном коде это недопустимо */
@@ -300,6 +302,8 @@ body::before {
   .module-header[data-mod="7"] { background: linear-gradient(135deg, rgba(244,114,182,0.08), rgba(244,114,182,0.02)); border-color: rgba(244,114,182,0.15); }
   .module-header[data-mod="8"] { background: linear-gradient(135deg, rgba(163,230,53,0.08), rgba(163,230,53,0.02)); border-color: rgba(163,230,53,0.15); }
   .module-header[data-mod="9"] { background: linear-gradient(135deg, rgba(99,102,241,0.08), rgba(99,102,241,0.02)); border-color: rgba(99,102,241,0.15); }
+  .module-header[data-mod="10"] { background: linear-gradient(135deg, rgba(192,132,252,0.08), rgba(192,132,252,0.02)); border-color: rgba(192,132,252,0.15); }
+  .module-header[data-mod="11"] { background: linear-gradient(135deg, rgba(251,146,60,0.08), rgba(251,146,60,0.02)); border-color: rgba(251,146,60,0.15); }
 }
 
 .module-header .icon { font-size: 34px; }
@@ -342,6 +346,8 @@ body::before {
   [data-mod="7"] .lesson-num { color: #F472B6; background: rgba(244,114,182,0.1); }
   [data-mod="8"] .lesson-num { color: #A3E635; background: rgba(163,230,53,0.1); }
   [data-mod="9"] .lesson-num { color: #6366F1; background: rgba(99,102,241,0.1); }
+  [data-mod="10"] .lesson-num { color: #C084FC; background: rgba(192,132,252,0.1); }
+  [data-mod="11"] .lesson-num { color: #FB923C; background: rgba(251,146,60,0.1); }
 }
 
 .lesson.attestation .lesson-num { color: #FBBF24; background: rgba(251,191,36,0.12); }
@@ -770,6 +776,10 @@ code, pre, .ic { font-variant-ligatures: none; font-feature-settings: "liga" 0, 
   [data-mod="7"] .ref-link, [data-mod="7"] .sec-chip { color: #F472B6; }
   [data-mod="9"] .tmi-num, [data-mod="9"] .qn-code,
   [data-mod="9"] .ref-link, [data-mod="9"] .sec-chip { color: #6366F1; }
+  [data-mod="10"] .tmi-num, [data-mod="10"] .qn-code,
+  [data-mod="10"] .ref-link, [data-mod="10"] .sec-chip { color: #C084FC; }
+  [data-mod="11"] .tmi-num, [data-mod="11"] .qn-code,
+  [data-mod="11"] .ref-link, [data-mod="11"] .sec-chip { color: #FB923C; }
   [data-mod="8"] .tmi-num, [data-mod="8"] .qn-code,
   [data-mod="8"] .ref-link, [data-mod="8"] .sec-chip { color: #A3E635; }
 }

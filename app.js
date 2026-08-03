@@ -16,6 +16,8 @@
     { id: 6, file: 'data/notes.json',   icon: '📖', label: 'Основы Python',     sub: '• Типы данных',       menu: true },
     { id: 7, file: 'data/notes2.json',  icon: '🔀', label: 'Ветвление и циклы', sub: '• Условия, for, while', menu: true },
     { id: 8, file: 'data/notes3.json',  icon: '🧩', label: 'Функции',           sub: '• Аргументы, return',  menu: true },
+    { id: 10, file: 'data/notes4.json', icon: '🧯', label: 'Ошибки',            sub: '• try / except',       menu: true },
+    { id: 11, file: 'data/notes5.json', icon: '🏛️', label: 'ООП',               sub: '• классы и объекты',   menu: true },
     { id: 9, file: 'data/course1.json', icon: '🎯', label: 'Как решать задачи', sub: '• Алгоритмическое мышление', menu: true },
     { id: 5, file: 'data/module5.json', icon: '📚', label: 'Доп. курсы', sub: '' }
   ];
@@ -57,7 +59,7 @@
   var GROUPS = [
     { id: 'video', icon: '🎬', label: 'Видеоматериалы', unit: 'модуль',  mods: [1, 2, 3, 4] },
     { id: 'my',    icon: '🎓', label: 'Мои курсы',      unit: 'курс',    mods: [9] },
-    { id: 'ref',   icon: '📚', label: 'Справочник',     unit: 'раздел',  mods: [6, 7, 8] },
+    { id: 'ref',   icon: '📚', label: 'Справочник',     unit: 'раздел',  mods: [6, 7, 8, 10, 11] },
     { id: 'extra', icon: '⭐', label: 'Доп. материалы', note: 'внешние курсы', mods: [5] }
   ];
 

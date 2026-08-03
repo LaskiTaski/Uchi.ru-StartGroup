@@ -1,0 +1,1335 @@
+{
+  "id": 11,
+  "icon": "🏛️",
+  "title": "ООП: классы и объекты",
+  "subtitle": "Классы, наследование, полиморфизм, абстракции • Python 3.10+",
+  "type": "notes",
+  "sections": [
+    {
+      "num": "🏗️",
+      "anchor": "oop-why",
+      "chip": "зачем ООП",
+      "chipNote": "мотивация",
+      "title": "Зачем нужны классы",
+      "desc": "Что не так с обычными переменными и списками, когда данных становится много.",
+      "blocks": [
+        {
+          "type": "text",
+          "text": "Представьте задачу: хранить данные об учениках. Имя, возраст, список оценок. Пока ученик один — хватит трёх переменных. Когда их тридцать, начинается беспорядок."
+        },
+        {
+          "type": "code",
+          "title": "Как это обычно пишут поначалу",
+          "code": "name1 = 'Аня'\nage1 = 15\ngrades1 = [5, 4, 5]\n\nname2 = 'Боря'\nage2 = 16\ngrades2 = [3, 4]\n\n# И так тридцать раз. Данные одного ученика разбросаны\n# по трём переменным, связанным между собой только цифрой в имени"
+        },
+        {
+          "type": "text",
+          "text": "Первое улучшение — сложить всё в [словарь](#dict). Уже лучше: данные одного ученика лежат вместе."
+        },
+        {
+          "type": "code",
+          "title": "Через словарь",
+          "code": "student = {'name': 'Аня', 'age': 15, 'grades': [5, 4, 5]}\n\n# Средний балл считаем отдельной функцией:\ndef average(s):\n    return sum(s['grades']) / len(s['grades'])\n\nprint(average(student))   # 4.666666666666667"
+        },
+        {
+          "type": "heading",
+          "text": "Что всё ещё плохо"
+        },
+        {
+          "type": "table",
+          "head": [
+            "Проблема",
+            "В чём беда"
+          ],
+          "rows": [
+            [
+              "Опечатка в ключе",
+              "`student['nmae']` — `KeyError` только во время работы"
+            ],
+            [
+              "Нет обязательных полей",
+              "Можно создать ученика вообще без оценок и не заметить"
+            ],
+            [
+              "Данные и действия врозь",
+              "`average()` живёт отдельно от словаря, о связи знает только программист"
+            ],
+            [
+              "Повторение",
+              "Каждый новый словарь создаётся вручную, поля легко забыть"
+            ]
+          ]
+        },
+        {
+          "type": "text",
+          "text": "**Класс** решает всё это разом: он задаёт шаблон — какие поля обязательны и что с ними можно делать. Данные и действия оказываются в одном месте."
+        },
+        {
+          "type": "code",
+          "title": "То же самое через класс",
+          "code": "class Student:\n    def __init__(self, name, age, grades):\n        self.name = name\n        self.age = age\n        self.grades = grades\n\n    def average(self):\n        return sum(self.grades) / len(self.grades)\n\n\nanya = Student('Аня', 15, [5, 4, 5])\n\nprint(anya.name)        # Аня\nprint(anya.average())    # 4.666666666666667"
+        },
+        {
+          "type": "note",
+          "text": "Обратите внимание: `average()` теперь **принадлежит** ученику. Не «функция, которую надо не забыть применить к словарю», а действие самого объекта — `anya.average()`."
+        },
+        {
+          "type": "heading",
+          "text": "Класс и объект — не одно и то же"
+        },
+        {
+          "type": "table",
+          "head": [
+            "",
+            "Класс",
+            "Объект (экземпляр)"
+          ],
+          "rows": [
+            [
+              "Что это",
+              "Чертёж, шаблон",
+              "Конкретная вещь по чертежу"
+            ],
+            [
+              "Сколько бывает",
+              "Один",
+              "Сколько угодно"
+            ],
+            [
+              "Пример из жизни",
+              "Проект дома",
+              "Дом на улице Ленина, 5"
+            ],
+            [
+              "В коде",
+              "`class Student:`",
+              "`anya = Student(...)`"
+            ],
+            [
+              "Занимает память",
+              "Один раз",
+              "Каждый объект отдельно"
+            ]
+          ]
+        },
+        {
+          "type": "text",
+          "text": "С классами вы уже работали, просто не знали об этом: `str`, `list`, `dict` — тоже классы, встроенные в язык. Поэтому `type('привет')` печатает `<class 'str'>`, а у списка есть методы `.append()` и `.sort()`."
+        },
+        {
+          "type": "code",
+          "title": "Встроенные типы — те же классы",
+          "code": "print(type('привет'))     # <class 'str'>\nprint(type([1, 2]))       # <class 'list'>\n\nwords = ['кот', 'пёс']\nwords.append('ёж')        # метод объекта — ровно как anya.average()\n\n# Создавая свой класс, вы добавляете в язык новый тип данных"
+        }
+      ]
+    },
+    {
+      "num": "🧱",
+      "anchor": "class-basics",
+      "chip": "class / __init__",
+      "chipNote": "основы",
+      "title": "Класс, объект и self",
+      "desc": "Как объявить класс, создать объект и что за странный self во всех методах.",
+      "blocks": [
+        {
+          "type": "code",
+          "title": "Минимальный класс",
+          "code": "class Cat:\n    def __init__(self, name, age):\n        self.name = name\n        self.age = age\n\n\nbarsik = Cat('Барсик', 3)\nmurka = Cat('Мурка', 5)\n\nprint(barsik.name)   # Барсик\nprint(murka.age)     # 5"
+        },
+        {
+          "type": "table",
+          "head": [
+            "Элемент",
+            "Что делает"
+          ],
+          "rows": [
+            [
+              "`class Cat:`",
+              "Объявление класса. Имя с **заглавной буквы** — общее соглашение"
+            ],
+            [
+              "`__init__`",
+              "Метод-конструктор: вызывается автоматически при создании объекта"
+            ],
+            [
+              "`self`",
+              "Сам создаваемый объект — тот, к которому привязываем данные"
+            ],
+            [
+              "`self.name = name`",
+              "Сохраняем аргумент в объекте как **атрибут**"
+            ],
+            [
+              "`Cat('Барсик', 3)`",
+              "Создание объекта. `self` подставляется автоматически"
+            ]
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Что такое self и откуда он берётся"
+        },
+        {
+          "type": "text",
+          "text": "`self` — это **сам объект**, над которым сейчас работает метод. Когда вы пишете `barsik.name`, Python вызывает метод и незаметно подставляет первым аргументом сам `barsik`. Поэтому в определении параметров на один больше, чем при вызове."
+        },
+        {
+          "type": "code",
+          "title": "Что происходит на самом деле",
+          "code": "class Cat:\n    def __init__(self, name):\n        self.name = name\n\n    def meow(self):\n        print(f'{self.name} говорит: мяу')\n\n\nbarsik = Cat('Барсик')\nbarsik.meow()          # Барсик говорит: мяу\n\n# Эта запись — то же самое, только self передан вручную:\nCat.meow(barsik)       # Барсик говорит: мяу"
+        },
+        {
+          "type": "note",
+          "text": "Слово `self` не является ключевым — это просто общепринятое имя первого параметра. Технически можно назвать его как угодно, но так делать не стоит: любой питонист ожидает увидеть именно `self`."
+        },
+        {
+          "type": "warn",
+          "text": "Забытый `self` в списке параметров — самая частая ошибка новичка. `def meow():` вместо `def meow(self):` даст `TypeError: meow() takes 0 positional arguments but 1 was given` — Python-то объект всё равно передаст."
+        },
+        {
+          "type": "compare",
+          "good": {
+            "title": "Обращаемся через self",
+            "code": "class Cat:\n    def __init__(self, name):\n        self.name = name\n\n    def meow(self):\n        print(self.name, 'мяу')"
+          },
+          "bad": {
+            "title": "Забыли self",
+            "code": "class Cat:\n    def __init__(self, name):\n        self.name = name\n\n    def meow(self):\n        print(name, 'мяу')\n        # NameError: name is not\n        # defined — это параметр\n        # другого метода"
+          }
+        },
+        {
+          "type": "heading",
+          "text": "Атрибуты можно менять и добавлять"
+        },
+        {
+          "type": "code",
+          "code": "barsik = Cat('Барсик')\n\nbarsik.age = 3           # добавили атрибут после создания\nprint(barsik.age)        # 3\n\nbarsik.name = 'Барсик Второй'   # изменили существующий\nprint(barsik.name)\n\nprint(murka.age)         # AttributeError — у другого объекта его нет"
+        },
+        {
+          "type": "note",
+          "text": "Добавлять атрибуты на ходу технически можно, но так почти не делают: все поля объявляют в `__init__`, чтобы у каждого объекта был одинаковый набор. Иначе получится тот же беспорядок, что и со [словарями](#dict)."
+        },
+        {
+          "type": "heading",
+          "text": "Объекты независимы друг от друга"
+        },
+        {
+          "type": "code",
+          "code": "barsik = Cat('Барсик')\nmurka = Cat('Мурка')\n\nbarsik.name = 'Рыжик'\n\nprint(barsik.name)   # Рыжик\nprint(murka.name)    # Мурка — не затронута\n\nprint(barsik is murka)   # False — это разные объекты в памяти"
+        },
+        {
+          "type": "text",
+          "text": "Каждый вызов `Cat(...)` создаёт **новый объект** со своим набором атрибутов. Как это устроено в памяти — та же механика, что в разделе [Изменяемость](#mutation): объект живёт по своему адресу, а имя лишь ссылается на него."
+        }
+      ]
+    },
+    {
+      "num": "⚙️",
+      "anchor": "methods",
+      "chip": "методы",
+      "chipNote": "поведение",
+      "title": "Методы: что объект умеет делать",
+      "desc": "Функции внутри класса и как они работают с данными объекта.",
+      "blocks": [
+        {
+          "type": "text",
+          "text": "**Метод** — это [функция](#func), объявленная внутри класса. Отличие от обычной функции ровно одно: метод получает первым аргументом сам объект и потому имеет доступ к его данным."
+        },
+        {
+          "type": "code",
+          "title": "Класс с несколькими методами",
+          "code": "class Rectangle:\n    def __init__(self, width, height):\n        self.width = width\n        self.height = height\n\n    def area(self):\n        return self.width * self.height\n\n    def perimeter(self):\n        return 2 * (self.width + self.height)\n\n    def is_square(self):\n        return self.width == self.height\n\n\nr = Rectangle(3, 4)\nprint(r.area())        # 12\nprint(r.perimeter())   # 14\nprint(r.is_square())   # False"
+        },
+        {
+          "type": "heading",
+          "text": "Методы, которые меняют объект"
+        },
+        {
+          "type": "text",
+          "text": "Метод может не только считать, но и изменять атрибуты. Тогда он обычно ничего не возвращает — ровно как `list.append()`, который меняет список на месте и возвращает [`None`](#none)."
+        },
+        {
+          "type": "code",
+          "code": "class BankAccount:\n    def __init__(self, owner):\n        self.owner = owner\n        self.balance = 0\n\n    def deposit(self, amount):\n        self.balance += amount          # меняем объект\n\n    def withdraw(self, amount):\n        if amount > self.balance:\n            print('Недостаточно средств')\n            return\n        self.balance -= amount\n\n\naccount = BankAccount('Аня')\naccount.deposit(1000)\naccount.withdraw(300)\nprint(account.balance)     # 700\naccount.withdraw(5000)     # Недостаточно средств"
+        },
+        {
+          "type": "note",
+          "text": "Здесь проявляется главная выгода ООП: снаружи невозможно случайно уйти в минус, потому что все изменения баланса проходят через методы, где стоит проверка."
+        },
+        {
+          "type": "heading",
+          "text": "Методы могут вызывать друг друга"
+        },
+        {
+          "type": "code",
+          "code": "class Rectangle:\n    def __init__(self, width, height):\n        self.width = width\n        self.height = height\n\n    def area(self):\n        return self.width * self.height\n\n    def describe(self):\n        # обращаемся к соседнему методу через self\n        return f'Прямоугольник {self.width}x{self.height}, площадь {self.area()}'\n\n\nprint(Rectangle(3, 4).describe())\n# Прямоугольник 3x4, площадь 12"
+        },
+        {
+          "type": "warn",
+          "text": "Внутри класса к своим же методам обращаются только через `self`. Просто `area()` вызовет `NameError` — обычной функции с таким именем в программе нет."
+        },
+        {
+          "type": "heading",
+          "text": "Метод против обычной функции"
+        },
+        {
+          "type": "compare",
+          "good": {
+            "title": "Метод — данные внутри",
+            "code": "class Circle:\n    def __init__(self, r):\n        self.r = r\n\n    def area(self):\n        return 3.14159 * self.r ** 2\n\nc = Circle(5)\nprint(c.area())"
+          },
+          "bad": {
+            "title": "Функция — данные снаружи",
+            "code": "def circle_area(r):\n    return 3.14159 * r ** 2\n\nr = 5\nprint(circle_area(r))\n\n# Работает, но радиус и\n# действие ничем не связаны"
+          }
+        },
+        {
+          "type": "note",
+          "text": "Это не значит, что функции хуже. Для одиночного расчёта функция проще и уместнее. Класс выигрывает, когда данных несколько и они живут вместе долго."
+        },
+        {
+          "type": "code",
+          "title": "Список объектов — обычная работа",
+          "code": "class Student:\n    def __init__(self, name, grades):\n        self.name = name\n        self.grades = grades\n\n    def average(self):\n        return sum(self.grades) / len(self.grades)\n\n\ngroup = [\n    Student('Аня', [5, 4, 5]),\n    Student('Боря', [3, 4, 3]),\n]\n\nfor student in group:\n    print(f'{student.name}: {student.average():.2f}')\n\n# Лучший ученик — сортировкой по методу:\nbest = max(group, key=lambda s: s.average())\nprint('Лучший:', best.name)"
+        },
+        {
+          "type": "text",
+          "text": "Приём с `key=lambda` здесь тот же, что в разделе [lambda и функции как значения](#lambda)."
+        }
+      ]
+    },
+    {
+      "num": "🏷️",
+      "anchor": "attributes",
+      "chip": "атрибуты",
+      "chipNote": "класса и объекта",
+      "title": "Атрибуты класса и объекта",
+      "desc": "Данные, общие для всех объектов, и данные, личные у каждого.",
+      "blocks": [
+        {
+          "type": "text",
+          "text": "Атрибуты бывают двух видов. **Атрибут объекта** создаётся в `__init__` через `self` и у каждого объекта свой. **Атрибут класса** объявляется прямо в теле класса и общий для всех."
+        },
+        {
+          "type": "code",
+          "title": "Оба вида рядом",
+          "code": "class Student:\n    school = 'Гимназия №1'        # атрибут класса — общий\n\n    def __init__(self, name):\n        self.name = name          # атрибут объекта — личный\n\n\nanya = Student('Аня')\nborya = Student('Боря')\n\nprint(anya.name, '|', anya.school)    # Аня | Гимназия №1\nprint(borya.name, '|', borya.school)  # Боря | Гимназия №1\nprint(Student.school)                 # Гимназия №1 — доступен и без объекта"
+        },
+        {
+          "type": "table",
+          "head": [
+            "",
+            "Атрибут класса",
+            "Атрибут объекта"
+          ],
+          "rows": [
+            [
+              "Где объявлен",
+              "В теле класса",
+              "В `__init__` через `self`"
+            ],
+            [
+              "Сколько копий",
+              "Одна на всех",
+              "Своя у каждого объекта"
+            ],
+            [
+              "Когда применять",
+              "Общая константа, счётчик, настройка",
+              "Всё, что различается"
+            ],
+            [
+              "Доступ",
+              "`Student.school` и `anya.school`",
+              "Только `anya.name`"
+            ]
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Типичное применение: счётчик объектов"
+        },
+        {
+          "type": "code",
+          "code": "class Student:\n    count = 0                     # общий на всех\n\n    def __init__(self, name):\n        self.name = name\n        Student.count += 1        # обращаемся по имени класса\n\n\nStudent('Аня')\nStudent('Боря')\nStudent('Вика')\n\nprint(Student.count)   # 3 — создано три объекта"
+        },
+        {
+          "type": "warn",
+          "text": "Внутри метода счётчик увеличивают именно через `Student.count`, а не `self.count`. Запись `self.count += 1` создаст **новый личный** атрибут у объекта и общий счётчик не тронет."
+        },
+        {
+          "type": "code",
+          "title": "Почему self.count += 1 не работает",
+          "code": "class Student:\n    count = 0\n\n    def __init__(self):\n        self.count += 1      # ЛОВУШКА\n\n\na = Student()\nb = Student()\n\nprint(a.count)         # 1\nprint(b.count)         # 1  — у каждого свой, а не общий\nprint(Student.count)   # 0  — общий так и остался нулём"
+        },
+        {
+          "type": "note",
+          "text": "Правило поиска простое: Python сначала ищет атрибут **у объекта**, а если не нашёл — **у класса**. Поэтому чтение `self.count` работает, а вот присваивание всегда создаёт атрибут именно у объекта."
+        },
+        {
+          "type": "heading",
+          "text": "Изменяемый атрибут класса — та же ловушка, что и раньше"
+        },
+        {
+          "type": "warn",
+          "text": "[Список](#list) в атрибуте класса будет **общим для всех объектов** — ровно как [изменяемое значение по умолчанию](#defaults) у функции. Списки и словари всегда создавайте в `__init__`."
+        },
+        {
+          "type": "compare",
+          "good": {
+            "title": "Список в __init__",
+            "code": "class Student:\n    def __init__(self, name):\n        self.name = name\n        self.grades = []\n\na = Student('Аня')\nb = Student('Боря')\na.grades.append(5)\n\nprint(a.grades)   # [5]\nprint(b.grades)   # []  — независимы"
+          },
+          "bad": {
+            "title": "Список в теле класса",
+            "code": "class Student:\n    grades = []      # ОДИН на всех!\n\n    def __init__(self, name):\n        self.name = name\n\na = Student('Аня')\nb = Student('Боря')\na.grades.append(5)\n\nprint(a.grades)   # [5]\nprint(b.grades)   # [5] (!)"
+          }
+        }
+      ]
+    },
+    {
+      "num": "🔐",
+      "anchor": "encapsulation",
+      "chip": "инкапсуляция",
+      "chipNote": "защита данных",
+      "title": "Инкапсуляция и свойства",
+      "desc": "Как защитить данные объекта от порчи снаружи.",
+      "blocks": [
+        {
+          "type": "text",
+          "text": "**Инкапсуляция** — идея о том, что внутреннее устройство объекта не должно быть доступно снаружи напрямую. Работать с объектом полагается через его методы, которые могут проверить корректность данных."
+        },
+        {
+          "type": "code",
+          "title": "Проблема: атрибут можно испортить",
+          "code": "class BankAccount:\n    def __init__(self, owner):\n        self.owner = owner\n        self.balance = 0\n\n    def withdraw(self, amount):\n        if amount > self.balance:\n            print('Недостаточно средств')\n            return\n        self.balance -= amount\n\n\naccount = BankAccount('Аня')\naccount.balance = -1000000     # проверка обойдена!\nprint(account.balance)         # -1000000"
+        },
+        {
+          "type": "heading",
+          "text": "Соглашение о подчёркиваниях"
+        },
+        {
+          "type": "table",
+          "head": [
+            "Запись",
+            "Что означает",
+            "Python это запрещает?"
+          ],
+          "rows": [
+            [
+              "`balance`",
+              "Публичный: пользуйтесь свободно",
+              "—"
+            ],
+            [
+              "`_balance`",
+              "«Внутреннее, руками не трогать»",
+              "Нет, только соглашение"
+            ],
+            [
+              "`__balance`",
+              "Приватный: имя искажается",
+              "Затрудняет, но не запрещает"
+            ]
+          ]
+        },
+        {
+          "type": "code",
+          "title": "Одно подчёркивание — вежливая просьба",
+          "code": "class BankAccount:\n    def __init__(self, owner):\n        self.owner = owner\n        self._balance = 0        # намёк: это внутреннее\n\n    def deposit(self, amount):\n        if amount <= 0:\n            raise ValueError('Сумма должна быть положительной')\n        self._balance += amount\n\n    def get_balance(self):\n        return self._balance\n\n\naccount = BankAccount('Аня')\naccount.deposit(1000)\nprint(account.get_balance())   # 1000\n\naccount.deposit(-500)          # ValueError: Сумма должна быть положительной"
+        },
+        {
+          "type": "note",
+          "text": "Одно подчёркивание ничего не блокирует — это сигнал другим программистам: «поле внутреннее, полагаться на него не надо, оно может измениться». В Python принято доверять, а не запирать."
+        },
+        {
+          "type": "code",
+          "title": "Два подчёркивания — искажение имени",
+          "code": "class BankAccount:\n    def __init__(self):\n        self.__balance = 0\n\n\naccount = BankAccount()\nprint(account.__balance)      # AttributeError\n\n# Но данные никуда не делись, просто имя изменилось:\nprint(account._BankAccount__balance)   # 0"
+        },
+        {
+          "type": "warn",
+          "text": "Двойное подчёркивание задумано не как защита от взлома, а как страховка от случайного совпадения имён при наследовании. Полноценных приватных полей, как в Java или C#, в Python нет."
+        },
+        {
+          "type": "heading",
+          "text": "@property: метод, который выглядит как атрибут"
+        },
+        {
+          "type": "text",
+          "text": "Писать `account.get_balance()` вместо `account.balance` неудобно. Декоратор `@property` позволяет оставить привычную запись через точку, но выполнить при обращении код."
+        },
+        {
+          "type": "code",
+          "code": "class Rectangle:\n    def __init__(self, width, height):\n        self.width = width\n        self.height = height\n\n    @property\n    def area(self):\n        return self.width * self.height\n\n\nr = Rectangle(3, 4)\nprint(r.area)      # 12 — БЕЗ скобок, как обычный атрибут\n\nr.width = 10\nprint(r.area)      # 40 — пересчиталось само"
+        },
+        {
+          "type": "note",
+          "text": "`area` не хранится в объекте, а вычисляется в момент обращения. Поэтому она никогда не разойдётся с реальными размерами — в отличие от обычного атрибута, который пришлось бы обновлять вручную."
+        },
+        {
+          "type": "code",
+          "title": "Проверка при записи через setter",
+          "code": "class Student:\n    def __init__(self, name):\n        self.name = name\n        self._age = 0\n\n    @property\n    def age(self):\n        return self._age\n\n    @age.setter\n    def age(self, value):\n        if not 0 <= value <= 120:\n            raise ValueError('Некорректный возраст')\n        self._age = value\n\n\ns = Student('Аня')\ns.age = 15         # сработал setter с проверкой\nprint(s.age)       # 15\n\ns.age = -5         # ValueError: Некорректный возраст"
+        },
+        {
+          "type": "warn",
+          "text": "Не превращайте каждый атрибут в свойство «на всякий случай». Начинайте с обычных публичных атрибутов и добавляйте `@property` только там, где действительно нужна проверка или расчёт."
+        }
+      ]
+    },
+    {
+      "num": "🖨️",
+      "anchor": "dunder",
+      "chip": "__str__",
+      "chipNote": "магические методы",
+      "title": "Магические методы",
+      "desc": "Методы с двойными подчёркиваниями, которые Python вызывает сам.",
+      "blocks": [
+        {
+          "type": "text",
+          "text": "Методы вида `__имя__` называют **магическими** (или dunder — от double underscore). Их не вызывают напрямую: Python обращается к ним сам, когда вы используете `print()`, `len()`, `==` и другие привычные конструкции. С одним таким методом вы уже знакомы — это `__init__`."
+        },
+        {
+          "type": "heading",
+          "text": "Проблема: объект печатается нечитаемо"
+        },
+        {
+          "type": "code",
+          "code": "class Cat:\n    def __init__(self, name):\n        self.name = name\n\n\nbarsik = Cat('Барсик')\nprint(barsik)\n# <__main__.Cat object at 0x7f8b1c0d5f10>\n# Технически честно, но человеку бесполезно"
+        },
+        {
+          "type": "code",
+          "title": "__str__ — как объект выглядит для человека",
+          "code": "class Cat:\n    def __init__(self, name, age):\n        self.name = name\n        self.age = age\n\n    def __str__(self):\n        return f'Кот {self.name}, {self.age} лет'\n\n\nbarsik = Cat('Барсик', 3)\nprint(barsik)          # Кот Барсик, 3 лет\nprint(str(barsik))     # то же самое\nprint(f'{barsik}')     # и в f-строке тоже"
+        },
+        {
+          "type": "note",
+          "text": "`__str__` обязан **возвращать строку** через `return`, а не печатать её. Если внутри написать `print()`, метод вернёт `None`, и Python выдаст `TypeError`."
+        },
+        {
+          "type": "heading",
+          "text": "Другие полезные магические методы"
+        },
+        {
+          "type": "table",
+          "head": [
+            "Метод",
+            "Когда вызывается",
+            "Что должен вернуть"
+          ],
+          "rows": [
+            [
+              "`__init__`",
+              "При создании объекта",
+              "Ничего"
+            ],
+            [
+              "`__str__`",
+              "`print(obj)`, `str(obj)`, f-строка",
+              "Строку"
+            ],
+            [
+              "`__len__`",
+              "`len(obj)`",
+              "Целое число"
+            ],
+            [
+              "`__eq__`",
+              "`obj1 == obj2`",
+              "`True` или `False`"
+            ],
+            [
+              "`__lt__`",
+              "`obj1 < obj2`, сортировка",
+              "`True` или `False`"
+            ],
+            [
+              "`__contains__`",
+              "`x in obj`",
+              "`True` или `False`"
+            ]
+          ]
+        },
+        {
+          "type": "code",
+          "title": "Свой класс ведёт себя как встроенный тип",
+          "code": "class Group:\n    def __init__(self, students):\n        self.students = students\n\n    def __len__(self):\n        return len(self.students)\n\n    def __contains__(self, name):\n        return name in self.students\n\n    def __str__(self):\n        return 'Группа: ' + ', '.join(self.students)\n\n\ngroup = Group(['Аня', 'Боря'])\n\nprint(len(group))        # 2      — сработал __len__\nprint('Аня' in group)    # True   — сработал __contains__\nprint(group)             # Группа: Аня, Боря"
+        },
+        {
+          "type": "heading",
+          "text": "Сравнение объектов"
+        },
+        {
+          "type": "code",
+          "code": "class Point:\n    def __init__(self, x, y):\n        self.x = x\n        self.y = y\n\n\na = Point(1, 2)\nb = Point(1, 2)\n\nprint(a == b)   # False — сравниваются объекты, а не координаты!"
+        },
+        {
+          "type": "text",
+          "text": "По умолчанию `==` для своих классов работает как [`is`](#bool): сравниваются сами объекты, а не их содержимое. Чтобы сравнивать по значениям, нужен `__eq__`."
+        },
+        {
+          "type": "code",
+          "title": "Учим объекты сравниваться",
+          "code": "class Point:\n    def __init__(self, x, y):\n        self.x = x\n        self.y = y\n\n    def __eq__(self, other):\n        return self.x == other.x and self.y == other.y\n\n\na = Point(1, 2)\nb = Point(1, 2)\nc = Point(5, 5)\n\nprint(a == b)   # True  — координаты совпали\nprint(a == c)   # False\nprint(a is b)   # False — объекты всё равно разные"
+        },
+        {
+          "type": "warn",
+          "text": "Магических методов в Python несколько десятков, но начинающему нужны ровно три: `__init__`, `__str__` и иногда `__eq__`. Остальные добавляйте, когда появится конкретная задача."
+        }
+      ]
+    },
+    {
+      "num": "➕",
+      "anchor": "operators",
+      "chip": "__add__",
+      "chipNote": "операторы",
+      "title": "Перегрузка операторов",
+      "desc": "Как научить свои объекты складываться, сравниваться и сортироваться.",
+      "blocks": [
+        {
+          "type": "text",
+          "text": "Мы уже видели, что `print(obj)` вызывает `__str__`, а `len(obj)` — `__len__`. Точно так же за каждым оператором стоит свой магический метод: за `+` — `__add__`, за `<` — `__lt__`. Определив их, вы разрешаете своим объектам участвовать в обычных выражениях."
+        },
+        {
+          "type": "code",
+          "title": "Без перегрузки объекты складывать нельзя",
+          "code": "class Money:\n    def __init__(self, rub):\n        self.rub = rub\n\n\na = Money(100)\nb = Money(50)\nprint(a + b)   # TypeError: unsupported operand type(s) for +: 'Money' and 'Money'"
+        },
+        {
+          "type": "code",
+          "title": "Учим складываться",
+          "code": "class Money:\n    def __init__(self, rub):\n        self.rub = rub\n\n    def __add__(self, other):\n        return Money(self.rub + other.rub)   # возвращаем НОВЫЙ объект\n\n    def __str__(self):\n        return f'{self.rub} руб.'\n\n\nprint(Money(100) + Money(50))   # 150 руб."
+        },
+        {
+          "type": "note",
+          "text": "`__add__` должен **возвращать новый объект**, а не менять существующий. Так же ведут себя все неизменяемые типы: `2 + 3` не портит двойку. Механика — в разделе [Изменяемость](#mutation)."
+        },
+        {
+          "type": "heading",
+          "text": "Основные операторы и их методы"
+        },
+        {
+          "type": "table",
+          "head": [
+            "Оператор",
+            "Метод",
+            "Что обычно возвращает"
+          ],
+          "rows": [
+            [
+              "`a + b`",
+              "`__add__`",
+              "Новый объект того же типа"
+            ],
+            [
+              "`a - b`",
+              "`__sub__`",
+              "Новый объект"
+            ],
+            [
+              "`a * b`",
+              "`__mul__`",
+              "Новый объект"
+            ],
+            [
+              "`a == b`",
+              "`__eq__`",
+              "`True` / `False`"
+            ],
+            [
+              "`a < b`",
+              "`__lt__`",
+              "`True` / `False`"
+            ],
+            [
+              "`a <= b`",
+              "`__le__`",
+              "`True` / `False`"
+            ],
+            [
+              "`len(a)`",
+              "`__len__`",
+              "Целое число"
+            ],
+            [
+              "`a[i]`",
+              "`__getitem__`",
+              "Элемент"
+            ]
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Сравнение и сортировка"
+        },
+        {
+          "type": "text",
+          "text": "Определив `__lt__` («меньше»), вы получаете возможность сортировать список своих объектов встроенной `sorted()` — она внутри сравнивает элементы попарно именно этим методом."
+        },
+        {
+          "type": "code",
+          "title": "Сортировка объектов без key",
+          "code": "class Student:\n    def __init__(self, name, score):\n        self.name = name\n        self.score = score\n\n    def __lt__(self, other):\n        return self.score < other.score\n\n    def __str__(self):\n        return f'{self.name} ({self.score})'\n\n\ngroup = [Student('Аня', 78), Student('Боря', 92), Student('Вика', 85)]\n\nfor s in sorted(group):\n    print(s)\n\n# Аня (78)\n# Вика (85)\n# Боря (92)"
+        },
+        {
+          "type": "note",
+          "text": "Без `__lt__` пришлось бы каждый раз писать `sorted(group, key=lambda s: s.score)` — способ из раздела [lambda](#lambda). Он никуда не делся и остаётся удобнее, когда сортировать нужно по разным полям."
+        },
+        {
+          "type": "heading",
+          "text": "Работа с элементами по индексу"
+        },
+        {
+          "type": "code",
+          "title": "__getitem__ делает объект «списком»",
+          "code": "class Group:\n    def __init__(self, students):\n        self.students = students\n\n    def __len__(self):\n        return len(self.students)\n\n    def __getitem__(self, index):\n        return self.students[index]\n\n\ngroup = Group(['Аня', 'Боря', 'Вика'])\n\nprint(group[0])      # Аня      — сработал __getitem__\nprint(group[-1])     # Вика\nprint(len(group))    # 3\n\nfor name in group:   # и цикл заработал сам собой!\n    print(name)"
+        },
+        {
+          "type": "note",
+          "text": "Цикл `for` заработал бесплатно: если у объекта есть `__getitem__`, Python умеет перебирать его, обращаясь по индексам 0, 1, 2… пока не получит `IndexError`."
+        },
+        {
+          "type": "warn",
+          "text": "Перегружайте операторы только там, где смысл очевиден. `Money + Money` понятно всем, а `Student + Student` — загадка. Если операция вызывает вопрос «а что это вообще значит», лучше обычный метод с говорящим именем."
+        }
+      ]
+    },
+    {
+      "num": "🌳",
+      "anchor": "inheritance",
+      "chip": "наследование",
+      "chipNote": "общий код",
+      "title": "Наследование",
+      "desc": "Как создать класс на основе существующего, не переписывая общий код.",
+      "blocks": [
+        {
+          "type": "text",
+          "text": "Если два класса частично совпадают, общую часть выносят в **родительский** класс, а различия описывают в **дочерних**. Дочерний класс получает все атрибуты и методы родителя автоматически."
+        },
+        {
+          "type": "code",
+          "title": "Проблема: одинаковый код в двух классах",
+          "code": "class Dog:\n    def __init__(self, name):\n        self.name = name\n\n    def eat(self):\n        print(f'{self.name} ест')\n\n\nclass Cat:\n    def __init__(self, name):    # то же самое\n        self.name = name\n\n    def eat(self):               # и это то же самое\n        print(f'{self.name} ест')"
+        },
+        {
+          "type": "code",
+          "title": "Решение: общий родитель",
+          "code": "class Animal:\n    def __init__(self, name):\n        self.name = name\n\n    def eat(self):\n        print(f'{self.name} ест')\n\n\nclass Dog(Animal):        # Dog наследует от Animal\n    def speak(self):\n        print('Гав!')\n\n\nclass Cat(Animal):\n    def speak(self):\n        print('Мяу!')\n\n\nrex = Dog('Рекс')\nrex.eat()      # Рекс ест  — метод достался от родителя\nrex.speak()    # Гав!      — свой собственный"
+        },
+        {
+          "type": "table",
+          "head": [
+            "Термин",
+            "Значение"
+          ],
+          "rows": [
+            [
+              "Родительский класс",
+              "Общий: `Animal`. Ещё говорят «базовый», «суперкласс»"
+            ],
+            [
+              "Дочерний класс",
+              "Уточняющий: `Dog`. Ещё «производный», «подкласс»"
+            ],
+            [
+              "`class Dog(Animal):`",
+              "Объявление наследования"
+            ],
+            [
+              "Наследуется",
+              "Все атрибуты и методы родителя"
+            ]
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Переопределение метода"
+        },
+        {
+          "type": "text",
+          "text": "Дочерний класс может **заменить** метод родителя своим — достаточно объявить метод с тем же именем. Python всегда берёт ближайшее определение: сначала ищет в дочернем классе, потом у родителя."
+        },
+        {
+          "type": "code",
+          "code": "class Animal:\n    def speak(self):\n        print('Какой-то звук')\n\n\nclass Dog(Animal):\n    def speak(self):          # переопределили\n        print('Гав!')\n\n\nclass Fish(Animal):\n    pass                      # ничего не меняем\n\n\nDog().speak()    # Гав!\nFish().speak()   # Какой-то звук — взяли родительский"
+        },
+        {
+          "type": "heading",
+          "text": "super(): дополнить родителя, а не заменить"
+        },
+        {
+          "type": "text",
+          "text": "Часто дочернему классу нужно сделать **то же самое плюс что-то своё**. Для этого вызывают метод родителя через `super()`."
+        },
+        {
+          "type": "code",
+          "title": "Расширяем конструктор",
+          "code": "class Animal:\n    def __init__(self, name):\n        self.name = name\n\n\nclass Dog(Animal):\n    def __init__(self, name, breed):\n        super().__init__(name)     # родитель сохранит name\n        self.breed = breed         # а породу добавим сами\n\n\nrex = Dog('Рекс', 'овчарка')\nprint(rex.name, rex.breed)   # Рекс овчарка"
+        },
+        {
+          "type": "warn",
+          "text": "Если в дочернем `__init__` забыть `super().__init__(...)`, атрибуты родителя просто не создадутся. Обращение к `rex.name` тогда даст `AttributeError`."
+        },
+        {
+          "type": "compare",
+          "good": {
+            "title": "Вызвали родителя",
+            "code": "class Dog(Animal):\n    def __init__(self, name, breed):\n        super().__init__(name)\n        self.breed = breed\n\nrex = Dog('Рекс', 'овчарка')\nprint(rex.name)   # Рекс"
+          },
+          "bad": {
+            "title": "Забыли super()",
+            "code": "class Dog(Animal):\n    def __init__(self, name, breed):\n        self.breed = breed\n\nrex = Dog('Рекс', 'овчарка')\nprint(rex.name)\n# AttributeError: 'Dog' object\n# has no attribute 'name'"
+          }
+        },
+        {
+          "type": "heading",
+          "text": "Один цикл — разные объекты"
+        },
+        {
+          "type": "code",
+          "title": "Главная выгода наследования",
+          "code": "class Animal:\n    def __init__(self, name):\n        self.name = name\n\n    def speak(self):\n        print('...')\n\n\nclass Dog(Animal):\n    def speak(self):\n        print(f'{self.name}: Гав!')\n\n\nclass Cat(Animal):\n    def speak(self):\n        print(f'{self.name}: Мяу!')\n\n\nzoo = [Dog('Рекс'), Cat('Барсик'), Dog('Шарик')]\n\nfor animal in zoo:\n    animal.speak()      # каждый отвечает по-своему\n\n# Рекс: Гав!\n# Барсик: Мяу!\n# Шарик: Гав!"
+        },
+        {
+          "type": "note",
+          "text": "Циклу всё равно, кто перед ним — он просто зовёт `speak()`, а объект сам знает, как ответить. Это называется **полиморфизмом**, и это главная причина, по которой наследование вообще существует."
+        },
+        {
+          "type": "code",
+          "title": "isinstance(): кто передо мной",
+          "code": "rex = Dog('Рекс')\n\nprint(isinstance(rex, Dog))      # True\nprint(isinstance(rex, Animal))   # True — собака тоже животное\nprint(isinstance(rex, Cat))      # False\n\nprint(type(rex))                 # <class '__main__.Dog'>"
+        },
+        {
+          "type": "warn",
+          "text": "Не увлекайтесь глубиной наследования. Три-четыре уровня — уже тяжело читать: чтобы понять, что делает метод, придётся открывать все классы по цепочке."
+        }
+      ]
+    },
+    {
+      "num": "🎭",
+      "anchor": "polymorphism",
+      "chip": "полиморфизм",
+      "chipNote": "duck typing",
+      "title": "Полиморфизм и утиная типизация",
+      "desc": "Почему один и тот же код работает с разными типами объектов.",
+      "blocks": [
+        {
+          "type": "text",
+          "text": "**Полиморфизм** (от греч. «много форм») — это способность одного и того же вызова работать по-разному в зависимости от объекта. Слово страшное, а идея простая: вы говорите объекту *что* сделать, а *как* — он решает сам."
+        },
+        {
+          "type": "text",
+          "text": "С полиморфизмом вы работаете с первого дня, просто не знали названия."
+        },
+        {
+          "type": "code",
+          "title": "Встроенные типы ведут себя полиморфно",
+          "code": "print(len('привет'))       # 6 — считает символы\nprint(len([1, 2, 3]))      # 3 — считает элементы\nprint(len({'a': 1}))       # 1 — считает пары\n\nprint('a' + 'b')           # 'ab' — склейка\nprint(1 + 2)               # 3   — сложение\nprint([1] + [2])           # [1, 2] — объединение\n\n# Один и тот же len() и один и тот же +,\n# а поведение зависит от типа объекта"
+        },
+        {
+          "type": "heading",
+          "text": "Полиморфизм через наследование"
+        },
+        {
+          "type": "code",
+          "code": "class Shape:\n    def area(self):\n        return 0\n\n\nclass Rectangle(Shape):\n    def __init__(self, w, h):\n        self.w = w\n        self.h = h\n\n    def area(self):\n        return self.w * self.h\n\n\nclass Circle(Shape):\n    def __init__(self, r):\n        self.r = r\n\n    def area(self):\n        return 3.14159 * self.r ** 2\n\n\nshapes = [Rectangle(3, 4), Circle(2), Rectangle(1, 1)]\n\ntotal = 0\nfor shape in shapes:\n    total += shape.area()      # каждый считает по-своему\n\nprint(round(total, 2))         # 25.57"
+        },
+        {
+          "type": "note",
+          "text": "Ключевое: цикл **не спрашивает**, что перед ним. Никаких `if isinstance(shape, Circle)`. Добавите завтра треугольник — цикл останется без единого изменения."
+        },
+        {
+          "type": "compare",
+          "good": {
+            "title": "Полиморфно",
+            "code": "for shape in shapes:\n    total += shape.area()\n\n# Новый тип фигуры —\n# код не трогаем"
+          },
+          "bad": {
+            "title": "Через проверки типов",
+            "code": "for shape in shapes:\n    if isinstance(shape, Rectangle):\n        total += shape.w * shape.h\n    elif isinstance(shape, Circle):\n        total += 3.14159 * shape.r ** 2\n\n# Новый тип — правим цикл,\n# и так каждый раз"
+          }
+        },
+        {
+          "type": "heading",
+          "text": "Утиная типизация"
+        },
+        {
+          "type": "text",
+          "text": "В Python объектам даже не обязательно быть родственниками. Действует правило: **«если нечто ходит как утка и крякает как утка — считаем это уткой»**. Важно не происхождение объекта, а наличие нужного метода."
+        },
+        {
+          "type": "code",
+          "title": "Общего родителя нет, а код работает",
+          "code": "class Dog:\n    def speak(self):\n        return 'Гав!'\n\n\nclass Robot:            # никакого отношения к животным\n    def speak(self):\n        return 'Бип-буп'\n\n\nclass Human:\n    def speak(self):\n        return 'Привет'\n\n\nfor obj in [Dog(), Robot(), Human()]:\n    print(obj.speak())   # всем всё равно, кто это\n\n# Гав!\n# Бип-буп\n# Привет"
+        },
+        {
+          "type": "note",
+          "text": "Именно поэтому в Python наследование нужно реже, чем в других языках. Часто достаточно, чтобы у объектов просто совпадали имена методов."
+        },
+        {
+          "type": "heading",
+          "text": "Проверять тип или нет"
+        },
+        {
+          "type": "text",
+          "text": "Проверки через `isinstance()` не запрещены, но их стоит избегать в основной логике. Уместны они там, где поведение принципиально разное — например, функция принимает и одно число, и список чисел."
+        },
+        {
+          "type": "code",
+          "code": "def total_price(value):\n    if isinstance(value, (int, float)):\n        return value\n    return sum(value)          # считаем, что это список\n\n\nprint(total_price(100))          # 100\nprint(total_price([10, 20, 5]))  # 35"
+        },
+        {
+          "type": "warn",
+          "text": "Если в коде появляется длинная цепочка `if isinstance(...)`, ведущая себя как выбор поведения — почти наверняка это задача для полиморфизма. Такую цепочку заменяют методом, который каждый класс реализует по-своему."
+        }
+      ]
+    },
+    {
+      "num": "🧊",
+      "anchor": "abstract",
+      "chip": "абстрактные",
+      "chipNote": "классы-контракты",
+      "title": "Абстрактные классы",
+      "desc": "Класс, который нельзя создать, — только унаследовать. Способ задать обязательный набор методов.",
+      "blocks": [
+        {
+          "type": "text",
+          "text": "В примере с фигурами класс `Shape` сам по себе бессмыслен: «фигуры вообще» не существует, площади у неё нет. Он нужен только как **общий шаблон** — заготовка, задающая, что обязан уметь каждый наследник. Такой класс называют **абстрактным**."
+        },
+        {
+          "type": "code",
+          "title": "Проблема: бессмысленный объект можно создать",
+          "code": "class Shape:\n    def area(self):\n        return 0\n\n\nshape = Shape()      # создаётся, хотя это бессмыслица\nprint(shape.area())  # 0 — и молча врёт"
+        },
+        {
+          "type": "heading",
+          "text": "Способ 1: NotImplementedError"
+        },
+        {
+          "type": "text",
+          "text": "Базовый приём, не требующий ничего дополнительного: метод-заготовка сразу бросает исключение. Наследник обязан его переопределить, иначе программа честно упадёт с понятным сообщением."
+        },
+        {
+          "type": "code",
+          "code": "class Shape:\n    def area(self):\n        raise NotImplementedError('Наследник обязан реализовать area()')\n\n\nclass Square(Shape):\n    def __init__(self, side):\n        self.side = side\n\n    def area(self):\n        return self.side ** 2\n\n\nclass Triangle(Shape):\n    pass                       # забыли реализовать\n\n\nprint(Square(4).area())     # 16 — всё в порядке\nprint(Triangle().area())    # NotImplementedError: Наследник обязан реализовать area()"
+        },
+        {
+          "type": "note",
+          "text": "`NotImplementedError` — встроенное исключение, специально предназначенное для таких заготовок. Про механику `raise` — в разделе [raise](#raise)."
+        },
+        {
+          "type": "warn",
+          "text": "Слабое место подхода: ошибка вылезет только при **вызове** метода. Объект `Triangle()` создастся спокойно, и проблема может обнаружиться далеко от места, где класс написан."
+        },
+        {
+          "type": "heading",
+          "text": "Способ 2: модуль abc"
+        },
+        {
+          "type": "text",
+          "text": "В стандартной библиотеке есть модуль `abc` (abstract base classes). С ним Python запрещает создавать объект, пока не реализованы все обязательные методы, — ошибка возникает сразу при создании."
+        },
+        {
+          "type": "code",
+          "title": "Настоящий абстрактный класс",
+          "code": "from abc import ABC, abstractmethod\n\n\nclass Shape(ABC):                 # наследуемся от ABC\n    @abstractmethod\n    def area(self):\n        ...                       # тело не нужно\n\n    def describe(self):           # обычные методы тоже можно\n        return f'Площадь: {self.area()}'\n\n\nclass Square(Shape):\n    def __init__(self, side):\n        self.side = side\n\n    def area(self):\n        return self.side ** 2\n\n\nprint(Square(4).describe())   # Площадь: 16\n\nshape = Shape()\n# TypeError: Can't instantiate abstract class Shape\n# with abstract method area\n\nclass Triangle(Shape):\n    pass\n\nt = Triangle()\n# TypeError — падает сразу при создании, а не при вызове"
+        },
+        {
+          "type": "note",
+          "text": "`abc` — часть стандартной библиотеки и требует `import`, поэтому в базовом курсе мы его не разбираем. Но знать стоит: увидев `ABC` и `@abstractmethod` в чужом коде, вы поймёте, что перед вами класс-контракт."
+        },
+        {
+          "type": "heading",
+          "text": "Когда абстрактный класс нужен"
+        },
+        {
+          "type": "table",
+          "head": [
+            "Ситуация",
+            "Нужен ли абстрактный класс"
+          ],
+          "rows": [
+            [
+              "Несколько классов обязаны иметь одинаковый набор методов",
+              "Да"
+            ],
+            [
+              "Родитель бессмыслен сам по себе (`Shape`, `Animal`)",
+              "Да"
+            ],
+            [
+              "У родителя есть готовая полезная реализация",
+              "Нет, обычное наследование"
+            ],
+            [
+              "Классы просто похожи, но не связаны",
+              "Нет, хватит [утиной типизации](#polymorphism)"
+            ],
+            [
+              "Класс один",
+              "Нет"
+            ]
+          ]
+        },
+        {
+          "type": "warn",
+          "text": "В Python абстрактные классы нужны реже, чем в Java или C#: благодаря утиной типизации объекты и без общего родителя прекрасно работают вместе. Заводите абстракцию, когда важно **гарантировать** набор методов, а не просто на всякий случай."
+        }
+      ]
+    },
+    {
+      "num": "🪜",
+      "anchor": "mro",
+      "chip": "множественное",
+      "chipNote": "наследование",
+      "title": "Множественное наследование и MRO",
+      "desc": "Класс с несколькими родителями: как это работает и почему требует осторожности.",
+      "blocks": [
+        {
+          "type": "text",
+          "text": "В Python класс может наследоваться сразу от нескольких родителей — достаточно перечислить их через запятую. Это редкая, но иногда очень удобная возможность."
+        },
+        {
+          "type": "code",
+          "title": "Два родителя",
+          "code": "class Swimmer:\n    def swim(self):\n        print(f'{self.name} плывёт')\n\n\nclass Runner:\n    def run(self):\n        print(f'{self.name} бежит')\n\n\nclass Dog(Swimmer, Runner):\n    def __init__(self, name):\n        self.name = name\n\n\nrex = Dog('Рекс')\nrex.swim()   # Рекс плывёт\nrex.run()    # Рекс бежит"
+        },
+        {
+          "type": "note",
+          "text": "Классы вроде `Swimmer` и `Runner` называют **миксинами** (mixin): они не самостоятельны, а лишь добавляют одну способность. Имена им дают по умению, а не по сущности."
+        },
+        {
+          "type": "heading",
+          "text": "Конфликт имён и MRO"
+        },
+        {
+          "type": "text",
+          "text": "А что, если одинаковый метод есть у обоих родителей? Python решает это строго и предсказуемо: он выстраивает **порядок разрешения методов** — MRO (Method Resolution Order) — и берёт первое найденное определение, идя слева направо по списку родителей."
+        },
+        {
+          "type": "code",
+          "title": "Кто победит",
+          "code": "class A:\n    def hello(self):\n        print('Привет из A')\n\n\nclass B:\n    def hello(self):\n        print('Привет из B')\n\n\nclass C(A, B):\n    pass\n\n\nC().hello()      # Привет из A — A указан первым\n\nprint([cls.__name__ for cls in C.__mro__])\n# ['C', 'A', 'B', 'object']"
+        },
+        {
+          "type": "text",
+          "text": "`__mro__` показывает точный порядок поиска: сначала сам класс, потом родители слева направо, в самом конце — `object`, базовый класс вообще всех объектов Python."
+        },
+        {
+          "type": "note",
+          "text": "Отсюда следует, что любой ваш класс уже кое-что наследует. Именно от `object` берутся стандартные `__str__`, `__eq__` и прочие — те самые, которые мы [переопределяли](#dunder)."
+        },
+        {
+          "type": "heading",
+          "text": "Ромбовидная проблема"
+        },
+        {
+          "type": "text",
+          "text": "Классическая сложность множественного наследования: два родителя сами унаследованы от общего предка. Получается «ромб», и вопрос, чей метод вызовется, становится неочевидным."
+        },
+        {
+          "type": "code",
+          "code": "class Animal:\n    def speak(self):\n        print('Звук животного')\n\n\nclass Dog(Animal):\n    def speak(self):\n        print('Гав')\n\n\nclass Cat(Animal):\n    def speak(self):\n        print('Мяу')\n\n\nclass CatDog(Dog, Cat):\n    pass\n\n\nCatDog().speak()    # Гав — Dog указан первым\n\nprint([c.__name__ for c in CatDog.__mro__])\n# ['CatDog', 'Dog', 'Cat', 'Animal', 'object']\n# Animal стоит ПОСЛЕ обоих потомков — так и задумано"
+        },
+        {
+          "type": "warn",
+          "text": "Множественное наследование — мощный, но опасный инструмент. Если у вас получился ромб, почти всегда проще разложить задачу на [композицию](#composition), чем разбираться в порядке вызовов."
+        },
+        {
+          "type": "table",
+          "head": [
+            "Приём",
+            "Когда уместен"
+          ],
+          "rows": [
+            [
+              "Один родитель",
+              "Почти всегда — основной способ"
+            ],
+            [
+              "Миксины (2–3 независимых умения)",
+              "Иногда, если умения действительно не пересекаются"
+            ],
+            [
+              "Ромб с общим предком",
+              "Практически никогда"
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "num": "🧷",
+      "anchor": "composition",
+      "chip": "композиция",
+      "chipNote": "вместо наследования",
+      "title": "Композиция вместо наследования",
+      "desc": "Объект внутри объекта. Часто это лучше, чем родство классов.",
+      "blocks": [
+        {
+          "type": "text",
+          "text": "**Композиция** — когда объект не *является* чем-то, а *содержит* что-то. Двигатель не является машиной, но машина его содержит. В коде это означает: объект другого класса лежит в атрибуте."
+        },
+        {
+          "type": "code",
+          "title": "Объект внутри объекта",
+          "code": "class Engine:\n    def __init__(self, power):\n        self.power = power\n\n    def start(self):\n        print(f'Двигатель {self.power} л.с. запущен')\n\n\nclass Car:\n    def __init__(self, brand, power):\n        self.brand = brand\n        self.engine = Engine(power)   # машина СОДЕРЖИТ двигатель\n\n    def start(self):\n        print(f'{self.brand}:', end=' ')\n        self.engine.start()\n\n\ncar = Car('Лада', 106)\ncar.start()             # Лада: Двигатель 106 л.с. запущен\nprint(car.engine.power) # 106"
+        },
+        {
+          "type": "heading",
+          "text": "Как выбрать: «является» или «содержит»"
+        },
+        {
+          "type": "text",
+          "text": "Простая проверка словами. Если фраза «X **является** Y» звучит естественно — берите наследование. Если естественнее «X **содержит** Y» — композицию."
+        },
+        {
+          "type": "table",
+          "head": [
+            "Фраза",
+            "Отношение",
+            "Что писать"
+          ],
+          "rows": [
+            [
+              "Собака является животным",
+              "является",
+              "`class Dog(Animal)`"
+            ],
+            [
+              "Квадрат является фигурой",
+              "является",
+              "`class Square(Shape)`"
+            ],
+            [
+              "Машина содержит двигатель",
+              "содержит",
+              "`self.engine = Engine()`"
+            ],
+            [
+              "Класс содержит учеников",
+              "содержит",
+              "`self.students = [...]`"
+            ],
+            [
+              "Заказ содержит товары",
+              "содержит",
+              "`self.items = [...]`"
+            ]
+          ]
+        },
+        {
+          "type": "compare",
+          "good": {
+            "title": "Композиция — верно",
+            "code": "class Car:\n    def __init__(self):\n        self.engine = Engine()\n\n# Машина содержит двигатель"
+          },
+          "bad": {
+            "title": "Наследование — абсурд",
+            "code": "class Car(Engine):\n    pass\n\n# «Машина является\n#  двигателем»? Нет.\n# И машина получит все\n# методы двигателя"
+          }
+        },
+        {
+          "type": "heading",
+          "text": "Почему композиция обычно гибче"
+        },
+        {
+          "type": "text",
+          "text": "Наследование связывает классы навсегда: наследник получает **всё** от родителя, включая ненужное, и меняется вместе с ним. При композиции вы берёте только то, что действительно требуется, и легко подменяете составную часть."
+        },
+        {
+          "type": "code",
+          "title": "Составную часть можно заменить на ходу",
+          "code": "class ElectricEngine:\n    def start(self):\n        print('Электромотор включён бесшумно')\n\n\nclass Car:\n    def __init__(self, brand, engine):\n        self.brand = brand\n        self.engine = engine        # принимаем готовый объект\n\n    def start(self):\n        print(f'{self.brand}:', end=' ')\n        self.engine.start()\n\n\nCar('Лада', Engine(106)).start()\nCar('Тесла', ElectricEngine()).start()\n\n# Лада: Двигатель 106 л.с. запущен\n# Тесла: Электромотор включён бесшумно"
+        },
+        {
+          "type": "note",
+          "text": "Работает это благодаря [утиной типизации](#polymorphism): `Car` не проверяет тип двигателя, ему важно лишь наличие метода `start()`. Общий родитель у двигателей не нужен."
+        },
+        {
+          "type": "heading",
+          "text": "Типовой случай: объект хранит список объектов"
+        },
+        {
+          "type": "code",
+          "code": "class Student:\n    def __init__(self, name, grades):\n        self.name = name\n        self.grades = grades\n\n    def average(self):\n        return sum(self.grades) / len(self.grades)\n\n\nclass SchoolClass:\n    def __init__(self, title):\n        self.title = title\n        self.students = []            # содержит учеников\n\n    def add(self, student):\n        self.students.append(student)\n\n    def best(self):\n        return max(self.students, key=lambda s: s.average())\n\n    def average(self):\n        return sum(s.average() for s in self.students) / len(self.students)\n\n\nclass_9a = SchoolClass('9А')\nclass_9a.add(Student('Аня', [5, 4, 5]))\nclass_9a.add(Student('Боря', [3, 4, 3]))\n\nprint(class_9a.best().name)          # Аня\nprint(round(class_9a.average(), 2))  # 4.0"
+        },
+        {
+          "type": "warn",
+          "text": "Общее правило: **начинайте с композиции**. Наследование берите, только когда отношение «является» действительно очевидно, а общего кода много."
+        }
+      ]
+    },
+    {
+      "num": "🧰",
+      "anchor": "classmethods",
+      "chip": "@classmethod",
+      "chipNote": "виды методов",
+      "title": "Методы класса и статические методы",
+      "desc": "Методы, которым не нужен конкретный объект.",
+      "blocks": [
+        {
+          "type": "text",
+          "text": "Обычный метод работает с конкретным объектом и получает `self`. Но иногда объект не нужен: метод относится ко всему классу целиком или просто логически к нему принадлежит. Для таких случаев есть два декоратора."
+        },
+        {
+          "type": "table",
+          "head": [
+            "Вид",
+            "Первый параметр",
+            "Имеет доступ к",
+            "Зачем"
+          ],
+          "rows": [
+            [
+              "Обычный",
+              "`self`",
+              "Данным объекта",
+              "Основной вид"
+            ],
+            [
+              "`@classmethod`",
+              "`cls`",
+              "[Атрибутам класса](#attributes)",
+              "Альтернативные конструкторы, счётчики"
+            ],
+            [
+              "`@staticmethod`",
+              "нет",
+              "Ничему автоматически",
+              "Вспомогательная функция по теме класса"
+            ]
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "@classmethod: альтернативный конструктор"
+        },
+        {
+          "type": "text",
+          "text": "Самое частое применение — второй способ создать объект. Основной `__init__` принимает готовые данные, а метод класса умеет собрать объект из другого формата."
+        },
+        {
+          "type": "code",
+          "code": "class Student:\n    def __init__(self, name, age):\n        self.name = name\n        self.age = age\n\n    @classmethod\n    def from_string(cls, text):\n        # cls — это сам класс Student\n        name, age = text.split(',')\n        return cls(name.strip(), int(age))\n\n    def __str__(self):\n        return f'{self.name}, {self.age} лет'\n\n\na = Student('Аня', 15)                    # обычный способ\nb = Student.from_string('Боря, 16')       # из строки\n\nprint(a)   # Аня, 15 лет\nprint(b)   # Боря, 16 лет"
+        },
+        {
+          "type": "note",
+          "text": "`cls` — это сам класс, как `self` — сам объект. Запись `cls(...)` создаёт объект того класса, у которого метод вызвали. Имя `cls` такое же соглашение, как `self`."
+        },
+        {
+          "type": "code",
+          "title": "Работа с общим счётчиком",
+          "code": "class Student:\n    count = 0\n\n    def __init__(self, name):\n        self.name = name\n        Student.count += 1\n\n    @classmethod\n    def total(cls):\n        return cls.count\n\n\nStudent('Аня')\nStudent('Боря')\n\nprint(Student.total())   # 2 — вызываем у класса, объект не нужен"
+        },
+        {
+          "type": "heading",
+          "text": "@staticmethod: функция, живущая в классе"
+        },
+        {
+          "type": "text",
+          "text": "Статический метод не получает ни `self`, ни `cls` — это обычная [функция](#func), которую положили внутрь класса, потому что она относится к его теме."
+        },
+        {
+          "type": "code",
+          "code": "class Temperature:\n    def __init__(self, celsius):\n        self.celsius = celsius\n\n    @staticmethod\n    def c_to_f(celsius):\n        return celsius * 9 / 5 + 32\n\n    def fahrenheit(self):\n        return Temperature.c_to_f(self.celsius)\n\n\nprint(Temperature.c_to_f(100))      # 212.0 — без создания объекта\nprint(Temperature(25).fahrenheit()) # 77.0"
+        },
+        {
+          "type": "heading",
+          "text": "Как выбрать"
+        },
+        {
+          "type": "compare",
+          "good": {
+            "title": "Нужны данные объекта → self",
+            "code": "class Circle:\n    def __init__(self, r):\n        self.r = r\n\n    def area(self):\n        return 3.14159 * self.r ** 2"
+          },
+          "bad": {
+            "title": "Данные объекта не нужны → static",
+            "code": "class Circle:\n    @staticmethod\n    def area_of(r):\n        return 3.14159 * r ** 2\n\n# Оба варианта верны,\n# выбор зависит от того,\n# храним ли мы радиус"
+          }
+        },
+        {
+          "type": "warn",
+          "text": "Если статических методов в классе набралось много, а объекты никто не создаёт — скорее всего, класс не нужен вовсе. Такой набор функций логичнее держать просто в отдельном файле."
+        }
+      ]
+    },
+    {
+      "num": "💥",
+      "anchor": "custom-exceptions",
+      "chip": "свои ошибки",
+      "chipNote": "наследуем Exception",
+      "title": "Свои классы исключений",
+      "desc": "Наследование в действии: собственные типы ошибок для своей задачи.",
+      "blocks": [
+        {
+          "type": "text",
+          "text": "Исключения из раздела [Ошибки](#errors-intro) — тоже объекты, а `ValueError` и `KeyError` — обычные классы. Значит, можно создать свой тип ошибки: достаточно унаследоваться от `Exception`."
+        },
+        {
+          "type": "code",
+          "title": "Свой класс исключения в одну строку",
+          "code": "class NotEnoughMoneyError(Exception):\n    pass                      # тело не нужно — всё есть у родителя\n\n\nclass BankAccount:\n    def __init__(self, balance=0):\n        self.balance = balance\n\n    def withdraw(self, amount):\n        if amount > self.balance:\n            raise NotEnoughMoneyError(f'На счету только {self.balance} руб.')\n        self.balance -= amount\n\n\naccount = BankAccount(500)\n\ntry:\n    account.withdraw(1000)\nexcept NotEnoughMoneyError as error:\n    print('Не вышло:', error)\n\n# Не вышло: На счету только 500 руб."
+        },
+        {
+          "type": "note",
+          "text": "Имена классов исключений принято заканчивать словом `Error` — так же, как во встроенных `ValueError` и `TypeError`. Это соглашение, а не требование языка."
+        },
+        {
+          "type": "heading",
+          "text": "Зачем это нужно"
+        },
+        {
+          "type": "text",
+          "text": "Свой тип ошибки позволяет вызывающему коду **отличить вашу ситуацию** от всех остальных. С обычным `ValueError` этого не сделать: его бросает и `int()`, и десяток других мест."
+        },
+        {
+          "type": "compare",
+          "good": {
+            "title": "Свой тип — точный перехват",
+            "code": "try:\n    account.withdraw(amount)\nexcept NotEnoughMoneyError:\n    print('Пополните счёт')\n\n# Ловим ровно нашу ситуацию"
+          },
+          "bad": {
+            "title": "Общий ValueError",
+            "code": "try:\n    account.withdraw(amount)\nexcept ValueError:\n    print('Пополните счёт')\n\n# Сюда же попадёт любой\n# другой ValueError —\n# например, из int()"
+          }
+        },
+        {
+          "type": "heading",
+          "text": "Дерево своих исключений"
+        },
+        {
+          "type": "text",
+          "text": "Собственные ошибки можно выстроить в иерархию — ровно как обычные классы. Тогда вызывающий код сам решит, ловить всё семейство или конкретный случай."
+        },
+        {
+          "type": "code",
+          "code": "class BankError(Exception):\n    \"\"\"Общий предок всех банковских ошибок.\"\"\"\n\n\nclass NotEnoughMoneyError(BankError):\n    pass\n\n\nclass AccountBlockedError(BankError):\n    pass\n\n\ndef pay(error_type):\n    raise error_type('что-то пошло не так')\n\n\n# Ловим конкретную ошибку:\ntry:\n    pay(NotEnoughMoneyError)\nexcept NotEnoughMoneyError:\n    print('Недостаточно средств')\n\n# А здесь — любую банковскую сразу:\ntry:\n    pay(AccountBlockedError)\nexcept BankError:\n    print('Проблема со счётом')"
+        },
+        {
+          "type": "note",
+          "text": "Перехват родительского класса ловит и всех наследников — это то же правило, что с `isinstance()`: заблокированный счёт **является** банковской ошибкой."
+        },
+        {
+          "type": "heading",
+          "text": "Дополнительные данные в исключении"
+        },
+        {
+          "type": "code",
+          "title": "Исключение может нести подробности",
+          "code": "class NotEnoughMoneyError(Exception):\n    def __init__(self, balance, requested):\n        self.balance = balance\n        self.requested = requested\n        self.shortage = requested - balance\n        super().__init__(f'Не хватает {self.shortage} руб.')\n\n\ntry:\n    raise NotEnoughMoneyError(500, 1200)\nexcept NotEnoughMoneyError as error:\n    print(error)             # Не хватает 700 руб.\n    print(error.shortage)    # 700 — можно достать числом\n    print(error.balance)     # 500"
+        },
+        {
+          "type": "text",
+          "text": "Вызов `super().__init__(...)` здесь тот же, что при обычном [наследовании](#inheritance): передаём родителю текст сообщения, а свои поля добавляем сами."
+        },
+        {
+          "type": "warn",
+          "text": "Не заводите свой класс исключения для каждой мелочи. Если встроенный `ValueError` точно описывает ситуацию и вызывающему коду не нужно отличать её от других — берите встроенный."
+        }
+      ]
+    }
+  ]
+}
