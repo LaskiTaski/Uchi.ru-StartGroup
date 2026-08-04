@@ -1,0 +1,1222 @@
+{
+  "id": 12,
+  "icon": "📦",
+  "title": "Модули и файлы",
+  "subtitle": "import, стандартная библиотека, файлы, json, csv, pip • Python 3.10+",
+  "type": "notes",
+  "sections": [
+    {
+      "num": "📦",
+      "anchor": "import",
+      "chip": "import",
+      "chipNote": "подключение",
+      "title": "import: подключаем чужой код",
+      "desc": "Как пользоваться готовыми инструментами, которые уже есть в Python.",
+      "blocks": [
+        {
+          "type": "text",
+          "text": "**Модуль** — это файл с готовым кодом: функциями, константами, классами. Вместе с Python идёт около двухсот модулей — это **стандартная библиотека**. Устанавливать её не нужно, достаточно подключить нужный модуль строкой `import`."
+        },
+        {
+          "type": "code",
+          "title": "Три формы подключения",
+          "code": "# 1. Весь модуль целиком\nimport math\nprint(math.sqrt(16))        # 4.0 — обращаемся через имя модуля\n\n# 2. Только нужное из модуля\nfrom math import sqrt, pi\nprint(sqrt(16))             # 4.0 — уже без префикса\nprint(pi)                   # 3.141592653589793\n\n# 3. С коротким именем\nimport math as m\nprint(m.sqrt(16))           # 4.0"
+        },
+        {
+          "type": "table",
+          "head": [
+            "Форма",
+            "Как обращаться",
+            "Когда удобна"
+          ],
+          "rows": [
+            [
+              "`import math`",
+              "`math.sqrt(16)`",
+              "По умолчанию: видно, откуда функция"
+            ],
+            [
+              "`from math import sqrt`",
+              "`sqrt(16)`",
+              "Если функция нужна часто"
+            ],
+            [
+              "`import math as m`",
+              "`m.sqrt(16)`",
+              "Если имя модуля длинное"
+            ],
+            [
+              "`from math import *`",
+              "`sqrt(16)`",
+              "**Не используйте** — см. ниже"
+            ]
+          ]
+        },
+        {
+          "type": "warn",
+          "text": "`from math import *` затаскивает в программу **все** имена модуля разом. Они могут молча перекрыть ваши собственные переменные, и найти причину поломки будет тяжело."
+        },
+        {
+          "type": "code",
+          "title": "Почему звёздочка опасна",
+          "code": "pow = 'моя переменная'\n\nfrom math import *          # среди прочего затащили math.pow\n\nprint(pow)                  # <built-in function pow> — переменная пропала!\n\n# То же самое произойдёт с любым совпавшим именем"
+        },
+        {
+          "type": "heading",
+          "text": "Где писать import"
+        },
+        {
+          "type": "text",
+          "text": "Все подключения ставят **в самом начале файла**, до остального кода. Так сразу видно, от чего зависит программа. Технически `import` работает и в середине файла, но так не пишут."
+        },
+        {
+          "type": "code",
+          "title": "Порядок по стандарту PEP 8",
+          "code": "import math            # 1. Стандартная библиотека\nimport random\n\nimport requests        # 2. Сторонние библиотеки (устанавливаются отдельно)\n\nimport my_utils        # 3. Свои модули\n\n\n# Дальше — код программы"
+        },
+        {
+          "type": "heading",
+          "text": "Что внутри модуля"
+        },
+        {
+          "type": "code",
+          "code": "import math\n\nprint(type(math))          # <class 'module'>\nprint(math.pi)             # константа\nprint(math.sqrt(9))        # функция\n\n# Посмотреть всё содержимое:\nprint(dir(math))           # длинный список имён\n\n# Прочитать документацию прямо из кода:\nprint(math.sqrt.__doc__)   # Return the square root of x."
+        },
+        {
+          "type": "note",
+          "text": "`dir()` и `__doc__` работают с любым объектом — это быстрый способ разобраться в незнакомом модуле, не выходя из редактора. В PyCharm то же самое показывается подсказкой при наведении."
+        },
+        {
+          "type": "warn",
+          "text": "Не называйте свои файлы так же, как модули: файл `math.py` в папке проекта перекроет стандартный, и `import math` подключит ваш пустой файл. Ошибка выглядит загадочно: `AttributeError: module 'math' has no attribute 'sqrt'`."
+        }
+      ]
+    },
+    {
+      "num": "🧮",
+      "anchor": "math",
+      "chip": "math",
+      "chipNote": "математика",
+      "title": "math: математические функции",
+      "desc": "Корни, округление вверх и вниз, тригонометрия и константы.",
+      "blocks": [
+        {
+          "type": "text",
+          "text": "Модуль `math` закрывает всё, чего нет во встроенных функциях. Напомним: `abs()`, `round()`, `min()`, `max()`, `sum()` и `pow()` — встроенные, импорт им не нужен."
+        },
+        {
+          "type": "heading",
+          "text": "Округление вверх и вниз"
+        },
+        {
+          "type": "code",
+          "code": "import math\n\nprint(math.ceil(3.1))     # 4  — вверх, «потолок»\nprint(math.ceil(3.9))     # 4\nprint(math.floor(3.9))    # 3  — вниз, «пол»\nprint(math.floor(-3.1))   # -4 — вниз означает В СТОРОНУ МИНУСА\n\nprint(round(3.5))         # 4  — к ближайшему чётному, см. раздел «Числа»\nprint(int(-3.9))          # -3 — просто отбрасывает дробь"
+        },
+        {
+          "type": "note",
+          "text": "Четыре способа получить целое дают разные результаты на отрицательных числах. Сравнительная таблица есть в разделе [Числа](#numbers)."
+        },
+        {
+          "type": "code",
+          "title": "Типовая задача: сколько нужно коробок",
+          "code": "import math\n\nitems = 47\nper_box = 10\n\nprint(items // per_box)                 # 4 — столько полных коробок\nprint(math.ceil(items / per_box))       # 5 — а столько нужно на самом деле"
+        },
+        {
+          "type": "heading",
+          "text": "Корни и степени"
+        },
+        {
+          "type": "code",
+          "code": "import math\n\nprint(math.sqrt(16))       # 4.0  — квадратный корень\nprint(16 ** 0.5)           # 4.0  — то же самое без модуля\n\nprint(math.pow(2, 10))     # 1024.0 — всегда float\nprint(2 ** 10)             # 1024   — а так остаётся int\n\nprint(math.sqrt(-4))       # ValueError: math domain error"
+        },
+        {
+          "type": "warn",
+          "text": "`math.pow()` всегда возвращает `float`, а оператор `**` сохраняет тип. Для целых чисел берите `**`, иначе `2 ** 1000` превратится в бесконечность."
+        },
+        {
+          "type": "heading",
+          "text": "Константы"
+        },
+        {
+          "type": "code",
+          "code": "import math\n\nprint(math.pi)        # 3.141592653589793\nprint(math.e)         # 2.718281828459045\nprint(math.inf)       # inf — бесконечность, больше любого числа\n\n# inf удобен как стартовое значение при поиске минимума:\nlowest = math.inf\nfor value in [7, 3, 9]:\n    if value < lowest:\n        lowest = value\nprint(lowest)         # 3"
+        },
+        {
+          "type": "code",
+          "title": "Площадь круга — классика",
+          "code": "import math\n\nradius = 5\nprint(math.pi * radius ** 2)          # 78.53981633974483\nprint(round(math.pi * radius ** 2, 2))  # 78.54"
+        },
+        {
+          "type": "heading",
+          "text": "Что ещё есть"
+        },
+        {
+          "type": "table",
+          "head": [
+            "Функция",
+            "Что делает",
+            "Пример → результат"
+          ],
+          "rows": [
+            [
+              "`math.ceil(x)`",
+              "Округление вверх",
+              "`3.1` → `4`"
+            ],
+            [
+              "`math.floor(x)`",
+              "Округление вниз",
+              "`3.9` → `3`"
+            ],
+            [
+              "`math.sqrt(x)`",
+              "Квадратный корень",
+              "`16` → `4.0`"
+            ],
+            [
+              "`math.factorial(n)`",
+              "Факториал",
+              "`5` → `120`"
+            ],
+            [
+              "`math.gcd(a, b)`",
+              "Наибольший общий делитель",
+              "`12, 18` → `6`"
+            ],
+            [
+              "`math.hypot(a, b)`",
+              "Гипотенуза",
+              "`3, 4` → `5.0`"
+            ],
+            [
+              "`math.log(x, base)`",
+              "Логарифм",
+              "`8, 2` → `3.0`"
+            ],
+            [
+              "`math.sin(x)` `cos(x)`",
+              "Тригонометрия, **в радианах**",
+              "`math.pi` → почти `0`"
+            ]
+          ]
+        },
+        {
+          "type": "warn",
+          "text": "Тригонометрия работает в радианах, а не в градусах. Переводить нужно самому: `math.sin(math.radians(30))` даст `0.5`."
+        }
+      ]
+    },
+    {
+      "num": "🎰",
+      "anchor": "random",
+      "chip": "random",
+      "chipNote": "случайность",
+      "title": "random: случайные числа",
+      "desc": "Игральные кости, перемешивание, случайный выбор.",
+      "blocks": [
+        {
+          "type": "text",
+          "text": "Модуль `random` порождает случайные значения. Он нужен для игр, тестовых данных, жеребьёвок и всего, где требуется непредсказуемость."
+        },
+        {
+          "type": "code",
+          "title": "Основные функции",
+          "code": "import random\n\nprint(random.randint(1, 6))         # целое от 1 до 6 ВКЛЮЧИТЕЛЬНО\nprint(random.random())              # дробное от 0.0 до 1.0\nprint(random.uniform(1.5, 3.5))     # дробное в своём диапазоне\n\nfruits = ['яблоко', 'банан', 'киви']\nprint(random.choice(fruits))        # один случайный элемент\nprint(random.sample(fruits, 2))     # два разных элемента\n\nrandom.shuffle(fruits)              # перемешивает список НА МЕСТЕ\nprint(fruits)"
+        },
+        {
+          "type": "warn",
+          "text": "`random.randint(1, 6)` включает **обе** границы — в отличие от [`range`](#range), где правая граница не входит. Это исключение, которое стоит запомнить."
+        },
+        {
+          "type": "table",
+          "head": [
+            "Функция",
+            "Что возвращает",
+            "Границы"
+          ],
+          "rows": [
+            [
+              "`randint(a, b)`",
+              "Целое число",
+              "`a` и `b` включены"
+            ],
+            [
+              "`randrange(a, b)`",
+              "Целое число",
+              "Как `range`: `b` не входит"
+            ],
+            [
+              "`random()`",
+              "Дробное",
+              "От `0.0` до `1.0`"
+            ],
+            [
+              "`uniform(a, b)`",
+              "Дробное",
+              "От `a` до `b`"
+            ],
+            [
+              "`choice(коллекция)`",
+              "Один элемент",
+              "—"
+            ],
+            [
+              "`sample(коллекция, k)`",
+              "Список из `k` **разных** элементов",
+              "—"
+            ],
+            [
+              "`shuffle(список)`",
+              "`None`, меняет список на месте",
+              "—"
+            ]
+          ]
+        },
+        {
+          "type": "note",
+          "text": "`shuffle()` мутирует список и возвращает [`None`](#none) — та же логика, что у `.sort()`. Если исходный список нужно сохранить, сначала сделайте копию."
+        },
+        {
+          "type": "code",
+          "title": "Игра «угадай число»",
+          "code": "import random\n\nsecret = random.randint(1, 100)\nattempts = 0\n\nwhile True:\n    guess = int(input('Ваше число: '))\n    attempts += 1\n\n    if guess < secret:\n        print('Больше')\n    elif guess > secret:\n        print('Меньше')\n    else:\n        print(f'Угадали за {attempts} попыток!')\n        break"
+        },
+        {
+          "type": "code",
+          "title": "Случайный выбор с весами",
+          "code": "import random\n\n# Выпадение редкого предмета: 10% против 90%\nresult = random.choices(['редкий', 'обычный'], weights=[10, 90])[0]\nprint(result)\n\n# choices возвращает список, поэтому берём [0]\n# и он МОЖЕТ повторять элементы, в отличие от sample"
+        },
+        {
+          "type": "heading",
+          "text": "Случайность на самом деле не случайна"
+        },
+        {
+          "type": "text",
+          "text": "Компьютер не умеет быть по-настоящему непредсказуемым. Он вычисляет числа по формуле, отталкиваясь от стартового значения — **зерна** (seed). Обычно зерно берётся из текущего времени, поэтому результаты каждый раз разные."
+        },
+        {
+          "type": "code",
+          "title": "Одинаковое зерно — одинаковые числа",
+          "code": "import random\n\nrandom.seed(42)\nprint(random.randint(1, 100), random.randint(1, 100))   # 82 15\n\nrandom.seed(42)\nprint(random.randint(1, 100), random.randint(1, 100))   # 82 15 — те же самые!"
+        },
+        {
+          "type": "note",
+          "text": "Фиксированное зерно полезно при отладке: программа с случайностью начинает вести себя повторяемо, и ошибку можно воспроизвести."
+        },
+        {
+          "type": "warn",
+          "text": "Для паролей, токенов и всего, что связано с безопасностью, `random` не годится — его последовательность предсказуема. Там применяют модуль `secrets`."
+        }
+      ]
+    },
+    {
+      "num": "📅",
+      "anchor": "datetime",
+      "chip": "datetime",
+      "chipNote": "даты и время",
+      "title": "datetime: даты и время",
+      "desc": "Текущая дата, разница между датами, форматирование.",
+      "blocks": [
+        {
+          "type": "text",
+          "text": "Даты нельзя хранить строками: `'01.02.2026'` не сравнить и не сложить. Для них есть отдельные типы в модуле `datetime`."
+        },
+        {
+          "type": "code",
+          "title": "Получаем текущий момент",
+          "code": "from datetime import datetime, date, timedelta\n\nnow = datetime.now()\nprint(now)              # 2026-08-04 15:30:45.123456\nprint(now.year, now.month, now.day)\nprint(now.hour, now.minute)\n\ntoday = date.today()\nprint(today)            # 2026-08-04 — только дата, без времени"
+        },
+        {
+          "type": "table",
+          "head": [
+            "Тип",
+            "Что хранит",
+            "Пример"
+          ],
+          "rows": [
+            [
+              "`date`",
+              "Только дату",
+              "`date(2026, 8, 4)`"
+            ],
+            [
+              "`time`",
+              "Только время",
+              "`time(15, 30)`"
+            ],
+            [
+              "`datetime`",
+              "Дату и время вместе",
+              "`datetime(2026, 8, 4, 15, 30)`"
+            ],
+            [
+              "`timedelta`",
+              "**Промежуток** между моментами",
+              "`timedelta(days=7)`"
+            ]
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Арифметика дат"
+        },
+        {
+          "type": "code",
+          "code": "from datetime import date, timedelta\n\nbirthday = date(2026, 12, 31)\ntoday = date(2026, 8, 4)\n\nleft = birthday - today          # разница дат — это timedelta\nprint(left)                      # 149 days, 0:00:00\nprint(left.days)                 # 149 — только число дней\n\nweek_later = today + timedelta(days=7)\nprint(week_later)                # 2026-08-11\n\nprint(today < birthday)          # True — даты сравниваются напрямую"
+        },
+        {
+          "type": "note",
+          "text": "Вычитание дат даёт `timedelta`, а прибавление `timedelta` к дате — снова дату. Складывать две даты между собой нельзя: «сумма» двух дней бессмысленна."
+        },
+        {
+          "type": "heading",
+          "text": "Форматирование: дата → строка"
+        },
+        {
+          "type": "code",
+          "code": "from datetime import datetime\n\nnow = datetime(2026, 8, 4, 15, 30)\n\nprint(now.strftime('%d.%m.%Y'))          # 04.08.2026\nprint(now.strftime('%d.%m.%Y %H:%M'))    # 04.08.2026 15:30\nprint(now.strftime('%Y-%m-%d'))          # 2026-08-04"
+        },
+        {
+          "type": "table",
+          "head": [
+            "Код",
+            "Что означает",
+            "Пример"
+          ],
+          "rows": [
+            [
+              "`%d`",
+              "День, две цифры",
+              "`04`"
+            ],
+            [
+              "`%m`",
+              "Месяц, две цифры",
+              "`08`"
+            ],
+            [
+              "`%Y`",
+              "Год, четыре цифры",
+              "`2026`"
+            ],
+            [
+              "`%H`",
+              "Часы (24-часовой формат)",
+              "`15`"
+            ],
+            [
+              "`%M`",
+              "Минуты",
+              "`30`"
+            ],
+            [
+              "`%S`",
+              "Секунды",
+              "`45`"
+            ]
+          ]
+        },
+        {
+          "type": "code",
+          "title": "Разбор: строка → дата",
+          "code": "from datetime import datetime\n\ntext = '04.08.2026'\nparsed = datetime.strptime(text, '%d.%m.%Y')\nprint(parsed)              # 2026-08-04 00:00:00\nprint(parsed.date())       # 2026-08-04\n\ndatetime.strptime('31.02.2026', '%d.%m.%Y')\n# ValueError: day is out of range for month — 31 февраля не бывает"
+        },
+        {
+          "type": "note",
+          "text": "Легко запомнить: `strftime` — **f**ormat, дата превращается в строку; `strptime` — **p**arse, строка разбирается в дату. Про перехват `ValueError` — раздел [try / except](#try)."
+        },
+        {
+          "type": "code",
+          "title": "Сколько лет человеку",
+          "code": "from datetime import date\n\ndef age_of(born):\n    today = date.today()\n    years = today.year - born.year\n    # Если день рождения в этом году ещё не наступил — минус год\n    if (today.month, today.day) < (born.month, born.day):\n        years -= 1\n    return years\n\n\nprint(age_of(date(2006, 12, 31)))"
+        },
+        {
+          "type": "warn",
+          "text": "Никогда не считайте возраст как «дней разницы делить на 365»: високосные годы дадут ошибку. Сравнивайте месяц и день, как в примере выше."
+        }
+      ]
+    },
+    {
+      "num": "💰",
+      "anchor": "decimal",
+      "chip": "Decimal",
+      "chipNote": "точные дроби",
+      "title": "decimal: точные вычисления",
+      "desc": "Обещанный разбор: как считать деньги без ошибок округления.",
+      "blocks": [
+        {
+          "type": "text",
+          "text": "В разделе [Числа](#numbers) мы выяснили, что `0.1 + 0.2` даёт `0.30000000000000004`. Причина в том, что `float` хранится в двоичной системе, где десятичная дробь `0.1` не записывается точно. Для денег и точных расчётов есть тип `Decimal`."
+        },
+        {
+          "type": "compare",
+          "good": {
+            "title": "Decimal — точно",
+            "code": "from decimal import Decimal\n\na = Decimal('0.1')\nb = Decimal('0.2')\n\nprint(a + b)            # 0.3\nprint(a + b == Decimal('0.3'))   # True"
+          },
+          "bad": {
+            "title": "float — приблизительно",
+            "code": "a = 0.1\nb = 0.2\n\nprint(a + b)            # 0.30000000000000004\nprint(a + b == 0.3)     # False"
+          }
+        },
+        {
+          "type": "warn",
+          "text": "Создавайте `Decimal` **из строки**, а не из числа. `Decimal(0.1)` возьмёт уже испорченное значение `float` и сохранит всю его неточность."
+        },
+        {
+          "type": "code",
+          "title": "Разница видна сразу",
+          "code": "from decimal import Decimal\n\nprint(Decimal('0.1'))\n# 0.1 — ровно то, что записали\n\nprint(Decimal(0.1))\n# 0.1000000000000000055511151231257827021181583404541015625"
+        },
+        {
+          "type": "heading",
+          "text": "Арифметика"
+        },
+        {
+          "type": "code",
+          "code": "from decimal import Decimal\n\nprice = Decimal('99.90')\ncount = 3\n\ntotal = price * count            # с int умножать можно\nprint(total)                     # 299.70\n\nprint(total / 2)                 # 149.85\nprint(price + Decimal('0.10'))   # 100.00 — хвостовой ноль сохраняется\n\nprint(price + 0.1)               # TypeError: с float складывать нельзя"
+        },
+        {
+          "type": "note",
+          "text": "Запрет на смешивание с `float` сделан намеренно: иначе неточность `float` протекла бы в точный расчёт и обесценила его."
+        },
+        {
+          "type": "heading",
+          "text": "Округление по своему правилу"
+        },
+        {
+          "type": "code",
+          "code": "from decimal import Decimal, ROUND_HALF_UP\n\nvalue = Decimal('2.5')\n\nprint(round(value))                                    # 2 — банковское, как у float\nprint(value.quantize(Decimal('1'), ROUND_HALF_UP))     # 3 — школьное\n\nprice = Decimal('10.567')\nprint(price.quantize(Decimal('0.01'), ROUND_HALF_UP))  # 10.57 — до копеек"
+        },
+        {
+          "type": "text",
+          "text": "`quantize()` приводит число к нужному числу знаков, а второй аргумент задаёт правило округления. Это то самое «школьное округление», которого не хватает обычному [`round()`](#numbers)."
+        },
+        {
+          "type": "heading",
+          "text": "Когда что брать"
+        },
+        {
+          "type": "table",
+          "head": [
+            "Задача",
+            "Чем считать"
+          ],
+          "rows": [
+            [
+              "Деньги, счета, налоги",
+              "`Decimal`"
+            ],
+            [
+              "Физика, графика, статистика",
+              "`float` — быстрее, точность не критична"
+            ],
+            [
+              "Целые величины: штуки, копейки",
+              "`int` — проще всего"
+            ],
+            [
+              "Учебные примеры",
+              "`float`, если не про деньги"
+            ]
+          ]
+        },
+        {
+          "type": "note",
+          "text": "`Decimal` считает медленнее `float`, потому что работает в десятичной системе, а процессор — в двоичной. Для миллионов операций это заметно, для обычных задач — нет."
+        },
+        {
+          "type": "warn",
+          "text": "Самый простой способ обойтись без `Decimal` вообще — хранить деньги в копейках целыми числами и делить на 100 только при выводе. Для школьных проектов этого достаточно."
+        }
+      ]
+    },
+    {
+      "num": "📁",
+      "anchor": "files",
+      "chip": "open()",
+      "chipNote": "файлы",
+      "title": "Работа с файлами",
+      "desc": "Как сохранить данные между запусками программы.",
+      "blocks": [
+        {
+          "type": "text",
+          "text": "Всё, что программа держит в переменных, исчезает при её завершении. Чтобы данные пережили запуск, их записывают в файл."
+        },
+        {
+          "type": "code",
+          "title": "Чтение и запись",
+          "code": "# Запись: файл создаётся, если его нет\nwith open('notes.txt', 'w', encoding='utf-8') as file:\n    file.write('Первая строка\\n')\n    file.write('Вторая строка\\n')\n\n# Чтение целиком\nwith open('notes.txt', 'r', encoding='utf-8') as file:\n    text = file.read()\nprint(text)"
+        },
+        {
+          "type": "heading",
+          "text": "Режимы открытия"
+        },
+        {
+          "type": "table",
+          "head": [
+            "Режим",
+            "Что делает",
+            "Если файла нет",
+            "Если файл есть"
+          ],
+          "rows": [
+            [
+              "`'r'`",
+              "Чтение (по умолчанию)",
+              "`FileNotFoundError`",
+              "Читает"
+            ],
+            [
+              "`'w'`",
+              "Запись",
+              "Создаёт",
+              "**Стирает содержимое!**"
+            ],
+            [
+              "`'a'`",
+              "Дозапись в конец",
+              "Создаёт",
+              "Дописывает"
+            ],
+            [
+              "`'x'`",
+              "Создание",
+              "Создаёт",
+              "`FileExistsError`"
+            ]
+          ]
+        },
+        {
+          "type": "warn",
+          "text": "Режим `'w'` очищает файл **в момент открытия**, ещё до первой записи. Случайно открыть в `'w'` вместо `'a'` — значит потерять данные без предупреждения."
+        },
+        {
+          "type": "heading",
+          "text": "Зачем нужен with"
+        },
+        {
+          "type": "text",
+          "text": "Открытый файл нужно закрывать, иначе данные могут не успеть записаться на диск. Конструкция `with` закрывает файл автоматически — даже если внутри произошла ошибка."
+        },
+        {
+          "type": "compare",
+          "good": {
+            "title": "С with — закроется всегда",
+            "code": "with open('data.txt', 'w') as f:\n    f.write('привет')\n\n# Файл уже закрыт,\n# что бы ни случилось внутри"
+          },
+          "bad": {
+            "title": "Вручную — можно забыть",
+            "code": "f = open('data.txt', 'w')\nf.write('привет')\nf.close()\n\n# Если между строками\n# случится ошибка,\n# close() не выполнится"
+          }
+        },
+        {
+          "type": "note",
+          "text": "По сути `with` делает то же, что [`try / finally`](#finally): гарантирует уборку при любом исходе. Просто записывается короче."
+        },
+        {
+          "type": "heading",
+          "text": "Три способа прочитать"
+        },
+        {
+          "type": "code",
+          "code": "# 1. Целиком в одну строку\nwith open('notes.txt', encoding='utf-8') as file:\n    text = file.read()\n\n# 2. В список строк (символы перевода строки сохраняются)\nwith open('notes.txt', encoding='utf-8') as file:\n    lines = file.readlines()\nprint(lines)          # ['Первая строка\\n', 'Вторая строка\\n']\n\n# 3. Построчно — лучший способ для больших файлов\nwith open('notes.txt', encoding='utf-8') as file:\n    for line in file:\n        print(line.strip())    # strip() убирает \\n в конце"
+        },
+        {
+          "type": "note",
+          "text": "Третий способ не загружает файл в память целиком, поэтому подходит для файлов любого размера. Первые два удобны для маленьких."
+        },
+        {
+          "type": "warn",
+          "text": "Всегда указывайте `encoding='utf-8'`. Без него Windows читает файл в своей кодировке, и русский текст превращается в мусор вида `ÐŸÑ€Ð¸Ð²ÐµÑ‚`."
+        },
+        {
+          "type": "heading",
+          "text": "Защита от отсутствующего файла"
+        },
+        {
+          "type": "code",
+          "code": "try:\n    with open('settings.txt', encoding='utf-8') as file:\n        settings = file.read()\nexcept FileNotFoundError:\n    print('Файл настроек не найден, беру значения по умолчанию')\n    settings = ''"
+        },
+        {
+          "type": "code",
+          "title": "Практика: список задач между запусками",
+          "code": "FILENAME = 'tasks.txt'\n\ndef load_tasks():\n    try:\n        with open(FILENAME, encoding='utf-8') as file:\n            return [line.strip() for line in file if line.strip()]\n    except FileNotFoundError:\n        return []\n\n\ndef save_tasks(tasks):\n    with open(FILENAME, 'w', encoding='utf-8') as file:\n        for task in tasks:\n            file.write(task + '\\n')\n\n\ntasks = load_tasks()\ntasks.append('Выучить срезы')\nsave_tasks(tasks)\nprint(tasks)"
+        }
+      ]
+    },
+    {
+      "num": "🧾",
+      "anchor": "json",
+      "chip": "json",
+      "chipNote": "структуры в файл",
+      "title": "json: сохраняем структуры данных",
+      "desc": "Как записать список словарей в файл и прочитать обратно, не изобретая свой формат.",
+      "blocks": [
+        {
+          "type": "text",
+          "text": "В разделе [Работа с файлами](#files) мы сохраняли текст. Но что делать со [списком словарей](#nested)? Записать его как строку легко, а вот разобрать обратно — это уже свой формат и куча кода. Задача давно решена: формат **JSON**."
+        },
+        {
+          "type": "text",
+          "text": "JSON — текстовый формат записи данных, понятный любому языку программирования. Именно в нём приложения обмениваются данными через интернет."
+        },
+        {
+          "type": "heading",
+          "text": "Четыре функции"
+        },
+        {
+          "type": "table",
+          "head": [
+            "Функция",
+            "Что делает",
+            "Куда/откуда"
+          ],
+          "rows": [
+            [
+              "`json.dumps(obj)`",
+              "Объект → строка",
+              "В строку (**s** = string)"
+            ],
+            [
+              "`json.loads(text)`",
+              "Строка → объект",
+              "Из строки"
+            ],
+            [
+              "`json.dump(obj, file)`",
+              "Объект → файл",
+              "Сразу в файл"
+            ],
+            [
+              "`json.load(file)`",
+              "Файл → объект",
+              "Сразу из файла"
+            ]
+          ]
+        },
+        {
+          "type": "note",
+          "text": "Буква `s` на конце означает string. Легко запомнить: с `s` — работаем со строкой, без `s` — с файлом."
+        },
+        {
+          "type": "code",
+          "title": "Объект в строку и обратно",
+          "code": "import json\n\ndata = {'name': 'Аня', 'grades': [5, 4], 'active': True, 'note': None}\n\ntext = json.dumps(data)\nprint(text)\n# {\"name\": \"\\u0410\\u043d\\u044f\", \"grades\": [5, 4], \"active\": true, \"note\": null}\n\ntext = json.dumps(data, ensure_ascii=False)\nprint(text)\n# {\"name\": \"Аня\", \"grades\": [5, 4], \"active\": true, \"note\": null}\n\nback = json.loads(text)\nprint(back['name'], back['grades'])   # Аня [5, 4]"
+        },
+        {
+          "type": "warn",
+          "text": "Без `ensure_ascii=False` русские буквы превращаются в коды вида `\\u0410`. Файл при этом рабочий, но читать его человеку невозможно. Ставьте этот параметр всегда."
+        },
+        {
+          "type": "heading",
+          "text": "Запись в файл и чтение"
+        },
+        {
+          "type": "code",
+          "code": "import json\n\nstudents = [\n    {'name': 'Аня', 'group': '9А', 'grades': [5, 4, 5]},\n    {'name': 'Боря', 'group': '9Б', 'grades': [3, 4]},\n]\n\n# Запись\nwith open('students.json', 'w', encoding='utf-8') as file:\n    json.dump(students, file, ensure_ascii=False, indent=2)\n\n# Чтение\nwith open('students.json', encoding='utf-8') as file:\n    loaded = json.load(file)\n\nprint(loaded[0]['name'])          # Аня\nprint(len(loaded))                # 2\nprint(type(loaded))               # <class 'list'> — структура восстановлена"
+        },
+        {
+          "type": "note",
+          "text": "`indent=2` расставляет отступы, и файл становится читаемым глазами. Без него всё запишется в одну длинную строку — компактнее, но неудобно для отладки."
+        },
+        {
+          "type": "heading",
+          "text": "Что во что превращается"
+        },
+        {
+          "type": "table",
+          "head": [
+            "Python",
+            "JSON",
+            "Обратно приходит как"
+          ],
+          "rows": [
+            [
+              "[`dict`](#dict)",
+              "object",
+              "`dict`"
+            ],
+            [
+              "[`list`](#list)",
+              "array",
+              "`list`"
+            ],
+            [
+              "[`tuple`](#tuple)",
+              "array",
+              "**`list`**, не кортеж"
+            ],
+            [
+              "[`str`](#str)",
+              "string",
+              "`str`"
+            ],
+            [
+              "`int`, `float`",
+              "number",
+              "`int`, `float`"
+            ],
+            [
+              "`True` / `False`",
+              "`true` / `false`",
+              "`bool`"
+            ],
+            [
+              "[`None`](#none)",
+              "`null`",
+              "`None`"
+            ],
+            [
+              "[`set`](#set)",
+              "—",
+              "**Ошибка**"
+            ]
+          ]
+        },
+        {
+          "type": "code",
+          "title": "Две ловушки преобразования",
+          "code": "import json\n\n# 1. Кортеж возвращается списком\nsaved = json.dumps({'point': (1, 2)})\nprint(saved)                  # {\"point\": [1, 2]}\nprint(json.loads(saved))      # {'point': [1, 2]} — уже список\n\n# 2. Ключи словаря всегда становятся строками\nsaved = json.dumps({1: 'a', 2: 'b'})\nprint(saved)                  # {\"1\": \"a\", \"2\": \"b\"}\nprint(json.loads(saved))      # {'1': 'a', '2': 'b'} — ключи-строки!\n\n# 3. Множество сохранить нельзя\njson.dumps({'s': {1, 2}})\n# TypeError: Object of type set is not JSON serializable\n# Решение — превратить в список: list({1, 2})"
+        },
+        {
+          "type": "warn",
+          "text": "Ловушка с ключами особенно коварна: сохранили словарь с числовыми ключами, прочитали — и `data[1]` даёт `KeyError`, потому что теперь ключ `'1'`. Если ключи должны остаться числами, преобразуйте их после чтения."
+        },
+        {
+          "type": "heading",
+          "text": "Битый файл"
+        },
+        {
+          "type": "code",
+          "code": "import json\n\ntry:\n    with open('settings.json', encoding='utf-8') as file:\n        settings = json.load(file)\nexcept FileNotFoundError:\n    print('Файла нет, беру настройки по умолчанию')\n    settings = {}\nexcept json.JSONDecodeError:\n    print('Файл повреждён, беру настройки по умолчанию')\n    settings = {}"
+        },
+        {
+          "type": "note",
+          "text": "`JSONDecodeError` возникает, когда содержимое файла не является корректным JSON — например, его правили руками и потеряли запятую. Обрабатывать оба случая вместе — обычная практика, см. [try / except](#try)."
+        },
+        {
+          "type": "code",
+          "title": "Практика: сохраняем прогресс между запусками",
+          "code": "import json\n\nFILENAME = 'progress.json'\n\n\ndef load_progress():\n    try:\n        with open(FILENAME, encoding='utf-8') as file:\n            return json.load(file)\n    except (FileNotFoundError, json.JSONDecodeError):\n        return {'completed': [], 'score': 0}\n\n\ndef save_progress(progress):\n    with open(FILENAME, 'w', encoding='utf-8') as file:\n        json.dump(progress, file, ensure_ascii=False, indent=2)\n\n\nprogress = load_progress()\nprogress['completed'].append('Списки')\nprogress['score'] += 10\nsave_progress(progress)\nprint(progress)"
+        }
+      ]
+    },
+    {
+      "num": "📊",
+      "anchor": "csv",
+      "chip": "csv",
+      "chipNote": "таблицы",
+      "title": "csv: таблицы и выгрузки",
+      "desc": "Формат, который открывается в Excel и Google Таблицах.",
+      "blocks": [
+        {
+          "type": "text",
+          "text": "**CSV** (comma-separated values) — текстовый файл, где каждая строка это ряд таблицы, а значения разделены запятыми. Его понимают Excel, Google Таблицы и любая программа для работы с данными."
+        },
+        {
+          "type": "code",
+          "title": "Как выглядит файл изнутри",
+          "code": "# students.csv — обычный текстовый файл:\n#\n# имя,группа,балл\n# Аня,9А,78\n# Боря,9Б,92"
+        },
+        {
+          "type": "heading",
+          "text": "Запись"
+        },
+        {
+          "type": "code",
+          "code": "import csv\n\nrows = [\n    ['имя', 'группа', 'балл'],\n    ['Аня', '9А', 78],\n    ['Боря', '9Б', 92],\n]\n\nwith open('students.csv', 'w', encoding='utf-8', newline='') as file:\n    writer = csv.writer(file)\n    writer.writerows(rows)          # сразу все строки\n    # writer.writerow(['Вика', '9А', 85])   — или по одной"
+        },
+        {
+          "type": "warn",
+          "text": "Параметр `newline=''` обязателен при работе с CSV. Без него на Windows между строками появятся лишние пустые строки — модуль `csv` сам управляет переводами строк."
+        },
+        {
+          "type": "heading",
+          "text": "Чтение"
+        },
+        {
+          "type": "code",
+          "code": "import csv\n\nwith open('students.csv', encoding='utf-8', newline='') as file:\n    reader = csv.reader(file)\n    for row in reader:\n        print(row)\n\n# ['имя', 'группа', 'балл']\n# ['Аня', '9А', '78']\n# ['Боря', '9Б', '92']"
+        },
+        {
+          "type": "warn",
+          "text": "Все значения читаются как **строки**, даже числа: балл придёт как `'78'`, а не `78`. Перед вычислениями преобразуйте: `int(row[2])`, см. [Преобразование типов](#convert)."
+        },
+        {
+          "type": "heading",
+          "text": "DictReader: строки как словари"
+        },
+        {
+          "type": "text",
+          "text": "Обращаться к колонкам по номеру (`row[2]`) неудобно и хрупко: поменяется порядок колонок — сломается код. `DictReader` берёт первую строку как заголовки и отдаёт каждую строку [словарём](#dict)."
+        },
+        {
+          "type": "compare",
+          "good": {
+            "title": "DictReader — по имени колонки",
+            "code": "import csv\n\nwith open('students.csv', encoding='utf-8',\n          newline='') as file:\n    for row in csv.DictReader(file):\n        print(row['имя'], int(row['балл']))\n\n# Аня 78\n# Боря 92"
+          },
+          "bad": {
+            "title": "reader — по номеру",
+            "code": "import csv\n\nwith open('students.csv', encoding='utf-8',\n          newline='') as file:\n    reader = csv.reader(file)\n    next(reader)          # пропустить заголовок\n    for row in reader:\n        print(row[0], int(row[2]))"
+          }
+        },
+        {
+          "type": "code",
+          "title": "DictWriter: запись из словарей",
+          "code": "import csv\n\nstudents = [\n    {'имя': 'Аня', 'группа': '9А', 'балл': 78},\n    {'имя': 'Боря', 'группа': '9Б', 'балл': 92},\n]\n\nwith open('students.csv', 'w', encoding='utf-8', newline='') as file:\n    writer = csv.DictWriter(file, fieldnames=['имя', 'группа', 'балл'])\n    writer.writeheader()             # строка заголовков\n    writer.writerows(students)"
+        },
+        {
+          "type": "heading",
+          "text": "Русский Excel и точка с запятой"
+        },
+        {
+          "type": "text",
+          "text": "В русской локали Excel ждёт разделителем **точку с запятой**, а не запятую — иначе вся строка попадёт в одну ячейку. Разделитель задаётся параметром `delimiter`."
+        },
+        {
+          "type": "code",
+          "code": "import csv\n\nwith open('for_excel.csv', 'w', encoding='utf-8-sig', newline='') as file:\n    writer = csv.writer(file, delimiter=';')\n    writer.writerow(['имя', 'балл'])\n    writer.writerow(['Аня', 78])\n\n# encoding='utf-8-sig' добавляет служебную метку в начало файла,\n# без неё Excel показывает русский текст кракозябрами"
+        },
+        {
+          "type": "note",
+          "text": "Для школьных проектов `utf-8-sig` и `delimiter=';'` — практически обязательная пара, если файл потом открывают в Excel. При чтении обратно указывайте те же параметры."
+        },
+        {
+          "type": "heading",
+          "text": "CSV или JSON"
+        },
+        {
+          "type": "table",
+          "head": [
+            "Задача",
+            "Формат"
+          ],
+          "rows": [
+            [
+              "Плоская таблица: строки и колонки",
+              "CSV"
+            ],
+            [
+              "Открыть в Excel, отдать человеку",
+              "CSV"
+            ],
+            [
+              "Вложенные структуры, списки внутри записей",
+              "[JSON](#json)"
+            ],
+            [
+              "Настройки программы",
+              "JSON"
+            ],
+            [
+              "Обмен данными между программами",
+              "JSON"
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "num": "🧰",
+      "anchor": "own-modules",
+      "chip": "свои модули",
+      "chipNote": "структура проекта",
+      "title": "Свои модули",
+      "desc": "Как разложить растущий проект по файлам и подключить их друг к другу.",
+      "blocks": [
+        {
+          "type": "text",
+          "text": "Любой ваш `.py`-файл — уже модуль. Чтобы воспользоваться функциями из соседнего файла, достаточно его импортировать: никакой специальной настройки не требуется."
+        },
+        {
+          "type": "code",
+          "title": "Файл utils.py",
+          "code": "# utils.py\n\nPI = 3.14159\n\n\ndef circle_area(radius):\n    return PI * radius ** 2\n\n\ndef greet(name):\n    return f'Привет, {name}!'"
+        },
+        {
+          "type": "code",
+          "title": "Файл main.py — рядом, в той же папке",
+          "code": "# main.py\nimport utils\n\nprint(utils.circle_area(5))     # 78.53975\nprint(utils.greet('Аня'))       # Привет, Аня!\nprint(utils.PI)                 # 3.14159\n\n# Или выборочно:\nfrom utils import greet\nprint(greet('Боря'))"
+        },
+        {
+          "type": "note",
+          "text": "Имя модуля — это имя файла без `.py`. Поэтому файлы называют латиницей, строчными буквами, через подчёркивание: `my_utils.py`, а не `Мои Утилиты.py`."
+        },
+        {
+          "type": "heading",
+          "text": "Ловушка: код при импорте выполняется"
+        },
+        {
+          "type": "text",
+          "text": "При импорте Python **выполняет весь файл сверху донизу**. Если в модуле есть код вне функций, он сработает в момент импорта — обычно это неожиданно."
+        },
+        {
+          "type": "code",
+          "title": "Что произойдёт",
+          "code": "# utils.py\ndef greet(name):\n    return f'Привет, {name}!'\n\nprint('Модуль utils загружен')     # выполнится при импорте!\nprint(greet('тест'))               # и это тоже\n\n\n# main.py\nimport utils      # уже напечатает обе строки, хотя мы ничего не вызывали"
+        },
+        {
+          "type": "heading",
+          "text": "Решение: __name__"
+        },
+        {
+          "type": "text",
+          "text": "У каждого модуля есть переменная `__name__`. В файле, который **запустили напрямую**, она равна `'__main__'`, а в импортированном — имени модуля. На этом строится стандартная проверка."
+        },
+        {
+          "type": "code",
+          "code": "# utils.py\ndef greet(name):\n    return f'Привет, {name}!'\n\n\nif __name__ == '__main__':\n    # Выполнится только при прямом запуске utils.py,\n    # а при импорте — нет\n    print('Проверяю функции:')\n    print(greet('тест'))"
+        },
+        {
+          "type": "note",
+          "text": "Эту строку вы будете встречать в чужом коде постоянно. Внутри неё держат проверки, примеры использования и точку входа программы."
+        },
+        {
+          "type": "heading",
+          "text": "Как раскладывать проект"
+        },
+        {
+          "type": "table",
+          "head": [
+            "Файл",
+            "Что держать внутри"
+          ],
+          "rows": [
+            [
+              "`main.py`",
+              "Точка входа: запуск, ввод и вывод"
+            ],
+            [
+              "`models.py`",
+              "[Классы](#class-basics) с данными"
+            ],
+            [
+              "`utils.py`",
+              "Вспомогательные функции общего назначения"
+            ],
+            [
+              "`storage.py`",
+              "Чтение и запись [файлов](#files)"
+            ],
+            [
+              "`constants.py`",
+              "Константы и настройки"
+            ]
+          ]
+        },
+        {
+          "type": "warn",
+          "text": "Не разбивайте на файлы слишком рано. Пока программа умещается в 100–150 строк, один файл читается легче, чем пять. Разделяйте, когда искать нужное становится тяжело."
+        },
+        {
+          "type": "warn",
+          "text": "Избегайте взаимного импорта: если `a.py` импортирует `b.py`, а `b.py` — `a.py`, программа упадёт с `ImportError`. Это признак того, что общий код пора вынести в третий файл."
+        }
+      ]
+    },
+    {
+      "num": "🚀",
+      "anchor": "pip",
+      "chip": "pip / venv",
+      "chipNote": "сторонние пакеты",
+      "title": "pip и виртуальные окружения",
+      "desc": "Как поставить чужую библиотеку и почему для каждого проекта своё окружение.",
+      "blocks": [
+        {
+          "type": "text",
+          "text": "Всё, что мы разбирали до сих пор, — стандартная библиотека: она уже установлена вместе с Python. Но существуют десятки тысяч **сторонних пакетов**, написанных другими людьми. Они лежат в общем хранилище **PyPI**, а ставит их программа `pip`."
+        },
+        {
+          "type": "code",
+          "title": "Команды pip — вводятся в терминале, не в коде",
+          "code": "pip install requests          # установить пакет\npip install requests==2.31.0  # конкретную версию\npip uninstall requests        # удалить\npip list                      # что уже установлено\npip show requests             # подробности о пакете\n\n# В PyCharm терминал открывается внизу, вкладка Terminal",
+          "lang": "bash"
+        },
+        {
+          "type": "warn",
+          "text": "`pip install` — команда терминала, а не строка программы. Написав её в `.py`-файле, вы получите `SyntaxError`. В коде библиотека подключается через [`import`](#import), но только **после** установки."
+        },
+        {
+          "type": "heading",
+          "text": "Зачем виртуальное окружение"
+        },
+        {
+          "type": "text",
+          "text": "Если ставить все пакеты в одну общую кучу, рано или поздно проектам понадобятся **разные версии** одной библиотеки. Одному нужна старая, другому новая — и они конфликтуют."
+        },
+        {
+          "type": "text",
+          "text": "**Виртуальное окружение** (venv) — отдельная папка со своим Python и своим набором пакетов. У каждого проекта оно своё, и проекты друг другу не мешают."
+        },
+        {
+          "type": "code",
+          "title": "Создание и активация",
+          "code": "# Создать окружение в папке проекта (папка назовётся .venv)\npython -m venv .venv\n\n# Активировать:\n.venv\\Scripts\\activate        # Windows\nsource .venv/bin/activate     # macOS и Linux\n\n# После активации в начале строки терминала появится (.venv) —\n# значит, pip install теперь ставит пакеты только в этот проект\n\ndeactivate                    # выйти из окружения",
+          "lang": "bash"
+        },
+        {
+          "type": "note",
+          "text": "PyCharm создаёт виртуальное окружение автоматически при создании нового проекта и активирует его в своём терминале. Вручную это делают в основном при работе из консоли."
+        },
+        {
+          "type": "heading",
+          "text": "requirements.txt: список зависимостей"
+        },
+        {
+          "type": "text",
+          "text": "Чтобы другой человек мог запустить ваш проект, ему нужны те же пакеты. Их список принято хранить в файле `requirements.txt`."
+        },
+        {
+          "type": "code",
+          "code": "pip freeze > requirements.txt      # сохранить список установленного\n\n# Файл выглядит так:\n# requests==2.31.0\n# pillow==10.2.0\n\npip install -r requirements.txt   # установить всё из списка одной командой",
+          "lang": "bash"
+        },
+        {
+          "type": "table",
+          "head": [
+            "Что положить в репозиторий",
+            "Почему"
+          ],
+          "rows": [
+            [
+              "`requirements.txt`",
+              "**Да** — по нему восстанавливаются зависимости"
+            ],
+            [
+              "Папка `.venv`",
+              "**Нет** — весит сотни мегабайт, у каждого своя"
+            ],
+            [
+              "Свои `.py`-файлы",
+              "Да"
+            ],
+            [
+              "`__pycache__`",
+              "Нет — служебные файлы Python"
+            ]
+          ]
+        },
+        {
+          "type": "warn",
+          "text": "Добавьте `.venv/` и `__pycache__/` в файл `.gitignore`. Иначе в репозиторий уедут тысячи чужих файлов, и работать с ним станет невозможно."
+        },
+        {
+          "type": "heading",
+          "text": "Осторожность при установке"
+        },
+        {
+          "type": "warn",
+          "text": "Пакет из PyPI — это чужой код, который выполнится на вашем компьютере. Устанавливайте только известные библиотеки и внимательно проверяйте название: злоумышленники специально публикуют пакеты с именами, отличающимися на одну букву от популярных."
+        }
+      ]
+    },
+    {
+      "num": "🧪",
+      "anchor": "assert",
+      "chip": "assert",
+      "chipNote": "самопроверка",
+      "title": "assert: проверка предположений",
+      "desc": "Простейший способ проверить, что программа работает правильно.",
+      "blocks": [
+        {
+          "type": "text",
+          "text": "`assert` проверяет, что условие истинно. Если да — ничего не происходит, и программа идёт дальше. Если нет — сразу бросается `AssertionError`."
+        },
+        {
+          "type": "code",
+          "title": "Синтаксис",
+          "code": "assert 2 + 2 == 4                          # всё в порядке, молчит\n\nassert 2 + 2 == 5, 'математика сломалась'  # AssertionError: математика сломалась\n\n# Форма: assert условие, сообщение\n# Сообщение необязательно, но без него разбираться труднее"
+        },
+        {
+          "type": "heading",
+          "text": "Главное применение: проверка своих функций"
+        },
+        {
+          "type": "text",
+          "text": "Написали функцию — тут же проверьте её на нескольких примерах. Это самый дешёвый способ убедиться, что она работает, и заметить поломку при будущих правках."
+        },
+        {
+          "type": "code",
+          "code": "def average(numbers):\n    if not numbers:\n        return 0\n    return sum(numbers) / len(numbers)\n\n\n# Мини-тесты прямо под функцией:\nassert average([2, 4]) == 3\nassert average([5]) == 5\nassert average([]) == 0\nassert average([1, 2, 3, 4]) == 2.5\n\nprint('Все проверки пройдены')"
+        },
+        {
+          "type": "note",
+          "text": "Если хоть одна строка не сойдётся, программа остановится именно на ней, и вы сразу увидите, какой случай сломался. Пока всё верно — вывод один: сообщение об успехе."
+        },
+        {
+          "type": "code",
+          "title": "Проверка промежуточного состояния",
+          "code": "def apply_discount(price, percent):\n    assert 0 <= percent <= 100, f'Некорректная скидка: {percent}'\n\n    result = price * (100 - percent) / 100\n\n    assert result <= price, 'Скидка не может увеличивать цену'\n    return result\n\n\nprint(apply_discount(1000, 20))    # 800.0\nprint(apply_discount(1000, 150))   # AssertionError: Некорректная скидка: 150"
+        },
+        {
+          "type": "heading",
+          "text": "Чем assert отличается от if + raise"
+        },
+        {
+          "type": "table",
+          "head": [
+            "",
+            "`assert`",
+            "`if` + [`raise`](#raise)"
+          ],
+          "rows": [
+            [
+              "Для чего",
+              "Проверка **себя**: «такого не должно случиться»",
+              "Проверка **данных**: «пользователь мог ошибиться»"
+            ],
+            [
+              "Кто виноват",
+              "Программист",
+              "Внешние данные"
+            ],
+            [
+              "Можно отключить",
+              "**Да**, флагом `-O`",
+              "Нет"
+            ],
+            [
+              "Где уместен",
+              "Отладка, тесты, внутренние проверки",
+              "Ввод пользователя, файлы, сеть"
+            ]
+          ]
+        },
+        {
+          "type": "warn",
+          "text": "`assert` **отключается** при запуске `python -O program.py` — все проверки просто исчезают. Поэтому его нельзя использовать для защиты от неверного ввода: в рабочем режиме такая защита может отсутствовать."
+        },
+        {
+          "type": "compare",
+          "good": {
+            "title": "Ввод — через raise",
+            "code": "def set_age(age):\n    if not 0 <= age <= 120:\n        raise ValueError('Некорректный возраст')\n    return age\n\n# Работает всегда"
+          },
+          "bad": {
+            "title": "Ввод — через assert",
+            "code": "def set_age(age):\n    assert 0 <= age <= 120\n    return age\n\n# С флагом -O проверка\n# исчезнет, и в программу\n# попадёт возраст 500"
+          }
+        },
+        {
+          "type": "heading",
+          "text": "Дальше — настоящие тесты"
+        },
+        {
+          "type": "text",
+          "text": "Набор `assert` под функцией — это уже тестирование, просто самое простое. Когда проверок становится много, их выносят в отдельный файл и запускают специальными программами: `unittest` из стандартной библиотеки или `pytest`, который ставится через [pip](#pip)."
+        },
+        {
+          "type": "code",
+          "title": "Как это выглядит дальше",
+          "code": "# test_average.py — отдельный файл с тестами\n\ndef test_average_normal():\n    assert average([2, 4]) == 3\n\n\ndef test_average_empty():\n    assert average([]) == 0\n\n\n# Запуск: pytest test_average.py\n# Программа сама найдёт все функции, начинающиеся с test_,\n# выполнит их и покажет отчёт"
+        },
+        {
+          "type": "note",
+          "text": "Идея та же самая, что и с `assert` под функцией, — просто аккуратнее оформлено и запускается одной командой. Для школьных проектов достаточно и обычных `assert`."
+        }
+      ]
+    }
+  ]
+}

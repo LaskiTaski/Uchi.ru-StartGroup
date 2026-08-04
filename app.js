@@ -1,134 +1,195 @@
-/* ══════════════════════════════════════════════════════════
-   Python Academy — App Logic (Refactored)
-   Data-driven рендеринг, делегирование событий,
-   автоматический подсчёт статистики.
-   ══════════════════════════════════════════════════════════ */
-
+/* ═══════════════════════════════════════════════════════════
+   Python Academy — учебная платформа
+   Конфигурация живёт в data/manifest.json, контент — в data/*.json.
+   Чтобы добавить модуль, править код не нужно.
+   ═══════════════════════════════════════════════════════════ */
 (function () {
   'use strict';
 
-  /* ── Конфигурация модулей ────────────────────────────── */
-  var MODULES = [
-    { id: 1, file: 'data/module1.json', icon: '🐍', label: 'Модуль 1', sub: '• Основы Python' },
-    { id: 2, file: 'data/module2.json', icon: '📦', label: 'Модуль 2', sub: '• Строки, функции, циклы' },
-    { id: 3, file: 'data/module3.json', icon: '⚙️', label: 'Модуль 3', sub: '• Коллекции' },
-    { id: 4, file: 'data/module4.json', icon: '🚀', label: 'Модуль 4', sub: '• ООП и проекты' },
-    { id: 6, file: 'data/notes.json',   icon: '📖', label: 'Основы Python',     sub: '• Типы данных',       menu: true },
-    { id: 7, file: 'data/notes2.json',  icon: '🔀', label: 'Ветвление и циклы', sub: '• Условия, for, while', menu: true },
-    { id: 8, file: 'data/notes3.json',  icon: '🧩', label: 'Функции',           sub: '• Аргументы, return',  menu: true },
-    { id: 10, file: 'data/notes4.json', icon: '🧯', label: 'Ошибки',            sub: '• try / except',       menu: true },
-    { id: 11, file: 'data/notes5.json', icon: '🏛️', label: 'ООП',               sub: '• классы и объекты',   menu: true },
-    { id: 9, file: 'data/course1.json', icon: '🎯', label: 'Как решать задачи', sub: '• Алгоритмическое мышление', menu: true },
-    { id: 5, file: 'data/module5.json', icon: '📚', label: 'Доп. курсы', sub: '' }
-  ];
-
-  function getModuleMeta(modId) {
-    for (var i = 0; i < MODULES.length; i++) {
-      if (MODULES[i].id === modId) return MODULES[i];
-    }
-    return null;
-  }
-
-  var IFRAME_ALLOW = 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture';
-
-  var TAG_LABELS = {
-    free: ['Бесплатно', 'tag-free'],    paid: ['Платный', 'tag-paid'],
-    easy: ['Легко', 'tag-easy'],         medium: ['Нормально', 'tag-medium'],
-    hard: ['Сложно', 'tag-hard'],        heavy: ['Тяжело', 'tag-heavy'],
-    useful: ['Полезно', 'tag-useful'],   super: ['Очень полезно', 'tag-super'],
-    optional: ['Необязательно', 'tag-optional'], unknown: ['Неизвестно', 'tag-unknown']
+  /* ── Настройки поведения ─────────────────────────────── */
+  const CONFIG = {
+    headerCollapseAt: 150,   // прокрутка, после которой панель групп уезжает
+    headerExpandAt: 40,      // и на которой возвращается (гистерезис)
+    tabPeek: 64,             // сколько px соседней вкладки оставлять видимыми
+    searchDebounce: 120,     // пауза перед поиском, мс
+    searchMinLength: 2,
+    searchLimit: 8,
+    scrollOffset: 14         // зазор под липкой шапкой при переходе по якорю
   };
 
-  // ── Простой пароль для 5-го раздела ────────────────────
-  var SECRET_PASSWORD = 'NwrBJQF92k&=';
-  var REMEMBER_KEY    = 'pa_m5_unlocked';
+  const IFRAME_ALLOW = 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture';
+  const TAG_LABELS = {
+    practice: '🛠️ практика', project: '🎯 проект', theory: '📘 теория',
+    test: '📝 тест', exam: '🎓 экзамен'
+  };
+  const REMEMBER_KEY = 'pa_auth';
+  const SECRET_PASSWORD = 'NwrBJQF92k&=';
 
-  var activeModule = 1;
-  var cache = {};
-  var authToken = localStorage.getItem(REMEMBER_KEY) === '1' ? '1' : null;
+  /* ── Состояние ───────────────────────────────────────── */
+  const state = {
+    modules: [],          // из манифеста
+    groups: [],           // из манифеста
+    activeModule: null,
+    activeGroup: null,
+    lastModuleInGroup: {},
+    authToken: localStorage.getItem(REMEMBER_KEY) === '1' ? '1' : null
+  };
 
-  /* ── Утилиты ─────────────────────────────────────────── */
-  function esc(str) {
-    var d = document.createElement('div');
-    d.textContent = str;
-    return d.innerHTML;
+  /* ── Утилиты разметки ────────────────────────────────── */
+
+  function esc(value) {
+    return String(value == null ? '' : value)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;').replace(/'/g, '&#039;');
   }
 
-  /* ── Рендеринг вкладок ───────────────────────────────── */
-  /* ── Группы: верхний уровень навигации ───────────────── */
-  var GROUPS = [
-    { id: 'video', icon: '🎬', label: 'Видеоматериалы', unit: 'модуль',  mods: [1, 2, 3, 4] },
-    { id: 'my',    icon: '🎓', label: 'Мои курсы',      unit: 'курс',    mods: [9] },
-    { id: 'ref',   icon: '📚', label: 'Справочник',     unit: 'раздел',  mods: [6, 7, 8, 10, 11] },
-    { id: 'extra', icon: '⭐', label: 'Доп. материалы', note: 'внешние курсы', mods: [5] }
-  ];
+  /**
+   * Сборка элемента. Атрибуты экранируются всегда — забыть esc() нельзя.
+   * Содержимое считается готовой разметкой, текст экранируйте сами.
+   *   h('div', { class: 'lesson', 'data-mod': 3 }, '<span>...</span>')
+   */
+  function h(tag, attrs, inner) {
+    let out = '<' + tag;
+    if (attrs) {
+      for (const key in attrs) {
+        const value = attrs[key];
+        if (value === null || value === undefined || value === false) continue;
+        if (value === true) { out += ' ' + key; continue; }
+        out += ' ' + key + '="' + esc(value) + '"';
+      }
+    }
+    out += '>';
+    if (inner !== undefined && inner !== null) out += inner;
+    return out + '</' + tag + '>';
+  }
 
-  var activeGroup = 'video';
-  /* Запоминаем, на каком модуле человек был в каждой группе */
-  var lastModuleInGroup = { video: 1, ref: 6, extra: 5 };
+  /* Атрибуты, задающие цвет модуля: раньше на это уходило 48 правил в CSS */
+  function modAttrs(modId, extra) {
+    const meta = getModuleMeta(modId);
+    return Object.assign({
+      'data-mod': modId,
+      style: meta && meta.color ? '--mod-color: ' + meta.color : null
+    }, extra || {});
+  }
 
-  /* Склонение: 1 модуль, 2 модуля, 5 модулей */
-  function plural(n, one) {
-    var forms = {
+  function plural(count, one) {
+    const forms = {
       'модуль': ['модуль', 'модуля', 'модулей'],
       'раздел': ['раздел', 'раздела', 'разделов'],
       'курс':   ['курс',   'курса',   'курсов']
     }[one] || [one, one, one];
-    var d10 = n % 10, d100 = n % 100;
+    const d10 = count % 10, d100 = count % 100;
     if (d10 === 1 && d100 !== 11) return forms[0];
     if (d10 >= 2 && d10 <= 4 && (d100 < 10 || d100 >= 20)) return forms[1];
     return forms[2];
   }
 
-  function getGroup(gid) {
-    for (var i = 0; i < GROUPS.length; i++) {
-      if (GROUPS[i].id === gid) return GROUPS[i];
-    }
-    return GROUPS[0];
+  const byId = (id) => document.getElementById(id);
+
+  /* ── Конфигурация из манифеста ───────────────────────── */
+
+  function getModuleMeta(modId) {
+    return state.modules.find((m) => m.id === modId) || null;
+  }
+
+  function getGroup(groupId) {
+    return state.groups.find((g) => g.id === groupId) || state.groups[0];
+  }
+
+  function modulesOfGroup(groupId) {
+    return state.modules.filter((m) => m.group === groupId);
   }
 
   function groupOfModule(modId) {
-    for (var i = 0; i < GROUPS.length; i++) {
-      if (GROUPS[i].mods.indexOf(modId) !== -1) return GROUPS[i].id;
-    }
-    return GROUPS[0].id;
+    const meta = getModuleMeta(modId);
+    return meta ? meta.group : state.groups[0].id;
   }
+
+  /* Модули с оглавлением — справочники и курсы */
+  function menuModules() {
+    return state.modules.filter((m) => m.menu);
+  }
+
+  /* ── Загрузка данных: кэшируем промисы, а не результаты ──
+     Повторный вызов возвращает тот же промис, поэтому один
+     и тот же файл физически не может загрузиться дважды.    */
+
+  const requests = new Map();
+
+  function fetchModule(modId) {
+    if (!requests.has(modId)) {
+      const meta = getModuleMeta(modId);
+      if (!meta) return Promise.reject(new Error('Нет модуля ' + modId));
+      requests.set(modId, fetch(meta.file).then((response) => {
+        if (!response.ok) throw new Error('HTTP ' + response.status);
+        return response.json();
+      }).catch((error) => {
+        requests.delete(modId);      // не кэшируем неудачу — можно повторить
+        throw error;
+      }));
+    }
+    return requests.get(modId);
+  }
+
+  /* Данные уже в памяти? Нужно для синхронного рендера без мигания */
+  const loaded = new Map();
+
+  function fetchModuleCached(modId) {
+    return fetchModule(modId).then((data) => {
+      loaded.set(modId, data);
+      return data;
+    });
+  }
+
+  function loadAllModules(filter) {
+    const list = state.modules.filter(filter || (() => true));
+    return Promise.all(list.map((m) =>
+      fetchModuleCached(m.id).catch(() => null)
+    ));
+  }
+
+  /* ── Верхний уровень навигации: группы ───────────────── */
 
   function renderGroups() {
-    var html = '';
-    GROUPS.forEach(function (g) {
-      var active = g.id === activeGroup ? ' active' : '';
-      var note = g.note ? g.note : g.mods.length + ' ' + plural(g.mods.length, g.unit);
-      html += '<button class="group-tab' + active + '" data-group="' + g.id + '">' +
-        '<span class="group-icon">' + g.icon + '</span>' +
-        '<span class="group-text">' +
-          '<span class="group-label">' + esc(g.label) + '</span>' +
-          '<span class="group-note">' + esc(note) + '</span>' +
-        '</span>' +
-      '</button>';
+    let html = '';
+    state.groups.forEach((group) => {
+      const count = modulesOfGroup(group.id).length;
+      const note = group.note || (count + ' ' + plural(count, group.unit));
+      html += h('button', {
+        class: 'group-tab' + (group.id === state.activeGroup ? ' active' : ''),
+        'data-group': group.id,
+        style: '--group-color: ' + group.color
+      },
+        h('span', { class: 'group-icon' }, esc(group.icon)) +
+        h('span', { class: 'group-text' },
+          h('span', { class: 'group-label' }, esc(group.label)) +
+          h('span', { class: 'group-note' }, esc(note))
+        )
+      );
     });
-    document.getElementById('groups').innerHTML = html;
+    byId('groups').innerHTML = html;
   }
 
-  /* Нижний уровень: только модули активной группы */
-  function renderTabs() {
-    var group = getGroup(activeGroup);
-    var html = '';
+  /* ── Нижний уровень: модули активной группы ──────────── */
 
-    group.mods.forEach(function (modId) {
-      var m = getModuleMeta(modId);
-      if (!m) return;
-      var active = m.id === activeModule ? ' active' : '';
-      var sub = m.sub ? '<span class="tab-label-sub">' + esc(m.sub) + '</span>' : '';
-      var caret = m.menu ? '<span class="tab-caret" data-menu="' + m.id + '">▾</span>' : '';
-      html += '<button class="tab' + active + '" data-mod="' + m.id + '">' +
-        '<span class="tab-icon">' + m.icon + '</span> ' + esc(m.label) + sub + caret +
-        '</button>';
+  function renderTabs() {
+    const modules = modulesOfGroup(state.activeGroup);
+    let html = '';
+
+    modules.forEach((meta) => {
+      html += h('button', {
+        class: 'tab' + (meta.id === state.activeModule ? ' active' : ''),
+        'data-mod': meta.id,
+        style: '--mod-color: ' + meta.color
+      },
+        h('span', { class: 'tab-icon' }, esc(meta.icon)) + ' ' + esc(meta.label) +
+        (meta.sub ? h('span', { class: 'tab-label-sub' }, esc(meta.sub)) : '') +
+        (meta.menu ? h('span', { class: 'tab-caret', 'data-menu': meta.id }, '▾') : '')
+      );
     });
 
-    document.getElementById('tabs').innerHTML = html;
-    // Если в группе один раздел, второй ряд не нужен
-    document.getElementById('tabs-wrap').classList.toggle('single', group.mods.length < 2);
+    byId('tabs').innerHTML = html;
+    byId('tabs-wrap').classList.toggle('single', modules.length < 2);
     fitTabs();
   }
 
@@ -137,338 +198,452 @@
     renderTabs();
   }
 
-  /* Переключение группы: возвращаемся туда, где были в прошлый раз */
-  function switchGroup(gid) {
-    if (gid === activeGroup) return;
-    activeGroup = gid;
-    var target = lastModuleInGroup[gid] || getGroup(gid).mods[0];
+  function switchGroup(groupId) {
+    if (groupId === state.activeGroup) return;
+    const target = state.lastModuleInGroup[groupId] || modulesOfGroup(groupId)[0].id;
     switchModule(target);
   }
 
-  /* ── Прокрутка вкладок: авто-компакт, стрелки, колесо ── */
+  /* ── Прокрутка ленты вкладок ─────────────────────────── */
+
   function fitTabs() {
-    var tabs = document.getElementById('tabs');
-    var wrap = document.getElementById('tabs-wrap');
+    const tabs = byId('tabs');
+    const wrap = byId('tabs-wrap');
     if (!tabs || !wrap) return;
 
-    // Меряем естественную ширину вкладок без растягивания
+    // Меряем естественную ширину, затем решаем: растянуть или прокручивать
     tabs.classList.remove('stretch');
-    var fits = tabs.scrollWidth <= tabs.clientWidth + 1;
-
-    // Влезли — растягиваем на всю колонку; не влезли — включаем прокрутку
+    const fits = tabs.scrollWidth <= tabs.clientWidth + 1;
     tabs.classList.toggle('stretch', fits);
     wrap.classList.toggle('no-overflow', fits);
     updateTabFades();
   }
 
   function updateTabFades() {
-    var tabs = document.getElementById('tabs');
-    var wrap = document.getElementById('tabs-wrap');
+    const tabs = byId('tabs');
+    const wrap = byId('tabs-wrap');
     if (!tabs || !wrap) return;
-    var maxScroll = tabs.scrollWidth - tabs.clientWidth;
-    wrap.classList.toggle('fade-left',  maxScroll > 1 && tabs.scrollLeft > 4);
+    const maxScroll = tabs.scrollWidth - tabs.clientWidth;
+    wrap.classList.toggle('fade-left', maxScroll > 1 && tabs.scrollLeft > 4);
     wrap.classList.toggle('fade-right', maxScroll > 1 && tabs.scrollLeft < maxScroll - 4);
   }
 
   function scrollTabs(direction) {
-    var tabs = document.getElementById('tabs');
+    const tabs = byId('tabs');
     if (!tabs) return;
     tabs.scrollBy({ left: direction * Math.max(160, tabs.clientWidth * 0.6), behavior: 'smooth' });
   }
 
-  /* Активная вкладка выезжает в центр ленты — так по бокам от неё
-     всегда видно соседние разделы, а не обрезанный край */
+  /* Активная вкладка выезжает в центр — соседи остаются видны */
   function scrollActiveTabIntoView(smooth) {
-    var tabs = document.getElementById('tabs');
-    var active = document.querySelector('.tab.active');
+    const tabs = byId('tabs');
+    const active = document.querySelector('.tab.active');
     if (!tabs || !active) return;
 
-    var maxScroll = tabs.scrollWidth - tabs.clientWidth;
+    const maxScroll = tabs.scrollWidth - tabs.clientWidth;
     if (maxScroll <= 1) { updateTabFades(); return; }
 
-    // Целимся в центр, но не даём уехать за края ленты
-    var target = active.offsetLeft - (tabs.clientWidth - active.offsetWidth) / 2;
-
-    // Гарантируем «подглядывание» соседей у краёв: если вкладка первая
-    // или последняя, всё равно оставляем видимым кусок соседней
-    var PEEK = 64;
-    if (target < PEEK) target = 0;
-    if (target > maxScroll - PEEK) target = maxScroll;
+    let target = active.offsetLeft - (tabs.clientWidth - active.offsetWidth) / 2;
+    if (target < CONFIG.tabPeek) target = 0;
+    if (target > maxScroll - CONFIG.tabPeek) target = maxScroll;
     target = Math.max(0, Math.min(target, maxScroll));
 
     if (smooth && tabs.scrollTo) {
       tabs.scrollTo({ left: target, behavior: 'smooth' });
     } else {
-      tabs.classList.add('no-anim');
-      tabs.scrollLeft = target;
-      // форсируем пересчёт, чтобы анимация не подхватила это значение
-      void tabs.offsetWidth;
-      tabs.classList.remove('no-anim');
+      setScrollWithoutAnimation(tabs, target);
     }
     setTimeout(updateTabFades, 350);
   }
 
+  function setScrollWithoutAnimation(element, left) {
+    element.classList.add('no-anim');
+    element.scrollLeft = left;
+    void element.offsetWidth;
+    element.classList.remove('no-anim');
+  }
+
   /* ── Переключение модуля ─────────────────────────────── */
+
   function switchModule(modId) {
-    var tabs = document.getElementById('tabs');
-    var savedScroll = tabs ? tabs.scrollLeft : 0;
-    activeModule = modId;
-    activeGroup = groupOfModule(modId);
-    lastModuleInGroup[activeGroup] = modId;
+    const tabs = byId('tabs');
+    const savedScroll = tabs ? tabs.scrollLeft : 0;
+
+    state.activeModule = modId;
+    state.activeGroup = groupOfModule(modId);
+    state.lastModuleInGroup[state.activeGroup] = modId;
+
     renderNav();
-    // renderTabs() перерисовывает ленту и сбрасывает прокрутку в 0 —
-    // возвращаем позицию, чтобы плавный доезд шёл от текущего места
-    if (tabs) {
-      tabs.classList.add('no-anim');
-      tabs.scrollLeft = savedScroll;
-      void tabs.offsetWidth;
-      tabs.classList.remove('no-anim');
-    }
-    loadModule(modId);
+    if (tabs) setScrollWithoutAnimation(tabs, savedScroll);
+
+    return loadModule(modId);
   }
 
-  /* ── Загрузка данных модуля ──────────────────────────── */
+  /**
+   * Показывает модуль и возвращает промис, который выполнится
+   * после отрисовки. Именно это убрало ожидание рендера опросом.
+   */
   function loadModule(modId) {
-    var content = document.getElementById('content');
+    const content = byId('content');
 
-    // Модуль 5 требует пароля
-    if (modId === 5 && !authToken) {
+    if (getModuleMeta(modId) && getModuleMeta(modId).protected && !state.authToken) {
       content.innerHTML = renderLoginForm();
-      content.className = 'content fade-up';
-      return;
+      return Promise.resolve();
     }
 
-    loadModuleData(modId);
-  }
-
-  function loadModuleData(modId) {
-    var content = document.getElementById('content');
-
-    if (cache[modId]) {
-      content.innerHTML = renderModule(cache[modId]);
-      content.className = 'content fade-up';
-      return;
+    if (loaded.has(modId)) {
+      content.innerHTML = renderModule(loaded.get(modId));
+      return Promise.resolve(loaded.get(modId));
     }
 
-    var meta = getModuleMeta(modId);
-    content.innerHTML = '<div class="empty-state">Загрузка...</div>';
+    content.innerHTML = h('div', { class: 'empty-state' }, 'Загрузка…');
 
-    fetch(meta.file)
-      .then(function (r) { return r.json(); })
-      .then(function (data) {
-        if (activeModule !== modId) return; // устарело — пользователь уже ушёл
-        cache[modId] = data;
-        content.innerHTML = renderModule(data);
-        content.className = 'content fade-up';
-      })
-      .catch(function () {
-        content.innerHTML = '<div class="empty-state">⚠️ Не удалось загрузить модуль. Проверьте что файл ' +
-          esc(meta.file) + ' доступен.</div>';
-      });
-  }
-
-
-  /* ── Форма входа ─────────────────────────────────────── */
-  function renderLoginForm(errorMsg) {
-    var errorHtml = errorMsg
-      ? '<div class="auth-error">' + esc(errorMsg) + '</div>'
-      : '';
-
-    return '<div class="auth-gate">' +
-      '<div class="auth-card">' +
-        '<div class="auth-icon">🔐</div>' +
-        '<h2 class="auth-title">Дополнительные курсы</h2>' +
-        '<p class="auth-desc">Этот раздел доступен только выпускникам.<br>Введите пароль для входа.</p>' +
-        errorHtml +
-        '<div class="auth-field">' +
-          '<input type="password" id="cert-input" class="auth-input" placeholder="Пароль" autocomplete="off" spellcheck="false">' +
-        '</div>' +
-        '<label class="auth-remember">' +
-          '<input type="checkbox" id="remember-check"> Запомнить на этом устройстве' +
-        '</label>' +
-        '<button class="auth-btn" id="auth-submit">Войти</button>' +
-      '</div>' +
-    '</div>';
-  }
-
-  /* ── Обработка входа ─────────────────────────────────── */
-  function handleLogin() {
-    var input = document.getElementById('cert-input');
-    var btn   = document.getElementById('auth-submit');
-    var remember = document.getElementById('remember-check');
-    if (!input || !btn) return;
-
-    var password = input.value.trim();
-    if (!password) {
-      input.classList.add('shake');
-      setTimeout(function () { input.classList.remove('shake'); }, 500);
-      return;
-    }
-
-    if (password !== SECRET_PASSWORD) {
-      var content = document.getElementById('content');
-      content.innerHTML = renderLoginForm('Неверный пароль. Попробуйте ещё раз.');
-      content.className = 'content fade-up';
-      return;
-    }
-
-    // Пароль верный
-    authToken = '1';
-    if (remember && remember.checked) {
-      localStorage.setItem(REMEMBER_KEY, '1');
-    }
-    loadModuleData(5);
-  }
-
-  /* ── Якоря справочников ──────────────────────────────── */
-
-  /* Все модули-справочники (у них есть выпадающее меню) */
-  function notesModules() {
-    return MODULES.filter(function (m) { return m.menu; });
-  }
-
-  /* Гарантируем, что данные всех справочников загружены */
-  function ensureNotesLoaded(callback) {
-    var mods = notesModules();
-    var pending = 0;
-    var done = false;
-
-    function finish() {
-      if (!done && pending === 0) { done = true; callback(); }
-    }
-
-    mods.forEach(function (m) {
-      if (cache[m.id]) return;
-      pending++;
-      fetch(m.file)
-        .then(function (r) { return r.json(); })
-        .then(function (data) { cache[m.id] = data; })
-        .catch(function () {})
-        .then(function () { pending--; finish(); });
+    return fetchModuleCached(modId).then((data) => {
+      if (state.activeModule === modId) content.innerHTML = renderModule(data);
+      return data;
+    }).catch(() => {
+      const meta = getModuleMeta(modId);
+      content.innerHTML = h('div', { class: 'empty-state' },
+        '⚠️ Не удалось загрузить модуль. Проверьте, что файл ' +
+        esc(meta ? meta.file : '') + ' на месте.');
     });
-
-    finish();
   }
 
-  /* В каком справочнике живёт этот якорь */
+  /* ── Защищённый раздел ───────────────────────────────── */
+
+  function renderLoginForm(errorMsg) {
+    return h('div', { class: 'auth-gate' },
+      h('div', { class: 'auth-card' },
+        h('div', { class: 'auth-icon' }, '🔒') +
+        h('div', { class: 'auth-title' }, 'Раздел защищён') +
+        h('div', { class: 'auth-text' }, 'Введите пароль, чтобы открыть дополнительные материалы.') +
+        (errorMsg ? h('div', { class: 'auth-error' }, esc(errorMsg)) : '') +
+        h('input', {
+          type: 'password', id: 'cert-input', class: 'auth-input',
+          placeholder: 'Пароль', autocomplete: 'off', spellcheck: 'false'
+        }) +
+        h('label', { class: 'auth-remember' },
+          '<input type="checkbox" id="cert-remember"> Запомнить меня') +
+        h('button', { class: 'auth-btn', id: 'cert-submit' }, 'Открыть')
+      )
+    );
+  }
+
+  function handleLogin() {
+    const input = byId('cert-input');
+    const remember = byId('cert-remember');
+    if (!input) return;
+
+    if (input.value.trim() !== SECRET_PASSWORD) {
+      byId('content').innerHTML = renderLoginForm('Неверный пароль. Попробуйте ещё раз.');
+      return;
+    }
+
+    state.authToken = '1';
+    if (remember && remember.checked) localStorage.setItem(REMEMBER_KEY, '1');
+    loadModule(state.activeModule);
+  }
+
+  /* ── Якоря ───────────────────────────────────────────── */
+
+  function lessonAnchorOf(modId, num) {
+    return 'l' + modId + '-' + String(num).replace(/\./g, '-');
+  }
+
+  function headerOffset() {
+    const header = document.querySelector('.header');
+    return (header ? header.offsetHeight : 0) + CONFIG.scrollOffset;
+  }
+
+  /* В каком модуле живёт якорь */
   function findModuleForAnchor(anchor) {
-    var mods = notesModules();
-    for (var i = 0; i < mods.length; i++) {
-      var data = cache[mods[i].id];
+    const lessonMatch = /^l(\d+)-/.exec(anchor);
+    if (lessonMatch) return parseInt(lessonMatch[1], 10);
+
+    for (const meta of menuModules()) {
+      const data = loaded.get(meta.id);
       if (!data || !data.sections) continue;
-      for (var j = 0; j < data.sections.length; j++) {
-        if (data.sections[j].anchor === anchor) return mods[i].id;
-      }
+      if (data.sections.some((section) => section.anchor === anchor)) return meta.id;
     }
     return null;
   }
 
-  function headerOffset() {
-    var h = document.querySelector('.header');
-    return (h ? h.offsetHeight : 0) + 14;
-  }
-
-  /* Переход к разделу по якорю: открыть, подсветить, доскроллить */
   function goToAnchor(anchor, updateHash) {
     closeTabMenu();
 
     function jump() {
-      var el = document.getElementById('ref-' + anchor);
-      if (!el) return;
-      el.classList.add('open');
+      const element = byId('ref-' + anchor);
+      if (!element) return;
+      element.classList.add('open');
 
-      // Прыгаем вниз — шапка там будет свёрнутой, поэтому сворачиваем
-      // её заранее и меряем позицию уже по итоговой геометрии
-      var absTop = el.getBoundingClientRect().top + window.pageYOffset;
-      if (absTop > COLLAPSE_AT) {
+      // Ниже порога шапка свернётся — сворачиваем до замера позиции
+      const absoluteTop = element.getBoundingClientRect().top + window.pageYOffset;
+      if (absoluteTop > CONFIG.headerCollapseAt) {
         document.querySelector('.header').classList.add('compact');
       }
 
-      var top = el.getBoundingClientRect().top + window.pageYOffset - headerOffset();
-      window.scrollTo({ top: top, behavior: 'smooth' });
-      el.classList.remove('flash');
-      void el.offsetWidth;
-      el.classList.add('flash');
+      const top = element.getBoundingClientRect().top + window.pageYOffset - headerOffset();
+      window.scrollTo({ top, behavior: 'smooth' });
+
+      element.classList.remove('flash');
+      void element.offsetWidth;
+      element.classList.add('flash');
+
       if (updateHash !== false && history.replaceState) {
         history.replaceState(null, '', '#' + anchor);
       }
     }
 
-    ensureNotesLoaded(function () {
-      var modId = findModuleForAnchor(anchor);
+    // Загружаем оглавления, находим модуль, переключаемся и только потом прыгаем
+    loadAllModules((m) => m.menu).then(() => {
+      const modId = findModuleForAnchor(anchor);
       if (modId === null) return;
-
-      if (activeModule !== modId) {
-        switchModule(modId);
-        // ждём, пока раздел появится в разметке
-        var tries = 0;
-        var timer = setInterval(function () {
-          if (document.getElementById('ref-' + anchor) || ++tries > 40) {
-            clearInterval(timer);
-            jump();
-          }
-        }, 25);
-      } else {
-        jump();
-      }
+      if (state.activeModule === modId) { jump(); return; }
+      return switchModule(modId).then(jump);
     });
   }
 
-  /* ── Выпадающее меню вкладки «Справочник» ────────────── */
+  /* ── Выпадающее оглавление модуля ────────────────────── */
+
   function closeTabMenu() {
-    var menu = document.getElementById('tab-menu');
+    const menu = byId('tab-menu');
     if (menu) menu.remove();
-    var open = document.querySelector('.tab-caret.open');
-    if (open) open.classList.remove('open');
+    const caret = document.querySelector('.tab-caret.open');
+    if (caret) caret.classList.remove('open');
   }
 
   function toggleTabMenu(caretEl) {
-    var wasOpen = !!document.getElementById('tab-menu');
-    var modId = parseInt(caretEl.getAttribute('data-menu'), 10);
-    var sameTab = wasOpen &&
-      document.getElementById('tab-menu').getAttribute('data-mod') === String(modId);
-    if (sameTab) { closeTabMenu(); return; }
+    const modId = parseInt(caretEl.getAttribute('data-menu'), 10);
+    const opened = byId('tab-menu');
+    if (opened && opened.getAttribute('data-mod') === String(modId)) {
+      closeTabMenu();
+      return;
+    }
 
-    var meta = getModuleMeta(modId);
-
-    function build(data) {
+    fetchModuleCached(modId).then((data) => {
       closeTabMenu();
       caretEl.classList.add('open');
 
-      var items = '';
-      (data.sections || []).forEach(function (sec) {
-        if (!sec.anchor) return;
-        items += '<button class="tab-menu-item" data-anchor="' + esc(sec.anchor) + '">' +
-          '<span class="tmi-num">' + esc(sec.num) + '</span>' +
-          '<span class="tmi-title">' + esc(sec.title) + '</span></button>';
+      let items = '';
+      (data.sections || []).forEach((section) => {
+        if (!section.anchor) return;
+        items += h('button', { class: 'tab-menu-item', 'data-anchor': section.anchor },
+          h('span', { class: 'tmi-num' }, esc(section.num)) +
+          h('span', { class: 'tmi-title' }, esc(section.title))
+        );
       });
 
-      var menu = document.createElement('div');
+      const menu = document.createElement('div');
       menu.id = 'tab-menu';
       menu.className = 'tab-menu';
       menu.setAttribute('data-mod', modId);
-      menu.innerHTML = '<div class="tab-menu-head">' + esc(data.title || 'Перейти к разделу') + '</div>' + items;
-      document.getElementById('tabs-wrap').appendChild(menu);
+      menu.setAttribute('role', 'listbox');
+      menu.style.setProperty('--mod-color', getModuleMeta(modId).color);
+      menu.innerHTML = h('div', { class: 'tab-menu-head' }, esc(data.title || 'Разделы')) + items;
+      byId('tabs-wrap').appendChild(menu);
 
       // Позиционируем под вкладкой, не давая вылезти за колонку
-      var wrapRect = document.getElementById('tabs-wrap').getBoundingClientRect();
-      var tabRect  = caretEl.closest('.tab').getBoundingClientRect();
-      var left = tabRect.left - wrapRect.left;
-      var maxLeft = wrapRect.width - menu.offsetWidth;
-      menu.style.left = Math.max(0, Math.min(left, maxLeft)) + 'px';
-    }
-
-    if (cache[modId]) {
-      build(cache[modId]);
-    } else {
-      fetch(meta.file)
-        .then(function (r) { return r.json(); })
-        .then(function (data) { cache[modId] = data; build(data); })
-        .catch(function () {});
-    }
+      const wrapRect = byId('tabs-wrap').getBoundingClientRect();
+      const tabRect = caretEl.closest('.tab').getBoundingClientRect();
+      const maxLeft = wrapRect.width - menu.offsetWidth;
+      menu.style.left = Math.max(0, Math.min(tabRect.left - wrapRect.left, maxLeft)) + 'px';
+    }).catch(() => {});
   }
 
-  /* ── Рендер модуля ───────────────────────────────────── */
+  /* ── Поиск ───────────────────────────────────────────── */
+
+  function normalize(text) {
+    return String(text).toLowerCase().replace(/ё/g, 'е').replace(/\s+/g, ' ');
+  }
+
+  const search = {
+    index: null,
+    loading: null,
+    results: [],
+    cursor: -1
+  };
+
+  /**
+   * Индекс берём готовым из data/search-index.json (его собирает
+   * tools/build_search_index.py). Если файла нет — строим на лету
+   * из самих модулей, чтобы поиск работал и без сборки.
+   */
+  function ensureSearchIndex() {
+    if (search.index) return Promise.resolve(search.index);
+    if (search.loading) return search.loading;
+
+    search.loading = fetch(state.searchIndexFile)
+      .then((response) => {
+        if (!response.ok) throw new Error('нет предсобранного индекса');
+        return response.json();
+      })
+      .catch(() => loadAllModules((m) => !m.protected).then(buildSearchIndex))
+      .then((index) => {
+        search.index = index.map((item) => Object.assign({}, item, {
+          titleNorm: normalize(item.title + ' ' + (item.chip || '')),
+          bodyNorm: normalize(item.body || '')
+        }));
+        return search.index;
+      });
+
+    return search.loading;
+  }
+
+  function buildSearchIndex() {
+    const index = [];
+
+    state.modules.forEach((meta) => {
+      if (meta.protected) return;
+      const data = loaded.get(meta.id);
+      if (!data) return;
+
+      (data.sections || []).forEach((section) => {
+        index.push({
+          mod: meta.id, anchor: section.anchor, icon: section.num,
+          title: section.title, chip: section.chip || '', module: meta.label,
+          body: collectSectionText(section)
+        });
+      });
+
+      (data.lessons || []).forEach((lesson) => {
+        if (lesson.attestation) return;
+        index.push({
+          mod: meta.id, anchor: lessonAnchorOf(meta.id, lesson.num), icon: lesson.num,
+          title: lesson.title, chip: '', module: meta.label, body: lesson.desc || ''
+        });
+      });
+    });
+
+    return index;
+  }
+
+  function collectSectionText(section) {
+    const parts = [section.desc || ''];
+    (section.blocks || []).forEach((block) => {
+      parts.push(block.text || '', block.title || '', block.code || '');
+      (block.rows || []).forEach((row) => parts.push(row.join(' ')));
+      (block.items || []).forEach((item) => parts.push(item));
+      if (block.good) parts.push(block.good.title || '', block.good.code || '');
+      if (block.bad) parts.push(block.bad.title || '', block.bad.code || '');
+    });
+    return parts.join(' ');
+  }
+
+  /* Заголовок весит больше текста — иначе точное совпадение тонет */
+  function runSearch(query) {
+    const normalized = normalize(query);
+    if (normalized.length < CONFIG.searchMinLength) return [];
+
+    const words = normalized.split(' ').filter(Boolean);
+    const found = [];
+
+    search.index.forEach((item) => {
+      let score = 0;
+      let allMatched = true;
+
+      words.forEach((word) => {
+        const inTitle = item.titleNorm.indexOf(word);
+        const inBody = item.bodyNorm.indexOf(word);
+
+        if (inTitle === 0) score += 100;
+        else if (inTitle > 0) score += 60;
+        else if (inBody >= 0) score += 10;
+        else allMatched = false;
+
+        if (inBody >= 0) score += 2;
+      });
+
+      if (allMatched) found.push({ item, score, first: words[0] });
+    });
+
+    found.sort((a, b) => b.score - a.score);
+    return found.slice(0, CONFIG.searchLimit);
+  }
+
+  function makeSnippet(item, word) {
+    const position = item.bodyNorm.indexOf(word);
+    const body = item.body || '';
+    if (position < 0) return body.slice(0, 90).trim();
+
+    const start = Math.max(0, position - 40);
+    const chunk = body.slice(start, start + 120).replace(/\s+/g, ' ').trim();
+    return (start > 0 ? '…' : '') + chunk + '…';
+  }
+
+  function highlight(text, word) {
+    const safe = esc(text);
+    if (!word) return safe;
+    const position = normalize(safe).indexOf(word);
+    if (position < 0) return safe;
+    return safe.slice(0, position) +
+      h('mark', null, safe.slice(position, position + word.length)) +
+      safe.slice(position + word.length);
+  }
+
+  function renderSearchResults(results, query) {
+    const box = byId('search-results');
+    search.results = results;
+    search.cursor = -1;
+
+    if (!query || query.length < CONFIG.searchMinLength) {
+      box.classList.remove('open');
+      box.innerHTML = '';
+      byId('search-input').setAttribute('aria-expanded', 'false');
+      return;
+    }
+
+    if (!results.length) {
+      box.innerHTML = h('div', { class: 'sr-empty' }, 'Ничего не найдено по запросу «' + esc(query) + '»');
+    } else {
+      let html = '';
+      results.forEach((result, i) => {
+        const meta = getModuleMeta(result.item.mod);
+        html += h('button', {
+          class: 'sr-item', 'data-index': i, role: 'option',
+          style: meta ? '--mod-color: ' + meta.color : null
+        },
+          h('span', { class: 'sr-icon' }, esc(result.item.icon)) +
+          h('span', { class: 'sr-text' },
+            h('span', { class: 'sr-title' }, highlight(result.item.title, result.first)) +
+            h('span', { class: 'sr-snippet' }, highlight(makeSnippet(result.item, result.first), result.first))
+          ) +
+          h('span', { class: 'sr-module' }, esc(result.item.module))
+        );
+      });
+      box.innerHTML = html;
+    }
+
+    box.classList.add('open');
+    byId('search-input').setAttribute('aria-expanded', 'true');
+  }
+
+  function closeSearch() {
+    const box = byId('search-results');
+    if (box) box.classList.remove('open');
+    const input = byId('search-input');
+    if (input) input.setAttribute('aria-expanded', 'false');
+    search.results = [];
+    search.cursor = -1;
+  }
+
+  function moveSearchCursor(delta) {
+    if (!search.results.length) return;
+    search.cursor = (search.cursor + delta + search.results.length) % search.results.length;
+
+    const nodes = document.querySelectorAll('.sr-item');
+    nodes.forEach((node, i) => node.classList.toggle('active', i === search.cursor));
+    if (nodes[search.cursor]) nodes[search.cursor].scrollIntoView({ block: 'nearest' });
+  }
+
+  function openSearchResult(index) {
+    const result = search.results[index];
+    if (!result) return;
+    const input = byId('search-input');
+    if (input) input.blur();
+    closeSearch();
+    goToAnchor(result.item.anchor);
+  }
+
   function renderModule(data) {
     if (data.type === 'courses') return renderCoursesModule(data);
     if (data.type === 'notes' || data.type === 'course') return renderNotesModule(data);
@@ -515,7 +690,8 @@
         if (nS > 0) bodyParts += renderSection('🖼️ Скриншоты с занятия', renderScreenshotsGrid(lesson.screenshots));
       }
 
-      lessonsHtml += '<div class="lesson" data-mod="' + data.id + '">' +
+      var lessonAnchor = lessonAnchorOf(data.id, lesson.num);
+      lessonsHtml += h('div', modAttrs(data.id, { class: 'lesson', id: 'ref-' + lessonAnchor })).replace('</div>', '') +
         '<div class="lesson-header">' +
           '<span class="lesson-num">' + esc(lesson.num) + '</span>' +
           '<span class="lesson-title">' + esc(lesson.title) + '</span>' +
@@ -576,7 +752,7 @@
         badgesHtml += '<span class="badge-has">' + esc(b) + '</span>';
       });
 
-      sectionsHtml += '<div class="lesson" data-mod="5">' +
+      sectionsHtml += h('div', modAttrs(5, { class: 'lesson' })).replace('</div>', '') +
         '<div class="lesson-header">' +
           '<span class="lesson-num">' + esc(section.num) + '</span>' +
           '<span class="lesson-title">' + esc(section.title) + '</span>' +
@@ -605,7 +781,7 @@
         '</button>';
     });
     if (chips) {
-      navHtml = '<div class="quick-nav" data-mod="' + data.id + '">' +
+      navHtml = h('div', modAttrs(data.id, { class: 'quick-nav' })).replace('</div>', '') +
         '<div class="qn-title">Быстрый переход</div>' +
         '<div class="qn-grid">' + chips + '</div></div>';
     }
@@ -619,7 +795,7 @@
           '<div class="about-label">' + esc(m.label) + '</div>' +
           '<div class="about-value">' + inlineFmt(m.value) + '</div></div>';
       });
-      aboutHtml = '<div class="course-about" data-mod="' + data.id + '">' +
+      aboutHtml = h('div', modAttrs(data.id, { class: 'course-about' })).replace('</div>', '') +
         (data.about.text ? '<p class="about-text">' + inlineFmt(data.about.text) + '</p>' : '') +
         (metaHtml ? '<div class="about-grid">' + metaHtml + '</div>' : '') +
       '</div>';
@@ -637,7 +813,7 @@
             (st.note ? '<span class="rm-note">' + esc(st.note) + '</span>' : '') +
           '</span></button>';
       });
-      roadHtml = '<div class="roadmap" data-mod="' + data.id + '">' +
+      roadHtml = h('div', modAttrs(data.id, { class: 'roadmap' })).replace('</div>', '') +
         '<div class="qn-title">Программа курса</div>' +
         '<div class="rm-track">' + steps + '</div></div>';
     }
@@ -657,7 +833,7 @@
         ? '<span class="lesson-badges"><span class="sec-chip">' + esc(section.chip) + '</span></span>'
         : '';
 
-      sectionsHtml += '<div class="lesson ref-section"' + idAttr + ' data-mod="' + data.id + '">' +
+      sectionsHtml += h('div', modAttrs(data.id, { class: 'lesson ref-section', id: section.anchor ? 'ref-' + section.anchor : null })).replace('</div>', '') +
         '<div class="lesson-header">' +
           '<span class="lesson-num">' + esc(section.num) + '</span>' +
           '<span class="lesson-title">' + esc(section.title) + '</span>' +
@@ -678,7 +854,7 @@
       case 'heading':
         return '<div class="section-divider"></div><div class="section-label">' + esc(block.text) + '</div>';
       case 'code':
-        return renderCodeBlock(block.title, block.code);
+        return renderCodeBlock(block.title, block.code, block.lang);
       case 'table':
         return renderNoteTable(block);
       case 'compare':
@@ -732,12 +908,12 @@
     return html + '</div>';
   }
 
-  function renderCodeBlock(title, code) {
-    var titleHtml = title
-      ? '<div class="code-title">' + esc(title) + '</div>'
-      : '';
-    return '<div class="code-block">' + titleHtml +
-      '<pre><code>' + highlightPy(code) + '</code></pre></div>';
+  function renderCodeBlock(title, code, lang) {
+    // Подсвечиваем только Python: команды терминала показываем как есть
+    var body = (lang && lang !== 'python') ? esc(code) : highlightPy(code);
+    var titleHtml = title ? h('div', { class: 'code-title' }, esc(title)) : '';
+    return h('div', { class: 'code-block' + (lang ? ' lang-' + lang : '') },
+      titleHtml + h('pre', null, h('code', null, body)));
   }
 
   function renderCompareCard(kind, item) {
@@ -802,7 +978,7 @@
 
   /* ── Компоненты-рендеры ──────────────────────────────── */
   function renderModuleHeader(modId, icon, title, meta) {
-    return '<div class="module-header" data-mod="' + modId + '">' +
+    return h('div', modAttrs(modId, { class: 'module-header' })).replace('</div>', '') +
       '<span class="icon">' + icon + '</span>' +
       '<div><div class="title">' + esc(title) + '</div>' +
       '<div class="meta">' + esc(meta) + '</div></div></div>';
@@ -854,7 +1030,7 @@
   }
 
   function renderAttestation(modId) {
-    return '<div class="lesson attestation" data-mod="' + modId + '">' +
+    return h('div', modAttrs(modId, { class: 'lesson attestation' })).replace('</div>', '') +
       '<div class="lesson-header">' +
         '<span class="lesson-num">📝</span>' +
         '<span class="lesson-title">Промежуточная аттестация</span>' +
@@ -870,167 +1046,179 @@
   }
 
   /* ── Делегирование событий ───────────────────────────── */
+
+  /* ── События: таблица маршрутов вместо цепочки if ─────
+     Добавить интерактивный элемент = добавить строку сюда. */
+
+  const CLICK_ROUTES = [
+    ['.sr-item',          (el) => openSearchResult(parseInt(el.getAttribute('data-index'), 10))],
+    ['.solution-toggle',  (el) => toggleSolution(el)],
+    ['.tab-caret',        (el, e) => { e.stopPropagation(); toggleTabMenu(el); }],
+    ['.tab-menu-item',    (el) => goToAnchor(el.getAttribute('data-anchor'))],
+    ['.qn-chip, .ref-link, .rm-step[data-anchor]:not([data-anchor=""])',
+                          (el, e) => { e.preventDefault(); goToAnchor(el.getAttribute('data-anchor')); }],
+    ['.group-tab',        (el) => { closeTabMenu(); switchGroup(el.getAttribute('data-group')); }],
+    ['.tab',              (el) => onTabClick(el)],
+    ['.lesson-header',    (el) => el.parentElement.classList.toggle('open')],
+    ['#cert-submit',      () => handleLogin()],
+    ['.screenshot-card',  (el) => openLightbox(el.querySelector('img').src)],
+    ['.lightbox',         () => byId('lightbox').classList.remove('active')]
+  ];
+
+  function toggleSolution(button) {
+    const solution = button.parentElement;
+    solution.classList.toggle('open');
+    button.textContent = solution.classList.contains('open') ? 'Скрыть разбор' : 'Показать разбор';
+  }
+
+  function onTabClick(tab) {
+    const modId = parseInt(tab.getAttribute('data-mod'), 10);
+    if (modId === state.activeModule) return;
+    switchModule(modId);
+    scrollActiveTabIntoView(true);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function openLightbox(src) {
+    if (!src) return;
+    const lightbox = byId('lightbox');
+    lightbox.querySelector('img').src = src;
+    lightbox.classList.add('active');
+  }
+
   document.addEventListener('click', function (e) {
-    // Верхний уровень навигации — группы
-    var groupBtn = e.target.closest('.group-tab');
-    if (groupBtn) {
-      closeTabMenu();
-      switchGroup(groupBtn.getAttribute('data-group'));
-      return;
+    for (const [selector, handler] of CLICK_ROUTES) {
+      const element = e.target.closest(selector);
+      if (element) { handler(element, e); return; }
     }
-
-    // Каретка «Справочника» — выпадающее меню разделов
-    var caret = e.target.closest('.tab-caret');
-    if (caret) {
-      e.stopPropagation();
-      toggleTabMenu(caret);
-      return;
-    }
-
-    // Пункт выпадающего меню
-    var menuItem = e.target.closest('.tab-menu-item');
-    if (menuItem) {
-      goToAnchor(menuItem.getAttribute('data-anchor'));
-      return;
-    }
-
-    // Плитка быстрой навигации или ссылка-якорь в тексте
-    // Разбор задания — раскрывающийся блок
-    var solBtn = e.target.closest('.solution-toggle');
-    if (solBtn) {
-      var sol = solBtn.parentElement;
-      sol.classList.toggle('open');
-      solBtn.textContent = sol.classList.contains('open') ? 'Скрыть разбор' : 'Показать разбор';
-      return;
-    }
-
-    var jumper = e.target.closest('.qn-chip, .ref-link, .rm-step[data-anchor]:not([data-anchor=""])');
-    if (jumper) {
-      e.preventDefault();   // переход обрабатываем сами, без перезагрузки
-      goToAnchor(jumper.getAttribute('data-anchor'));
-      return;
-    }
-
-    // Клик мимо меню — закрываем его
+    // Клик мимо — закрываем всплывающее
     if (!e.target.closest('.tab-menu')) closeTabMenu();
-
-    // Переключение вкладок
-    var tab = e.target.closest('.tab');
-    if (tab) {
-      var modId = parseInt(tab.getAttribute('data-mod'), 10);
-      switchModule(modId);
-      scrollActiveTabIntoView(true);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-      return;
-    }
-
-    // Аккордеон уроков
-    var header = e.target.closest('.lesson-header');
-    if (header) {
-      header.parentElement.classList.toggle('open');
-      return;
-    }
-
-    // Лайтбокс — открытие
-    var card = e.target.closest('.screenshot-card');
-    if (card) {
-      var img = card.querySelector('img');
-      var lightbox = document.getElementById('lightbox');
-      lightbox.querySelector('img').src = img.src;
-      lightbox.classList.add('active');
-      return;
-    }
-
-    // Лайтбокс — закрытие
-    if (e.target.closest('.lightbox-close') || e.target.closest('.lightbox')) {
-      document.getElementById('lightbox').classList.remove('active');
-    }
-
-    // Кнопка входа
-    if (e.target.closest('#auth-submit')) {
-      handleLogin();
-    }
-  });
-
-  // Не закрывать лайтбокс при клике на картинку внутри
-  document.getElementById('lightbox').querySelector('img').addEventListener('click', function (e) {
-    e.stopPropagation();
+    if (!e.target.closest('.search-box')) closeSearch();
   });
 
   document.addEventListener('keydown', function (e) {
     if (e.key === 'Escape') {
-      document.getElementById('lightbox').classList.remove('active');
+      byId('lightbox').classList.remove('active');
       closeTabMenu();
     }
-    // Enter в поле ввода сертификата
-    if (e.key === 'Enter' && e.target.id === 'cert-input') {
-      handleLogin();
+    // «/» ставит курсор в поиск, как в GitHub
+    if (e.key === '/' && !e.ctrlKey && !e.metaKey && !e.altKey) {
+      const tag = (e.target.tagName || '').toLowerCase();
+      if (tag === 'input' || tag === 'textarea') return;
+      e.preventDefault();
+      byId('search-input').focus();
+      byId('search-input').select();
     }
+    if (e.key === 'Enter' && e.target.id === 'cert-input') handleLogin();
   });
 
-  var tabsEl = document.getElementById('tabs');
+  /* ── Прокрутка ленты вкладок ─────────────────────────── */
+
+  const tabsEl = byId('tabs');
   tabsEl.addEventListener('scroll', updateTabFades, { passive: true });
   window.addEventListener('resize', fitTabs);
 
-  // Вертикальное колесо мыши прокручивает ленту вкладок по горизонтали
+  // Вертикальное колесо крутит ленту по горизонтали
   tabsEl.addEventListener('wheel', function (e) {
-    var maxScroll = tabsEl.scrollWidth - tabsEl.clientWidth;
+    const maxScroll = tabsEl.scrollWidth - tabsEl.clientWidth;
     if (maxScroll <= 1) return;
-    var delta = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
+    const delta = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
     if (!delta) return;
-    // Не перехватываем, если лента уже упёрлась в край — отдаём скролл странице
+    // У края отдаём прокрутку странице
     if ((delta < 0 && tabsEl.scrollLeft <= 0) ||
         (delta > 0 && tabsEl.scrollLeft >= maxScroll - 1)) return;
     e.preventDefault();
     tabsEl.scrollLeft += delta;
   }, { passive: false });
 
-  // Перетаскивание ленты мышью (как в современных таб-барах)
-  var dragActive = false, dragMoved = false, dragStartX = 0, dragStartScroll = 0;
+  // Перетаскивание мышью
+  let drag = { active: false, moved: false, startX: 0, startScroll: 0 };
 
   tabsEl.addEventListener('pointerdown', function (e) {
-    if (e.button !== 0) return;
-    if (tabsEl.scrollWidth <= tabsEl.clientWidth + 1) return;
-    dragActive = true; dragMoved = false;
-    dragStartX = e.clientX;
-    dragStartScroll = tabsEl.scrollLeft;
+    if (e.button !== 0 || tabsEl.scrollWidth <= tabsEl.clientWidth + 1) return;
+    drag = { active: true, moved: false, startX: e.clientX, startScroll: tabsEl.scrollLeft };
   });
 
   tabsEl.addEventListener('pointermove', function (e) {
-    if (!dragActive) return;
-    var dx = e.clientX - dragStartX;
-    if (!dragMoved && Math.abs(dx) < 5) return;   // отличаем клик от перетаскивания
-    if (!dragMoved) {
-      dragMoved = true;
+    if (!drag.active) return;
+    const dx = e.clientX - drag.startX;
+    if (!drag.moved && Math.abs(dx) < 5) return;    // отличаем клик от перетаскивания
+    if (!drag.moved) {
+      drag.moved = true;
       tabsEl.classList.add('dragging');
       tabsEl.setPointerCapture(e.pointerId);
     }
-    tabsEl.scrollLeft = dragStartScroll - dx;
+    tabsEl.scrollLeft = drag.startScroll - dx;
   });
 
-  function endDrag() {
-    if (!dragActive) return;
-    dragActive = false;
-    tabsEl.classList.remove('dragging');
-  }
-  tabsEl.addEventListener('pointerup', endDrag);
-  tabsEl.addEventListener('pointercancel', endDrag);
-  tabsEl.addEventListener('pointerleave', endDrag);
+  ['pointerup', 'pointercancel', 'pointerleave'].forEach((event) => {
+    tabsEl.addEventListener(event, function () {
+      if (!drag.active) return;
+      drag.active = false;
+      tabsEl.classList.remove('dragging');
+    });
+  });
 
-  // Стрелки
-  /* ── Сворачивание верхней панели при прокрутке ───────── */
-  var COLLAPSE_AT = 150;   // ушли ниже — панель уезжает
-  var EXPAND_AT   = 40;    // вернулись наверх — выкатывается обратно
-  var scrollTicking = false;
+  byId('tabs-prev').addEventListener('click', () => scrollTabs(-1));
+  byId('tabs-next').addEventListener('click', () => scrollTabs(1));
+
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(fitTabs);
+
+  /* ── Поиск ───────────────────────────────────────────── */
+
+  const searchInput = byId('search-input');
+  let searchTimer = null;
+
+  searchInput.addEventListener('input', function () {
+    const query = searchInput.value.trim();
+    byId('search-box').classList.toggle('filled', query.length > 0);
+
+    clearTimeout(searchTimer);
+    if (query.length < CONFIG.searchMinLength) { closeSearch(); return; }
+
+    searchTimer = setTimeout(() => {
+      ensureSearchIndex().then(() => renderSearchResults(runSearch(query), query));
+    }, CONFIG.searchDebounce);
+  });
+
+  searchInput.addEventListener('focus', function () {
+    ensureSearchIndex().then(() => {
+      const query = searchInput.value.trim();
+      if (query.length >= CONFIG.searchMinLength) {
+        renderSearchResults(runSearch(query), query);
+      }
+    });
+  });
+
+  searchInput.addEventListener('keydown', function (e) {
+    if (e.key === 'ArrowDown') { e.preventDefault(); moveSearchCursor(1); }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); moveSearchCursor(-1); }
+    else if (e.key === 'Enter') {
+      e.preventDefault();
+      openSearchResult(search.cursor >= 0 ? search.cursor : 0);
+    } else if (e.key === 'Escape') {
+      if (byId('search-results').classList.contains('open')) {
+        closeSearch();
+      } else {
+        searchInput.value = '';
+        byId('search-box').classList.remove('filled');
+        searchInput.blur();
+      }
+    }
+  });
+
+  /* ── Сворачивание шапки при прокрутке ────────────────── */
+
+  let scrollTicking = false;
 
   function syncHeaderState() {
-    var header = document.querySelector('.header');
+    const header = document.querySelector('.header');
     if (!header) return;
-    var y = window.pageYOffset || document.documentElement.scrollTop;
-    var compact = header.classList.contains('compact');
-    // Порог на вход и на выход разный — иначе панель дёргается у границы
-    if (!compact && y > COLLAPSE_AT) header.classList.add('compact');
-    else if (compact && y < EXPAND_AT) header.classList.remove('compact');
+    const y = window.pageYOffset || document.documentElement.scrollTop;
+    const compact = header.classList.contains('compact');
+    // Пороги разные, иначе панель дёргается у границы
+    if (!compact && y > CONFIG.headerCollapseAt) header.classList.add('compact');
+    else if (compact && y < CONFIG.headerExpandAt) header.classList.remove('compact');
   }
 
   window.addEventListener('scroll', function () {
@@ -1042,27 +1230,42 @@
     });
   }, { passive: true });
 
-  document.getElementById('tabs-prev').addEventListener('click', function () { scrollTabs(-1); });
-  document.getElementById('tabs-next').addEventListener('click', function () { scrollTabs(1); });
-
-  // Шрифты грузятся асинхронно и меняют ширину вкладок — пересчитываем
-  if (document.fonts && document.fonts.ready) {
-    document.fonts.ready.then(fitTabs);
-  }
-
-  /* ── Инициализация ───────────────────────────────────── */
-  renderNav();
-
-  var startAnchor = (location.hash || '').replace('#', '');
-  loadModule(1);
-  if (startAnchor) goToAnchor(startAnchor, false);
-
-  fitTabs();
-  scrollActiveTabIntoView(false);
-
-  // Переход по якорю при смене адреса (кнопки «назад/вперёд», ручной ввод)
   window.addEventListener('hashchange', function () {
-    var a = (location.hash || '').replace('#', '');
-    if (a) goToAnchor(a, false);
+    const anchor = (location.hash || '').replace('#', '');
+    if (anchor) goToAnchor(anchor, false);
   });
+
+  /* ── Запуск: сначала манифест, потом всё остальное ───── */
+
+  fetch('data/manifest.json')
+    .then((response) => response.json())
+    .then((manifest) => {
+      state.groups = manifest.groups;
+      state.modules = manifest.modules;
+      state.searchIndexFile = (manifest.search && manifest.search.index) || 'data/search-index.json';
+
+      // Стартовый модуль каждой группы — первый в её списке
+      state.groups.forEach((group) => {
+        const first = modulesOfGroup(group.id)[0];
+        if (first) state.lastModuleInGroup[group.id] = first.id;
+      });
+
+      const startModule = state.modules[0].id;
+      state.activeModule = startModule;
+      state.activeGroup = groupOfModule(startModule);
+
+      renderNav();
+      const startAnchor = (location.hash || '').replace('#', '');
+
+      return loadModule(startModule).then(() => {
+        fitTabs();
+        scrollActiveTabIntoView(false);
+        if (startAnchor) goToAnchor(startAnchor, false);
+      });
+    })
+    .catch(function (error) {
+      byId('content').innerHTML = h('div', { class: 'empty-state' },
+        '⚠️ Не удалось загрузить конфигурацию (data/manifest.json). ' + esc(error.message));
+    });
+
 })();

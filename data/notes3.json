@@ -2,7 +2,7 @@
   "id": 8,
   "icon": "🧩",
   "title": "Функции",
-  "subtitle": "Определение, аргументы, возврат, области видимости • Python 3.10+",
+  "subtitle": "Аргументы, области видимости, замыкания, декораторы, генераторы • Python 3.10+",
   "type": "notes",
   "sections": [
     {
@@ -345,6 +345,111 @@
       ]
     },
     {
+      "num": "🎒",
+      "anchor": "closures",
+      "chip": "замыкания",
+      "chipNote": "nonlocal",
+      "title": "Вложенные функции и замыкания",
+      "desc": "Функция внутри функции: как она запоминает окружение, в котором родилась.",
+      "blocks": [
+        {
+          "type": "text",
+          "text": "Функцию можно объявить внутри другой функции. Внутренняя видит переменные внешней — это прямое следствие правила поиска имён из раздела [Области видимости](#scope)."
+        },
+        {
+          "type": "code",
+          "title": "Функция внутри функции",
+          "code": "def outer():\n    message = 'привет из outer'\n\n    def inner():\n        print(message)      # видим переменную внешней функции\n\n    inner()\n\n\nouter()  # привет из outer\ninner()  # NameError: inner существует только внутри outer"
+        },
+        {
+          "type": "heading",
+          "text": "Функцию можно вернуть наружу"
+        },
+        {
+          "type": "text",
+          "text": "Раз [функция — обычный объект](#lambda), её можно не только вызвать внутри, но и **вернуть** через `return`. И вот тут происходит интересное: возвращённая функция продолжает помнить переменные, которых уже нет."
+        },
+        {
+          "type": "code",
+          "title": "Замыкание в действии",
+          "code": "def make_multiplier(factor):\n    def multiply(number):\n        return number * factor  # factor взят из внешней функции\n    return multiply             # возвращаем саму функцию, без скобок\n\n\ndouble = make_multiplier(2)\ntriple = make_multiplier(3)\n\nprint(double(10))  # 20\nprint(triple(10))  # 30\n\n# make_multiplier давно завершилась, а factor всё ещё доступен"
+        },
+        {
+          "type": "text",
+          "text": "Такая функция вместе с запомненным окружением называется **замыканием** (closure). Она «замкнула» в себе значение `factor` и носит его с собой, как рюкзак."
+        },
+        {
+          "type": "note",
+          "text": "Каждый вызов `make_multiplier()` создаёт **отдельное** замыкание со своим значением. Поэтому `double` и `triple` не мешают друг другу — у них разные рюкзаки."
+        },
+        {
+          "type": "heading",
+          "text": "nonlocal: изменить переменную внешней функции"
+        },
+        {
+          "type": "text",
+          "text": "Читать переменную внешней функции можно свободно, а вот присваивание, как и в случае с глобальными, создаёт **новую локальную**. Чтобы менять именно внешнюю, нужно слово `nonlocal`."
+        },
+        {
+          "type": "compare",
+          "good": {
+            "title": "С nonlocal",
+            "code": "def counter():\n    count = 0\n\n    def increment():\n        nonlocal count\n        count += 1\n        return count\n\n    return increment\n\n\nnext_number = counter()\nprint(next_number())  # 1\nprint(next_number())  # 2\nprint(next_number())  # 3"
+          },
+          "bad": {
+            "title": "Без nonlocal",
+            "code": "def counter():\n    count = 0\n\n    def increment():\n        count += 1\n        return count\n\n    return increment\n\n\nnext_number = counter()\nprint(next_number())\n# UnboundLocalError:\n# count назначается внутри,\n# значит считается локальной"
+          }
+        },
+        {
+          "type": "table",
+          "head": [
+            "Слово",
+            "Что позволяет менять",
+            "Где искать переменную"
+          ],
+          "rows": [
+            [
+              "ничего",
+              "Только свои локальные",
+              "Создаётся новая локальная"
+            ],
+            [
+              "`nonlocal`",
+              "Переменную **объемлющей функции**",
+              "В ближайшей внешней функции"
+            ],
+            [
+              "`global`",
+              "Переменную **модуля**",
+              "В глобальной области файла"
+            ]
+          ]
+        },
+        {
+          "type": "warn",
+          "text": "`nonlocal` ищет переменную только в объемлющих **функциях**. Если её там нет, будет `SyntaxError` — до глобальных переменных он не добирается, для них есть `global`."
+        },
+        {
+          "type": "heading",
+          "text": "Зачем это нужно на практике"
+        },
+        {
+          "type": "text",
+          "text": "Замыкания позволяют создавать «настроенные» функции: одна фабрика — сколько угодно вариантов поведения. А ещё на замыканиях целиком построены [декораторы](#decorators), к которым мы переходим дальше."
+        },
+        {
+          "type": "code",
+          "title": "Фабрика проверок",
+          "code": "def make_validator(minimum, maximum):\n    def check(value):\n        return minimum <= value <= maximum\n    return check\n\n\nis_valid_age = make_validator(0, 120)\nis_valid_grade = make_validator(2, 5)\n\nprint(is_valid_age(150))  # False\nprint(is_valid_grade(4))  # True"
+        },
+        {
+          "type": "note",
+          "text": "То же самое можно было бы сделать [классом](#class-basics) с методом `check` — замыкание просто короче, когда поведение одно."
+        }
+      ]
+    },
+    {
       "num": "🧨",
       "anchor": "mutable-args",
       "chip": "изменяемые",
@@ -528,7 +633,7 @@
       "chip": "lambda",
       "chipNote": "короткие функции",
       "title": "lambda и функции как значения",
-      "desc": "Функция — такой же объект, как число или строка. Её можно передавать и хранить.",
+      "desc": "Функция — такой же объект, как число или строка. Её можно передавать и хранить. Короткие функции-однострочники называют лямбда-функциями.",
       "blocks": [
         {
           "type": "text",
@@ -588,6 +693,361 @@
         {
           "type": "note",
           "text": "Тот же результат обычно короче записывается генератором списка: `[x * 2 for x in [1, 2, 3]]`. Генераторы разобраны в разделе [Списки](#list) первого справочника."
+        }
+      ]
+    },
+    {
+      "num": "🎀",
+      "anchor": "decorators",
+      "chip": "@decorator",
+      "chipNote": "обёртки",
+      "title": "Декораторы",
+      "desc": "Что означает символ @ перед функцией и как написать свой декоратор.",
+      "blocks": [
+        {
+          "type": "text",
+          "text": "**Декоратор** — это функция, которая принимает другую функцию и возвращает новую, расширенную. Символ `@` — просто короткая запись для такого оборачивания."
+        },
+        {
+          "type": "heading",
+          "text": "Задача, ради которой это придумано"
+        },
+        {
+          "type": "text",
+          "text": "Допустим, нужно печатать сообщение до и после каждой из двадцати функций. Дописывать `print` в каждую — плохо: код повторяется, а при изменении придётся править двадцать мест."
+        },
+        {
+          "type": "code",
+          "title": "Шаг 1: функция, которая оборачивает другую",
+          "code": "def logged(func):\n    def wrapper():\n        print(f'-> вызываю {func.__name__}')\n        result = func()                    # вызываем исходную функцию\n        print(f'<- {func.__name__} отработала')\n        return result  # возвращаем её результат\n    return wrapper     # отдаём обёртку наружу\n\n\ndef greet():\n    print('Привет!')\n\n\ngreet = logged(greet)     # заменяем функцию её обёрткой\ngreet()\n\n# -> вызываю greet\n# Привет!\n# <- greet отработала"
+        },
+        {
+          "type": "note",
+          "text": "Здесь работает [замыкание](#closures): внутренняя `wrapper` помнит `func` даже после того, как `logged` завершилась."
+        },
+        {
+          "type": "code",
+          "title": "Шаг 2: то же самое через @",
+          "code": "def logged(func):\n    def wrapper():\n        print(f'-> вызываю {func.__name__}')\n        result = func()\n        print(f'<- {func.__name__} отработала')\n        return result\n    return wrapper\n\n\n@logged\ndef greet():\n    print('Привет!')\n\n\ngreet()      # тот же результат"
+        },
+        {
+          "type": "text",
+          "text": "Запись `@logged` над определением функции **полностью эквивалентна** строке `greet = logged(greet)` после него. Никакой магии — только синтаксический сахар."
+        },
+        {
+          "type": "heading",
+          "text": "Обёртка должна принимать любые аргументы"
+        },
+        {
+          "type": "text",
+          "text": "Наш `wrapper` пока умеет оборачивать только функции без аргументов. Чтобы декоратор подходил к любой функции, обёртке дают [`*args` и `**kwargs`](#args) и передают их дальше без изменений."
+        },
+        {
+          "type": "code",
+          "title": "Универсальный декоратор",
+          "code": "def logged(func):\n    def wrapper(*args, **kwargs):\n        print(f'-> {func.__name__}{args}')\n        result = func(*args, **kwargs)     # передаём всё как есть\n        print(f'<- вернула {result}')\n        return result\n    return wrapper\n\n\n@logged\ndef add(a, b):\n    return a + b\n\n\nprint(add(2, 3))\n\n# -> add(2, 3)\n# <- вернула 5\n# 5"
+        },
+        {
+          "type": "warn",
+          "text": "Забыть `return result` внутри обёртки — самая частая ошибка. Тогда декорированная функция начнёт возвращать [`None`](#none), причём молча: сама функция работает, а результат теряется по дороге."
+        },
+        {
+          "type": "compare",
+          "good": {
+            "title": "Результат возвращается",
+            "code": "def wrapper(*args, **kwargs):\n    result = func(*args, **kwargs)\n    return result\n\nprint(add(2, 3))   # 5"
+          },
+          "bad": {
+            "title": "Результат потерян",
+            "code": "def wrapper(*args, **kwargs):\n    func(*args, **kwargs)\n    # нет return\n\nprint(add(2, 3))   # None"
+          }
+        },
+        {
+          "type": "heading",
+          "text": "Практический пример: проверка аргументов"
+        },
+        {
+          "type": "code",
+          "code": "def positive_only(func):\n    def wrapper(number):\n        if number < 0:\n            raise ValueError('Отрицательные числа не принимаются')\n        return func(number)\n    return wrapper\n\n\n@positive_only\ndef square_root(number):\n    return number ** 0.5\n\n\nprint(square_root(16))  # 4.0\nprint(square_root(-4))  # ValueError: Отрицательные числа не принимаются"
+        },
+        {
+          "type": "note",
+          "text": "Проверка вынесена из функции: `square_root` занимается только математикой, а защита живёт отдельно и переиспользуется. Про `raise` — раздел [raise](#raise)."
+        },
+        {
+          "type": "heading",
+          "text": "Побочный эффект: функция «теряет имя»"
+        },
+        {
+          "type": "code",
+          "code": "@logged\ndef greet():\n    pass\n\n\nprint(greet.__name__)     # wrapper  (!) а не greet\n\n# Потому что greet теперь ссылается на обёртку.\n# Лечится декоратором functools.wraps из стандартной библиотеки:\n#\n# from functools import wraps\n#\n# def logged(func):\n#     @wraps(func)\n#     def wrapper(*args, **kwargs):\n#         ..."
+        },
+        {
+          "type": "heading",
+          "text": "Встроенные декораторы, которые вы уже видели"
+        },
+        {
+          "type": "table",
+          "head": [
+            "Декоратор",
+            "Что делает",
+            "Где разобран"
+          ],
+          "rows": [
+            [
+              "`@property`",
+              "Метод обращается как атрибут",
+              "[Инкапсуляция](#encapsulation)"
+            ],
+            [
+              "`@classmethod`",
+              "Метод получает класс вместо объекта",
+              "[Методы класса](#classmethods)"
+            ],
+            [
+              "`@staticmethod`",
+              "Метод без `self` и `cls`",
+              "[Методы класса](#classmethods)"
+            ],
+            [
+              "`@abstractmethod`",
+              "Наследник обязан реализовать метод",
+              "[Абстрактные классы](#abstract)"
+            ]
+          ]
+        },
+        {
+          "type": "text",
+          "text": "Теперь понятно, что все они — обычные функции, оборачивающие ваш метод. Ничего волшебного в символе `@` нет."
+        },
+        {
+          "type": "warn",
+          "text": "Не пишите декораторы там, где хватает обычного вызова функции. Они прячут поведение: глядя на `add(2, 3)`, невозможно догадаться, что перед вызовом что-то проверяется. Хороший декоратор делает одну понятную вещь."
+        }
+      ]
+    },
+    {
+      "num": "🎞️",
+      "anchor": "iterators",
+      "chip": "iter / next",
+      "chipNote": "как работает for",
+      "title": "Итераторы: что делает for изнутри",
+      "desc": "Механика перебора, которая объясняет поведение zip, range и enumerate.",
+      "blocks": [
+        {
+          "type": "text",
+          "text": "Цикл `for` не знает про списки, строки и словари по отдельности. Он умеет ровно две вещи: попросить у объекта **итератор** и дёргать у него следующее значение, пока они не кончатся."
+        },
+        {
+          "type": "code",
+          "title": "Разбираем for по шагам",
+          "code": "items = [10, 20, 30]\n\n# Так пишем мы:\nfor item in items:\n    print(item)\n\n# А вот что делает Python:\niterator = iter(items)          # 1. получить итератор\nwhile True:\n    try:\n        item = next(iterator)  # 2. взять следующий элемент\n    except StopIteration:      # 3. элементы кончились\n        break\n    print(item)"
+        },
+        {
+          "type": "note",
+          "text": "`StopIteration` — обычное [исключение](#errors-intro), которым итератор сообщает «всё, больше нет». Цикл `for` перехватывает его сам, поэтому в обычном коде вы его не видите."
+        },
+        {
+          "type": "heading",
+          "text": "Итерируемое и итератор — разные вещи"
+        },
+        {
+          "type": "table",
+          "head": [
+            "",
+            "Итерируемое (iterable)",
+            "Итератор (iterator)"
+          ],
+          "rows": [
+            [
+              "Что это",
+              "То, по чему можно пройти",
+              "То, что помнит текущую позицию"
+            ],
+            [
+              "Примеры",
+              "[список](#list), [строка](#str), [словарь](#dict)",
+              "Результат `iter(...)`, `zip`, `enumerate`"
+            ],
+            [
+              "Сколько раз пройти",
+              "Сколько угодно",
+              "**Один раз**"
+            ],
+            [
+              "Как получить",
+              "—",
+              "`iter(объект)`"
+            ]
+          ]
+        },
+        {
+          "type": "code",
+          "title": "Итератор одноразовый",
+          "code": "items = [1, 2, 3]\n\niterator = iter(items)\nprint(list(iterator))  # [1, 2, 3]\nprint(list(iterator))  # []  (!) — уже исчерпан\n\n# А сам список можно перебирать сколько угодно:\nprint(list(items))  # [1, 2, 3]\nprint(list(items))  # [1, 2, 3]"
+        },
+        {
+          "type": "heading",
+          "text": "Почему zip и enumerate ведут себя странно"
+        },
+        {
+          "type": "text",
+          "text": "`zip()`, `enumerate()`, `map()` и [`range`](#range) не создают списков — они возвращают объекты, выдающие значения по одному. Отсюда две особенности: их не увидеть через `print` и по ним нельзя пройти дважды."
+        },
+        {
+          "type": "code",
+          "code": "names = ['Аня', 'Боря']\nscores = [78, 92]\n\npairs = zip(names, scores)\nprint(pairs)        # <zip object at 0x...> — не список\nprint(list(pairs))  # [('Аня', 78), ('Боря', 92)] — вот содержимое\nprint(list(pairs))  # [] — второй раз пусто, объект исчерпан\n\n# Если нужно пройти дважды — сохраните результат:\npairs = list(zip(names, scores))\nprint(len(pairs), pairs[0])   # 2 ('Аня', 78)"
+        },
+        {
+          "type": "warn",
+          "text": "Классическая ловушка: результат `zip()` перебрали в цикле, а потом попытались посчитать `len()` или пройти ещё раз — получили пустоту. Оборачивайте в `list()`, если объект нужен больше одного раза."
+        },
+        {
+          "type": "note",
+          "text": "`range` — приятное исключение: по нему можно ходить многократно, потому что он не итератор, а итерируемое, вычисляющее числа заново при каждом проходе."
+        },
+        {
+          "type": "heading",
+          "text": "Зачем нужна такая сложность"
+        },
+        {
+          "type": "text",
+          "text": "Ради экономии памяти. `range(10**12)` не хранит триллион чисел — он помнит только начало, конец и шаг, а числа выдаёт по одному. Тот же принцип позволяет читать [файл](#files) построчно, не загружая его целиком."
+        },
+        {
+          "type": "code",
+          "title": "Сравнение подходов",
+          "code": "# Список из миллиона чисел занимает память сразу:\nnumbers = [x for x in range(1000000)]\nprint(len(numbers))       # 1000000 элементов лежат в памяти\n\n# А range держит только три числа — начало, конец и шаг:\nnumbers = range(1000000)\nprint(len(numbers))       # 1000000, но памяти почти не занято"
+        },
+        {
+          "type": "text",
+          "text": "Свой объект, выдающий значения по одному, проще всего сделать не вручную, а [генератором](#generators) — о нём следующий раздел."
+        }
+      ]
+    },
+    {
+      "num": "⏳",
+      "anchor": "generators",
+      "chip": "yield",
+      "chipNote": "ленивые значения",
+      "title": "Генераторы и yield",
+      "desc": "Функция, которая возвращает значения по одному и помнит, где остановилась.",
+      "blocks": [
+        {
+          "type": "text",
+          "text": "Обычная функция с `return` отдаёт результат один раз и завершается навсегда. Функция с `yield` отдаёт значение и **замирает**, сохраняя всё своё состояние, — чтобы продолжить с того же места при следующем запросе. Такая функция называется **генератором**."
+        },
+        {
+          "type": "compare",
+          "good": {
+            "title": "Генератор: значения по одному",
+            "code": "def countdown(n):\n    while n > 0:\n        yield n\n        n -= 1\n\n\nfor value in countdown(3):\n    print(value)\n\n# 3\n# 2\n# 1"
+          },
+          "bad": {
+            "title": "Обычная функция: список целиком",
+            "code": "def countdown(n):\n    result = []\n    while n > 0:\n        result.append(n)\n        n -= 1\n    return result\n\n\nfor value in countdown(3):\n    print(value)\n\n# тот же вывод, но список\n# создан в памяти целиком"
+          }
+        },
+        {
+          "type": "heading",
+          "text": "Что происходит при вызове"
+        },
+        {
+          "type": "code",
+          "title": "Тело функции не выполняется сразу",
+          "code": "def numbers():\n    print('начали работу')\n    yield 1\n    print('между значениями')\n    yield 2\n    print('закончили')\n\n\ngen = numbers()\nprint('генератор создан')     # тело ещё НЕ выполнялось\n\nprint(next(gen))  # начали работу / 1\nprint(next(gen))  # между значениями / 2\nnext(gen)         # закончили, затем StopIteration"
+        },
+        {
+          "type": "note",
+          "text": "Видно главное отличие: между `yield` функция стоит на паузе и ничего не делает. Она оживает только когда у неё просят следующее значение — этим и занимается [цикл `for`](#iterators)."
+        },
+        {
+          "type": "heading",
+          "text": "Зачем это нужно"
+        },
+        {
+          "type": "table",
+          "head": [
+            "",
+            "Список",
+            "Генератор"
+          ],
+          "rows": [
+            [
+              "Когда вычисляется",
+              "Весь сразу",
+              "По одному значению"
+            ],
+            [
+              "Память",
+              "Хранит все элементы",
+              "Хранит только текущее состояние"
+            ],
+            [
+              "Длина `len()`",
+              "Работает",
+              "**Не работает**"
+            ],
+            [
+              "Пройти дважды",
+              "Можно",
+              "Нельзя — исчерпается"
+            ],
+            [
+              "Бесконечная последовательность",
+              "Невозможна",
+              "**Возможна**"
+            ]
+          ]
+        },
+        {
+          "type": "code",
+          "title": "Бесконечный генератор",
+          "code": "def even_numbers():\n    number = 0\n    while True:          # бесконечный цикл — и это нормально\n        yield number\n        number += 2\n\n\nfor value in even_numbers():\n    if value > 10:\n        break            # выходим сами, когда достаточно\n    print(value)\n\n# 0 2 4 6 8 10"
+        },
+        {
+          "type": "warn",
+          "text": "Не пытайтесь превратить бесконечный генератор в список: `list(even_numbers())` повесит программу навсегда. Всегда предусматривайте условие выхода."
+        },
+        {
+          "type": "heading",
+          "text": "Генераторное выражение"
+        },
+        {
+          "type": "text",
+          "text": "Если генератор простой, писать функцию необязательно. Достаточно взять [генератор списка](#list) и заменить квадратные скобки на круглые."
+        },
+        {
+          "type": "code",
+          "code": "numbers = [1, 2, 3, 4, 5]\n\nsquares_list = [n ** 2 for n in numbers]  # список — создаётся сразу\nsquares_gen = (n ** 2 for n in numbers)   # генератор — ленивый\n\nprint(squares_list)       # [1, 4, 9, 16, 25]\nprint(squares_gen)        # <generator object <genexpr> at 0x...>\nprint(list(squares_gen))  # [1, 4, 9, 16, 25]\n\n# В функции скобки можно не дублировать:\nprint(sum(n ** 2 for n in numbers))  # 55\nprint(max(n ** 2 for n in numbers))  # 25"
+        },
+        {
+          "type": "note",
+          "text": "Для `sum`, `max`, `min`, `any` и `all` генераторное выражение предпочтительнее списка: промежуточный список не создаётся, а результат тот же."
+        },
+        {
+          "type": "heading",
+          "text": "Что выбирать"
+        },
+        {
+          "type": "compare",
+          "good": {
+            "title": "Генератор — данных много",
+            "code": "# Считаем сумму квадратов\n# миллиона чисел\ntotal = sum(x * x\n            for x in range(10**6))\nprint(total)\n# Память почти не тратится"
+          },
+          "bad": {
+            "title": "Список — нужен доступ по индексу",
+            "code": "# Результат нужен целиком,\n# по индексу и не раз\nsquares = [x * x for x in range(10)]\nprint(squares[3])    # 9\nprint(len(squares))  # 10\n# С генератором так нельзя"
+          }
+        },
+        {
+          "type": "code",
+          "title": "Типичное применение: обработка файла построчно",
+          "code": "def long_lines(path, limit):\n    with open(path, encoding='utf-8') as file:\n        for line in file:\n            if len(line) > limit:\n                yield line.strip()\n\n\n# Файл может быть на гигабайт — в память попадает одна строка за раз\nfor line in long_lines('log.txt', 100):\n    print(line)"
+        },
+        {
+          "type": "warn",
+          "text": "Генератор одноразовый, как и любой [итератор](#iterators). Если результат нужен дважды — сохраните его в список: `values = list(my_generator())`."
         }
       ]
     },
@@ -663,6 +1123,117 @@
         {
           "type": "text",
           "text": "Приём `a, b = b, a + b` — это распаковка [кортежа](#tuple): правая часть вычисляется целиком до присваивания, поэтому временная переменная не нужна."
+        }
+      ]
+    },
+    {
+      "num": "✍️",
+      "anchor": "annotations",
+      "chip": "type hints",
+      "chipNote": "аннотации",
+      "title": "Аннотации типов",
+      "desc": "Подсказки о типах: зачем они нужны, если Python их не проверяет.",
+      "blocks": [
+        {
+          "type": "text",
+          "text": "Аннотация — это пометка, какой тип ожидается у аргумента, переменной или результата. Python **не проверяет** их при выполнении: это подсказка для человека и для редактора, а не ограничение."
+        },
+        {
+          "type": "code",
+          "title": "Синтаксис",
+          "code": "def greet(name: str, age: int) -> str:\n    return f'{name}, {age} лет'\n\n\nprint(greet('Аня', 15))    # Аня, 15 лет\n\n# Аргументы: имя: тип\n# Результат: стрелка -> тип после скобок"
+        },
+        {
+          "type": "code",
+          "title": "Переменные тоже можно помечать",
+          "code": "count: int = 0\nname: str = 'Аня'\nscores: list = []\n\n# Тип можно указать и без значения — например, в начале функции:\nresult: float"
+        },
+        {
+          "type": "heading",
+          "text": "Типы коллекций"
+        },
+        {
+          "type": "code",
+          "title": "Уточняем, что внутри",
+          "code": "def average(numbers: list[float]) -> float:\n    return sum(numbers) / len(numbers)\n\n\ndef count_words(text: str) -> dict[str, int]:\n    result = {}\n    for word in text.split():\n        result[word] = result.get(word, 0) + 1\n    return result\n\n\ndef first_pair(items: list[tuple[str, int]]) -> tuple[str, int]:\n    return items[0]"
+        },
+        {
+          "type": "note",
+          "text": "Запись `list[float]` работает с Python 3.9. В более старом коде встречается `List[float]` с импортом из модуля `typing` — это то же самое, просто устаревшая форма."
+        },
+        {
+          "type": "heading",
+          "text": "Значение может отсутствовать"
+        },
+        {
+          "type": "code",
+          "title": "Вертикальная черта — «или»",
+          "code": "def find_student(name: str) -> str | None:\n    students = {'Аня': '9А'}\n    return students.get(name)      # вернёт строку или None\n\n\ndef parse(text: str) -> int | float:\n    if '.' in text:\n        return float(text)\n    return int(text)"
+        },
+        {
+          "type": "text",
+          "text": "Запись `str | None` означает «строка либо [`None`](#none)» и доступна с Python 3.10. Она сразу предупреждает: результат нужно проверить перед использованием."
+        },
+        {
+          "type": "heading",
+          "text": "Python их не проверяет"
+        },
+        {
+          "type": "code",
+          "title": "Аннотация — не гарантия",
+          "code": "def double(number: int) -> int:\n    return number * 2\n\n\nprint(double('кот'))     # коткот  — никакой ошибки!\n\n# Строку умножили на 2, как обычно.\n# Аннотация никого ни к чему не обязывает."
+        },
+        {
+          "type": "warn",
+          "text": "Не полагайтесь на аннотации как на защиту от неверных данных. Если проверка действительно нужна — пишите её явно и бросайте [исключение](#raise)."
+        },
+        {
+          "type": "note",
+          "text": "Проверять аннотации умеют отдельные программы — например, `mypy`. Они читают код и находят несоответствия до запуска. В школьных проектах это избыточно, а в командной работе используется постоянно."
+        },
+        {
+          "type": "heading",
+          "text": "Зачем тогда их писать"
+        },
+        {
+          "type": "table",
+          "head": [
+            "Выгода",
+            "В чём проявляется"
+          ],
+          "rows": [
+            [
+              "Подсказки редактора",
+              "PyCharm предлагает методы и подсвечивает подозрительное"
+            ],
+            [
+              "Документация",
+              "Видно ожидаемые типы, не читая тело функции"
+            ],
+            [
+              "Ошибки заметны раньше",
+              "Редактор подчеркнёт передачу строки вместо числа"
+            ],
+            [
+              "Чужой код понятнее",
+              "Не нужно гадать, что вернёт функция"
+            ]
+          ]
+        },
+        {
+          "type": "compare",
+          "good": {
+            "title": "С аннотациями",
+            "code": "def apply_discount(\n        price: float,\n        percent: int) -> float:\n    return price * (100 - percent) / 100\n\n# Сразу видно, что на входе\n# и что на выходе"
+          },
+          "bad": {
+            "title": "Без аннотаций",
+            "code": "def apply_discount(price, percent):\n    return price * (100 - percent) / 100\n\n# percent — это 20 или 0.2?\n# Приходится читать тело"
+          }
+        },
+        {
+          "type": "warn",
+          "text": "Аннотации не заменяют понятные имена и [docstring](#func). Строка `def f(a: int, b: int) -> int` типы объясняет, а смысл — нет."
         }
       ]
     }

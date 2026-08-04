@@ -368,6 +368,54 @@
         },
         {
           "type": "heading",
+          "text": "Как посмотреть все атрибуты объекта"
+        },
+        {
+          "type": "code",
+          "code": "class Student:\n    school = 'Гимназия №1'\n\n    def __init__(self, name, age):\n        self.name = name\n        self.age = age\n\n\nanya = Student('Аня', 15)\n\nprint(anya.__dict__)     # {'name': 'Аня', 'age': 15}\n# Только СВОИ атрибуты объекта — school здесь нет,\n# потому что он принадлежит классу\n\nprint(Student.__dict__.get('school'))   # Гимназия №1"
+        },
+        {
+          "type": "note",
+          "text": "`__dict__` — обычный [словарь](#dict) с атрибутами объекта. Полезен при отладке: одной строкой видно всё состояние объекта. Печатать его в готовой программе не принято — для этого есть [`__str__`](#dunder)."
+        },
+        {
+          "type": "heading",
+          "text": "Константы класса"
+        },
+        {
+          "type": "text",
+          "text": "Частое применение атрибута класса — константа, общая для всех объектов. Имя пишут заглавными буквами, как принято для констант вообще."
+        },
+        {
+          "type": "code",
+          "code": "class Circle:\n    PI = 3.14159                  # константа класса\n\n    def __init__(self, radius):\n        self.radius = radius\n\n    def area(self):\n        return Circle.PI * self.radius ** 2\n\n\nprint(Circle(5).area())      # 78.53975\nprint(Circle.PI)             # 3.14159 — доступна и без объекта\n\n# Значение хранится в памяти один раз, а не в каждом объекте"
+        },
+        {
+          "type": "heading",
+          "text": "Атрибуты класса наследуются"
+        },
+        {
+          "type": "code",
+          "code": "class Animal:\n    kingdom = 'Животные'\n\n\nclass Dog(Animal):\n    pass\n\n\nprint(Dog.kingdom)        # Животные — досталось от родителя\nprint(Dog().kingdom)      # Животные\n\nDog.kingdom = 'Собачьи'   # переопределили только у наследника\nprint(Dog.kingdom)        # Собачьи\nprint(Animal.kingdom)     # Животные — родитель не тронут"
+        },
+        {
+          "type": "note",
+          "text": "Работает то же правило поиска, что и для методов: Python смотрит сначала в самом классе, потом у родителей по цепочке [MRO](#mro)."
+        },
+        {
+          "type": "heading",
+          "text": "Удаление атрибута"
+        },
+        {
+          "type": "code",
+          "code": "class Student:\n    def __init__(self, name):\n        self.name = name\n\n\nanya = Student('Аня')\nanya.age = 15\nprint(anya.__dict__)     # {'name': 'Аня', 'age': 15}\n\ndel anya.age\nprint(anya.__dict__)     # {'name': 'Аня'}\n\nprint(anya.age)          # AttributeError: 'Student' object has no attribute 'age'"
+        },
+        {
+          "type": "warn",
+          "text": "Удалять атрибуты почти никогда не нужно. Если поле «иногда есть, а иногда нет» — обычно правильнее всегда создавать его в `__init__` со значением [`None`](#none), чтобы у всех объектов был одинаковый набор полей."
+        },
+        {
+          "type": "heading",
           "text": "Изменяемый атрибут класса — та же ловушка, что и раньше"
         },
         {
@@ -506,6 +554,57 @@
         {
           "type": "note",
           "text": "`__str__` обязан **возвращать строку** через `return`, а не печатать её. Если внутри написать `print()`, метод вернёт `None`, и Python выдаст `TypeError`."
+        },
+        {
+          "type": "heading",
+          "text": "__repr__: как объект выглядит для программиста"
+        },
+        {
+          "type": "text",
+          "text": "У объекта два строковых представления. `__str__` — для пользователя, читаемое. `__repr__` — для разработчика: техничное, однозначное, показывающее, из чего объект собран."
+        },
+        {
+          "type": "code",
+          "title": "Где проявляется разница",
+          "code": "class Point:\n    def __init__(self, x, y):\n        self.x = x\n        self.y = y\n\n    def __str__(self):\n        return f'точка ({self.x}, {self.y})'\n\n    def __repr__(self):\n        return f'Point({self.x}, {self.y})'\n\n\np = Point(1, 2)\n\nprint(p)          # точка (1, 2)   — сработал __str__\nprint(str(p))     # точка (1, 2)\nprint(repr(p))    # Point(1, 2)    — сработал __repr__\n\npoints = [Point(1, 2), Point(3, 4)]\nprint(points)     # [Point(1, 2), Point(3, 4)] — внутри списка идёт __repr__ (!)"
+        },
+        {
+          "type": "warn",
+          "text": "Именно поэтому список объектов печатается непонятно, даже если `__str__` написан. Внутри коллекций Python всегда использует `__repr__`."
+        },
+        {
+          "type": "table",
+          "head": [
+            "",
+            "`__str__`",
+            "`__repr__`"
+          ],
+          "rows": [
+            [
+              "Для кого",
+              "Пользователь",
+              "Программист"
+            ],
+            [
+              "Где вызывается",
+              "`print(obj)`, f-строка",
+              "`repr(obj)`, внутри списков, в консоли"
+            ],
+            [
+              "Каким должен быть",
+              "Читаемым",
+              "Однозначным, лучше похожим на код создания"
+            ],
+            [
+              "Если не написан",
+              "Берётся `__repr__`",
+              "Служебная строка `<__main__.Point object at 0x...>`"
+            ]
+          ]
+        },
+        {
+          "type": "note",
+          "text": "Если писать только один метод, пишите `__repr__`: он подстрахует и `print`, и вывод внутри коллекций. `__str__` добавляют, когда пользователю нужен отдельный, более человечный вид."
         },
         {
           "type": "heading",
