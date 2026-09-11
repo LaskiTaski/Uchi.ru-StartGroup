@@ -147,7 +147,8 @@
       if (!editor) return;
       const code = window.PA.editor.value(editor);
       // Нетронутый пример хранить незачем: он и так есть в JSON
-      if (code === box.getAttribute('data-start') && !(stdin && stdin.value)) {
+      const stdinValue = stdin ? stdin.value : '';
+      if (code === box.getAttribute('data-start') && stdinValue === (box.getAttribute('data-stdin') || '')) {
         window.PA.store.set('drafts', key, null);
         return;
       }
@@ -1093,12 +1094,19 @@
     // Задание с автопроверкой получает редактор, без неё — прежний вид
     if (block.check && canRun()) {
       var draft = draftOf(key);
+      var starter = block.starter || '';
+      var current = draft && draft.code !== undefined ? draft.code : starter;
+      // Поле «Ввод» только там, где оно нужно: программа зовёт input()
+      // или у проверки есть ввод. Иначе ученик принимает его за поле ответа.
+      // Заполняем первым открытым кейсом — «Запустить» работает сразу
+      var sampleStdin = block.check.stdin || firstStdinOf(block.check);
       html += renderSandbox({
         key: key,
-        start: block.starter || '',
-        code: draft && draft.code !== undefined ? draft.code : (block.starter || ''),
-        stdin: draft && draft.stdin ? draft.stdin : (block.check.stdin || ''),
-        showStdin: block.check.mode === 'stdout' || !!block.check.stdin,
+        start: starter,
+        code: current,
+        stdin: draft && draft.stdin ? draft.stdin : sampleStdin,
+        stdinStart: sampleStdin,
+        showStdin: usesInput(current) || !!sampleStdin,
         check: block.check,
         taskId: block.id || null
       });
@@ -1130,29 +1138,51 @@
     var copyBtn = '<button class="code-copy" type="button" ' +
       'aria-label="Копировать код">Копировать</button>';
 
-    var head = title
-      ? '<div class="code-title"><span class="code-title-text">' + esc(title) + '</span>' + copyBtn + '</div>'
+    // Терминальным командам кнопка запуска не нужна — исполнять нечем
+    var runnable = !!opts.run && isPython && canRun();
+
+    var head = title || runnable
+      ? '<div class="code-title"><span class="code-title-text">' +
+          esc(title || 'Пример: можно менять и запускать') + '</span>' + copyBtn + '</div>'
       : '<div class="code-actions">' + copyBtn + '</div>';
 
-    var view = hOpen('div', {
-      class: 'code-block' + (lang ? ' lang-' + lang : '') + (title ? '' : ' no-title'),
+    var open = hOpen('div', {
+      class: 'code-block' + (lang ? ' lang-' + lang : '') +
+        (title || runnable ? '' : ' no-title') + (runnable ? ' runnable' : ''),
       'data-code': code
-    }) + head + '<pre><code>' + body + '</code></pre></div>';
+    });
 
-    // Терминальным командам кнопка запуска не нужна — исполнять нечем
-    if (!opts.run || !isPython || !canRun()) return view;
+    if (!runnable) return open + head + '<pre><code>' + body + '</code></pre></div>';
 
+    // Исполняемый пример — сразу редактор вместо <pre>, без второй копии
+    // кода под ним; «Сбросить» возвращает исходник из data-start
     var draft = draftOf(opts.key);
-    return view + renderSandbox({
+    var current = draft && draft.code !== undefined ? draft.code : code;
+    return open + head + renderSandbox({
       key: opts.key,
       start: code,
-      code: draft && draft.code !== undefined ? draft.code : code,
+      code: current,
       stdin: draft && draft.stdin ? draft.stdin : (opts.stdin || ''),
-      showStdin: /\binput\s*\(/.test(code) || !!opts.stdin,
+      stdinStart: opts.stdin || '',
+      showStdin: usesInput(current) || !!opts.stdin,
       check: null,
       taskId: null,
       standalone: true
-    });
+    }) + '</div>';
+  }
+
+  function usesInput(code) {
+    return /\binput\s*\(/.test(code || '');
+  }
+
+  /* Ввод первого открытого кейса — с ним «Запустить» у задания
+     с input() работает сразу, без набора данных вручную */
+  function firstStdinOf(check) {
+    var cases = (check && check.cases) || [];
+    for (var i = 0; i < cases.length; i++) {
+      if (!cases[i].hidden && cases[i].stdin) return cases[i].stdin;
+    }
+    return '';
   }
 
   function canRun() {
@@ -1195,6 +1225,7 @@
       class: 'sandbox' + (opts.standalone ? ' sandbox-standalone' : ''),
       'data-block-key': opts.key || null,
       'data-start': opts.start || '',
+      'data-stdin': opts.stdinStart || '',
       'data-task-id': opts.taskId || null,
       'data-check': opts.check ? JSON.stringify(opts.check) : null
     }) +
@@ -1366,7 +1397,68 @@
     if (!box || !body) return;
     if (append) body.textContent += text;
     else body.textContent = text;
+    body.classList.remove('sb-out-empty');
     box.classList.toggle('hidden', body.textContent === '');
+  }
+
+  /* Три пустых print() — это три невидимые строки: без пометки ученик
+     решит, что запуск не сработал */
+  function sbOutputEmpty(sb) {
+    var box = sb.querySelector('.sb-output');
+    var body = sb.querySelector('.sb-out-body');
+    if (!box || !body) return;
+    if (body.textContent.trim() !== '') return;
+    body.textContent = '(программа завершилась без видимого вывода)';
+    body.classList.add('sb-out-empty');
+    box.classList.remove('hidden');
+  }
+
+  /* ── input() по ходу выполнения ──────────────────────────
+     Синхронного ввода в воркере нет: нужны SharedArrayBuffer и заголовки
+     COOP/COEP, которых на GitHub Pages не выставить. Поэтому, когда
+     программа просит input(), а строки в поле «Ввод» кончились, показываем
+     строку ввода под выводом, дописываем ответ к «Вводу» и запускаем
+     программу заново: детерминированный код доходит до того же места
+     и идёт дальше — для ученика это выглядит как диалог в консоли. */
+
+  function askInput(sb) {
+    var box = sb.querySelector('.sb-output');
+    if (!box) return;
+    removePrompt(sb);
+    box.classList.remove('hidden');
+    var form = document.createElement('form');
+    form.className = 'sb-prompt';
+    form.innerHTML = '<span class="sb-prompt-mark">›</span>' +
+      '<input class="sb-prompt-input" type="text" autocomplete="off" spellcheck="false" ' +
+        'aria-label="Ввод для input()" ' +
+        'placeholder="Программа ждёт ввода — введите строку и нажмите Enter">';
+    box.appendChild(form);
+    sbStatus(sb, 'Программа ждёт ввода', 'wait');
+    form.querySelector('.sb-prompt-input').focus();
+  }
+
+  function removePrompt(sb) {
+    var prompt = sb.querySelector('.sb-prompt');
+    if (prompt) prompt.remove();
+  }
+
+  /* Строки ввода разделяем переводом строки, и последняя тоже с ним —
+     иначе пустой ответ на input() слился бы с концом ввода */
+  function appendStdinLine(sb, line) {
+    var stdinEl = sb.querySelector('.sb-stdin-input');
+    if (!stdinEl) return;
+    var text = stdinEl.value;
+    if (text && text.slice(-1) !== '\n') text += '\n';
+    stdinEl.value = text + line + '\n';
+    revealStdin(sb);
+    saveDraft(sb.getAttribute('data-block-key'), { stdin: stdinEl.value });
+  }
+
+  function revealStdin(sb) {
+    var field = sb.querySelector('.sb-stdin');
+    if (field) field.classList.remove('hidden');
+    var toggle = sb.querySelector('.sb-stdin-toggle');
+    if (toggle) toggle.remove();
   }
 
   function sbBusy(sb, busy) {
@@ -1405,6 +1497,7 @@
 
     sbBusy(sb, true);
     sbOutput(sb, '');
+    removePrompt(sb);
     var report = sb.querySelector('.sb-report');
     if (report) { report.classList.add('hidden'); report.innerHTML = ''; }
     sbStatus(sb, window.PA.sandbox.booted
@@ -1433,7 +1526,10 @@
       if (mode === 'check') { showReport(sb, result.report); return; }
 
       if (result.ok) {
+        sbOutputEmpty(sb);
         sbStatus(sb, 'Готово', 'good');
+      } else if (result.error && result.error.kind === 'PA_NO_INPUT') {
+        askInput(sb);
       } else {
         sbStatus(sb, describeError(result.error), 'bad');
       }
@@ -1613,7 +1709,10 @@
 
   function copyCode(button) {
     var block = button.closest('.code-block');
-    var source = block ? block.getAttribute('data-code') : null;
+    if (!block) return;
+    // У исполняемого примера копируем то, что сейчас в редакторе
+    var editor = block.querySelector('.ed-input');
+    var source = editor ? editor.value : block.getAttribute('data-code');
     if (source === null) return;
 
     var done = function () {
@@ -1647,10 +1746,13 @@
   function resetSandbox(sb) {
     var editor = sb.querySelector('.pa-editor');
     window.PA.editor.setValue(editor, sb.getAttribute('data-start') || '');
+    var stdinEl = sb.querySelector('.sb-stdin-input');
+    if (stdinEl) stdinEl.value = sb.getAttribute('data-stdin') || '';
     var key = sb.getAttribute('data-block-key');
     if (key) window.PA.store.set('drafts', key, null);
     sbStatus(sb, '');
     sbOutput(sb, '');
+    removePrompt(sb);
     var report = sb.querySelector('.sb-report');
     if (report) { report.classList.add('hidden'); report.innerHTML = ''; }
   }
@@ -1666,8 +1768,7 @@
     ['.sb-reset',         (el) => resetSandbox(el.closest('.sandbox'))],
     ['.sb-stdin-toggle',  (el) => {
       const sb = el.closest('.sandbox');
-      sb.querySelector('.sb-stdin').classList.remove('hidden');
-      el.remove();
+      revealStdin(sb);
       sb.querySelector('.sb-stdin-input').focus();
     }],
     ['.pb-continue',      (el) => goToAnchor(el.getAttribute('data-anchor'))],
@@ -1720,6 +1821,16 @@
     if (lightboxOpener) lightboxOpener.focus();
     lightboxOpener = null;
   }
+
+  // Ответ на input(): дописываем строку к «Вводу» и перезапускаем программу
+  document.addEventListener('submit', function (e) {
+    const form = e.target.closest && e.target.closest('.sb-prompt');
+    if (!form) return;
+    e.preventDefault();
+    const sb = form.closest('.sandbox');
+    appendStdinLine(sb, form.querySelector('.sb-prompt-input').value);
+    runSandbox(sb, 'run');
+  });
 
   /* Черновик пишется по ходу набора: PA.store сам дебаунсит запись */
   document.addEventListener('input', function (e) {
