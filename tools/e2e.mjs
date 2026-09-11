@@ -56,6 +56,16 @@ class FakeWorker {
 }
 w.Worker = FakeWorker;
 
+// Заглушка service worker: jsdom его не умеет, а проверить нужно только
+// то, что app.js вызывает register() с правильным относительным путём.
+// Окно создано с url: 'http://localhost/' (см. выше) — протокол http,
+// поэтому регистрация в registerOffline() должна отработать.
+let registeredSw = null;
+Object.defineProperty(w.navigator, 'serviceWorker', {
+  value: { register: (url) => { registeredSw = url; return Promise.resolve({}); } },
+  configurable: true
+});
+
 w.eval(fs.readFileSync(P + 'sandbox.js', 'utf8'));
 w.eval(fs.readFileSync(P + 'app.js', 'utf8'));
 const wait = ms => new Promise(r => setTimeout(r, ms));
@@ -427,6 +437,28 @@ const ok = (name, cond, extra='') => { cond ? pass++ : fail++; console.log(`${co
   ok('есть блок @media print', /@media print/.test(cssText));
   ok('в print-блоке .lesson-body раскрывается (display: block)',
      /\.lesson-body\s*\{\s*display:\s*block/.test(cssText));
+
+  console.log('\nОФЛАЙН');
+  ok('service worker регистрируется с ./sw.js', registeredSw === './sw.js', String(registeredSw));
+
+  const manifestLink = q('link[rel="manifest"]');
+  ok('link rel="manifest" указывает на manifest.webmanifest',
+     !!manifestLink && manifestLink.getAttribute('href') === 'manifest.webmanifest');
+
+  let webmanifest = null;
+  try { webmanifest = JSON.parse(fs.readFileSync(P + 'manifest.webmanifest', 'utf8')); } catch (e) { webmanifest = null; }
+  ok('manifest.webmanifest — валидный JSON', webmanifest !== null);
+  ok('start_url — "."', !!webmanifest && webmanifest.start_url === '.');
+  const manifestIcon = webmanifest && Array.isArray(webmanifest.icons) ? webmanifest.icons[0] : null;
+  ok('иконка указана в манифесте', !!manifestIcon && !!manifestIcon.src);
+  ok('файл иконки существует', !!manifestIcon && fs.existsSync(P + manifestIcon.src));
+
+  const swText = fs.readFileSync(P + 'sw.js', 'utf8');
+  let swSyntaxOk = true;
+  try { new w.Function(swText); } catch (e) { swSyntaxOk = false; }
+  ok('sw.js синтаксически корректен', swSyntaxOk);
+  ok('в sw.js нет абсолютных путей от корня', !/["']\/(?!\/)/.test(swText), swText.match(/["']\/(?!\/)[^"']*/)?.[0] || '');
+  ok('sw.js кеширует Pyodide с cdn.jsdelivr.net', swText.includes('cdn.jsdelivr.net') && swText.includes('pyodide'));
 
   console.log(`\nИТОГ: ${pass} пройдено, ${fail} провалено`);
   process.exit(fail ? 1 : 0);

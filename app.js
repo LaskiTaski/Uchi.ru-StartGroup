@@ -1917,6 +1917,15 @@
   // Подсветка в проекте одна: редактор пользуется той же функцией
   if (hasPA) window.PA.setHighlighter(highlightPy);
 
+  // На file:// воркер не регистрируется (нет http-источника), а ошибку
+  // регистрации ученику показывать незачем — без офлайн-кеша страница
+  // и так работает как обычно, просто без сети не откроется.
+  function registerOffline() {
+    if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) {
+      navigator.serviceWorker.register('./sw.js').catch(function () {});
+    }
+  }
+
   fetch('data/manifest.json')
     .then((response) => response.json())
     .then((manifest) => {
@@ -1941,6 +1950,7 @@
         fitTabs();
         scrollActiveTabIntoView(false);
         if (startAnchor) goToAnchor(startAnchor, false);
+        registerOffline();
       });
     })
     .catch(function (error) {
