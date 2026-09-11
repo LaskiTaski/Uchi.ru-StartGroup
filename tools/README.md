@@ -1,6 +1,8 @@
 # Инструменты проекта
 
-Запускать из корня проекта.
+Запускать из корня проекта. В командах ниже используется `python3` —
+так он называется в Linux/macOS. На Windows команда обычно называется
+просто `python`: замените `python3` на `python` в любой команде ниже.
 
 ## Проверка данных
 
@@ -38,7 +40,7 @@ python3 tools/build_search_index.py --check   # сверить, не запис�
 ## Сквозной тест интерфейса
 
 ```
-npm install jsdom      # один раз
+npm install jsdom      # один раз (или просто npm install — jsdom уже в package.json)
 node tools/e2e.mjs
 ```
 
@@ -69,6 +71,10 @@ python3 tools/validate.py \
   && python3 tools/build_search_index.py --check \
   && node tools/e2e.mjs
 ```
+
+Та же цепочка (без пересборки индекса — только сверка) одной командой
+из корня проекта: `npm test`. Она же гоняется в CI на каждый push и
+pull request — см. `.github/workflows/ci.yml`.
 
 ## Локальный запуск платформы
 

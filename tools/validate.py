@@ -11,7 +11,12 @@
   * перекрёстные ссылки [текст](#anchor) ведут на существующий якорь;
   * примеры кода разбираются интерпретатором Python;
   * задания с автопроверкой: схема check, уникальность id;
-  * ЭТАЛОННЫЕ РЕШЕНИЯ ПРОГОНЯЮТСЯ ПРОТИВ СВОИХ ЖЕ ТЕСТОВ.
+  * ЭТАЛОННЫЕ РЕШЕНИЯ ПРОГОНЯЮТСЯ ПРОТИВ СВОИХ ЖЕ ТЕСТОВ;
+  * занятия видеомодулей: обязательные поля, id видео, ссылки, скриншоты
+    (повтор номера занятия внутри модуля — предупреждение, не ошибка);
+  * roadmap и about.meta справочников/курсов: ссылки на свои же разделы,
+    заполненность подписей;
+  * карточки внешних курсов: непустой name, url на http(s).
 
 Последнее — единственное, что удержит качество на 150+ заданиях:
 опечатка в expect иначе вылезет не у автора, а у ученика, который
@@ -22,6 +27,7 @@
 
 import ast
 import json
+import os
 import re
 import subprocess
 import sys
@@ -57,6 +63,9 @@ KNOWN_TAGS = {
     'useful', 'super', 'start', 'optional', 'unknown',
 }
 LINK_RE = re.compile(r'\]\(#([A-Za-z0-9_-]+)\)')
+# YouTube id — ровно 11 символов; если в поле затесался «&list=...»
+# из скопированной ссылки на плейлист, видео на странице не встанет
+VIDEO_ID_RE = re.compile(r'^[\w-]{11}$')
 
 errors: list[str] = []
 warnings: list[str] = []
@@ -111,6 +120,7 @@ def check_content(modules: list[dict]) -> None:
     snippets: list[tuple[str, str]] = []
     tasks: list[tuple[str, dict]] = []
     task_ids: dict[str, str] = {}
+    lesson_total = video_total = 0
 
     for module in modules:
         data = json.loads((ROOT / module['file']).read_text(encoding='utf-8'))
@@ -183,10 +193,12 @@ def check_content(modules: list[dict]) -> None:
             for link in LINK_RE.findall(json.dumps(section, ensure_ascii=False)):
                 links.setdefault(link, where)
 
+        check_roadmap_and_about(data, title)
+
         # Занятия видеомодулей
-        for lesson in data.get('lessons', []):
-            if not lesson.get('attestation') and not lesson.get('title'):
-                error(f'{title}: занятие без названия')
+        l, v = check_lessons(data, title)
+        lesson_total += l
+        video_total += v
 
     for link, where in links.items():
         if link not in anchors:
@@ -196,18 +208,108 @@ def check_content(modules: list[dict]) -> None:
     check_tasks(tasks)
     print(f'  разделов: {len(anchors)}, перекрёстных ссылок: {len(links)}, '
           f'примеров кода: {len(snippets)}')
+    if lesson_total:
+        print(f'  занятий видеомодулей: {lesson_total}, видео в них: {video_total}')
 
 
 def check_course_tags(data: dict, title: str) -> None:
-    """Подпись без русского текста отрисуется английским ключом."""
+    """Карточки внешних курсов: подписи, а заодно name и url — без них
+    карточка отрисуется пустой ссылкой в никуда."""
     for section in data.get('sections', []):
         for group in section.get('groups', []):
             for course in group.get('courses', []):
+                label = course.get('name', '?')[:40]
+                if not course.get('name'):
+                    error(f'{title} / {label}: у курса нет name')
+                url = course.get('url', '')
+                if not url.startswith(('http://', 'https://')):
+                    error(f'{title} / {label}: url «{url}» должен '
+                          f'начинаться с http:// или https://')
+
                 for field in ('price', 'difficulty', 'value'):
                     tag = course.get(field)
                     if tag and tag not in KNOWN_TAGS:
-                        error(f"{title} / {course.get('name', '?')[:40]}: "
+                        error(f"{title} / {label}: "
                               f'подпись «{tag}» не переведена')
+
+
+def check_roadmap_and_about(data: dict, title: str) -> None:
+    """roadmap и about.meta — необязательные блоки курсов/справочников."""
+    roadmap = data.get('roadmap')
+    if roadmap:
+        local_anchors = {s.get('anchor') for s in data.get('sections', [])}
+        for step in roadmap:
+            anchor = step.get('anchor')
+            if anchor not in local_anchors:
+                error(f"{title}: шаг roadmap «{step.get('title', '?')}» "
+                      f'ссылается на несуществующий в этом файле якорь #{anchor}')
+
+    for item in data.get('about', {}).get('meta', []):
+        if not item.get('label') or not item.get('value'):
+            error(f'{title}: about.meta с пустым label или value')
+
+
+def check_screenshot(where: str, shot: dict) -> None:
+    src = shot.get('src')
+    if not src:
+        error(f'{where}: у скриншота нет src')
+    elif not (ROOT / src).exists():
+        error(f'{where}: файл скриншота {src} не найден')
+    if not shot.get('caption'):
+        error(f'{where}: у скриншота {src or "?"} нет caption')
+
+
+def check_lessons(data: dict, title: str) -> tuple[int, int]:
+    """Занятия видеомодулей: обязательные поля, видео, ссылки, скриншоты.
+
+    Возвращает (число занятий, число видео) — для статистики в конце прогона.
+    """
+    seen_nums: dict = {}
+    lesson_count = video_count = 0
+
+    for lesson in data.get('lessons', []):
+        num = lesson.get('num')
+        if num is not None:
+            seen_nums[num] = seen_nums.get(num, 0) + 1
+        where = f'{title}, занятие {num!r}'
+
+        if lesson.get('attestation'):
+            continue
+
+        for field in ('num', 'title', 'desc'):
+            if not lesson.get(field):
+                error(f'{where}: не заполнено поле {field}')
+
+        lesson_count += 1
+        for video in lesson.get('videos', []):
+            video_count += 1
+            vid = video.get('id', '')
+            if not VIDEO_ID_RE.match(vid):
+                error(f'{where}: id видео «{vid}» не похож на YouTube id '
+                      f'(11 символов, буквы/цифры/-/_) — проверьте, не '
+                      f'приклеились ли к ссылке параметры плейлиста')
+            if not video.get('title'):
+                error(f'{where}: у видео {vid!r} нет title')
+
+        for link in lesson.get('links', []):
+            url = link.get('url', '')
+            if not url.startswith(('http://', 'https://')):
+                error(f'{where}: ссылка «{url}» должна начинаться '
+                      f'с http:// или https://')
+            if not link.get('title'):
+                error(f'{where}: у ссылки {url} нет title')
+
+        for shot in lesson.get('screenshots', []):
+            check_screenshot(where, shot)
+
+    for num, count in seen_nums.items():
+        if count > 1:
+            warn(f'{title}: номер занятия «{num}» повторяется {count} раза')
+
+    for shot in data.get('extra', {}).get('screenshots', []):
+        check_screenshot(f'{title}, extra.screenshots', shot)
+
+    return lesson_count, video_count
 
 
 # ── Задания с автопроверкой ─────────────────────────────────
@@ -292,12 +394,17 @@ def run_reference(where: str, task: dict) -> None:
     """Эталонное решение обязано проходить собственные тесты."""
     payload = json.dumps({'code': task['solution'], 'check': task['check']},
                          ensure_ascii=False)
+    # Явный UTF-8 и для самого процесса, и для его потомка: на Windows
+    # с русской кодовой страницей питоновский subprocess по умолчанию
+    # берёт locale-кодировку — кириллица в condition/expect иначе бьётся
+    # ещё до того, как эталонное решение вообще запустится.
+    child_env = dict(os.environ, PYTHONIOENCODING='utf-8')
     with tempfile.TemporaryDirectory() as workdir:
         try:
             done = subprocess.run(
                 [sys.executable, '-c', RUNNER.format(root=str(ROOT))],
-                input=payload, capture_output=True, text=True,
-                timeout=SOLUTION_TIMEOUT, cwd=workdir,
+                input=payload, capture_output=True, text=True, encoding='utf-8',
+                timeout=SOLUTION_TIMEOUT, cwd=workdir, env=child_env,
             )
         except subprocess.TimeoutExpired:
             error(f'{where}: эталонное решение не уложилось в '
@@ -374,6 +481,12 @@ def check_snippets(snippets: list[tuple[str, str]]) -> None:
 
 
 def main() -> int:
+    # На консоли с не-UTF-8 кодовой страницей (например, cp1251 в Windows)
+    # эмодзи в сообщениях иначе роняют скрипт UnicodeEncodeError вместо
+    # того, чтобы просто показать найденные ошибки
+    if hasattr(sys.stdout, 'reconfigure'):
+        sys.stdout.reconfigure(errors='replace')
+
     print('Проверка данных Python Academy\n')
     modules = check_manifest()
     if modules:
