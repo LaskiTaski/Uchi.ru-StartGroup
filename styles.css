@@ -988,6 +988,26 @@ code, pre, .ic { font-variant-ligatures: none; font-feature-settings: "liga" 0, 
   background: #0A0D14; border: 1px solid rgba(255,255,255,0.07);
 }
 .sandbox-standalone { margin-top: -6px; border-top: none; border-radius: 0 0 10px 10px; }
+
+/* Исполняемый пример: редактор живёт внутри .code-block вместо <pre>,
+   рамку и скругления даёт обёртка */
+.code-block.runnable .sandbox { margin: 0; border: 0; border-radius: 0; }
+
+/* Пустой вывод и строка ввода для input() по ходу выполнения */
+.sb-out-body.sb-out-empty { color: var(--text-muted); font-style: italic; }
+
+.sb-prompt {
+  display: flex; align-items: center; gap: 8px; margin-top: 8px;
+  padding-top: 8px; border-top: 1px dashed rgba(255,255,255,0.08);
+}
+.sb-prompt-mark { font-family: var(--mono); color: #A5D6A7; font-weight: 700; }
+.sb-prompt-input {
+  flex: 1 1 auto; min-width: 0; padding: 6px 10px;
+  font-family: var(--mono); font-size: 12px; color: #D7DEE8;
+  background: rgba(255,255,255,0.04); border: 1px solid var(--border-active);
+  border-radius: 6px; outline: none;
+}
+.sb-prompt-input:focus { border-color: #7DD3FC; }
 .sandbox.running { opacity: 0.85; }
 .sandbox .hidden { display: none; }
 

@@ -39,7 +39,15 @@ class FakeWorker {
     reply({ type: 'ready' });
     if (msg.type === 'boot') return;
     if (msg.type === 'run') {
-      reply({ type: 'out', id: msg.id, stream: 'stdout', text: 'вывод программы\n' });
+      // Как настоящий исполнитель: input() без строк ввода — PA_NO_INPUT,
+      // одни пустые print() — только переводы строк
+      if (/\binput\s*\(/.test(msg.code) && !msg.stdin) {
+        reply({ type: 'error', id: msg.id, error: { kind: 'PA_NO_INPUT', message: '', line: 1 } });
+        return;
+      }
+      const onlyEmptyPrints = msg.code.split('\n').every(
+        (l) => !l.trim() || l.trim().startsWith('#') || l.trim() === 'print()');
+      reply({ type: 'out', id: msg.id, stream: 'stdout', text: onlyEmptyPrints ? '\n' : 'вывод программы\n' });
       reply({ type: 'done', id: msg.id, ok: true });
       return;
     }
@@ -459,6 +467,61 @@ const ok = (name, cond, extra='') => { cond ? pass++ : fail++; console.log(`${co
   ok('sw.js синтаксически корректен', swSyntaxOk);
   ok('в sw.js нет абсолютных путей от корня', !/["']\/(?!\/)/.test(swText), swText.match(/["']\/(?!\/)[^"']*/)?.[0] || '');
   ok('sw.js кеширует Pyodide с cdn.jsdelivr.net', swText.includes('cdn.jsdelivr.net') && swText.includes('pyodide'));
+
+  console.log('\nВВОД И ВЫВОД');
+  q('[data-group="ref"]').dispatchEvent(new w.MouseEvent('click', {bubbles:true}));
+  await wait(300);
+  q('.tab[data-mod="6"]').dispatchEvent(new w.MouseEvent('click', {bubbles:true}));
+  await wait(500);
+  const readBox = q('.sandbox[data-task-id="num-read"]');
+  const sumBox = q('.sandbox[data-task-id="num-sum"]');
+  ok('у задания без input() поле «Ввод» скрыто', readBox.querySelector('.sb-stdin').classList.contains('hidden'));
+  ok('…но его можно открыть кнопкой', readBox.querySelector('.sb-stdin-toggle') !== null);
+  ok('у задания с input() поле открыто и заполнено первым кейсом',
+     !sumBox.querySelector('.sb-stdin').classList.contains('hidden') &&
+     sumBox.querySelector('.sb-stdin-input').value === '3\n4',
+     JSON.stringify(sumBox.querySelector('.sb-stdin-input').value));
+
+  readBox.querySelector('.sb-run').dispatchEvent(new w.MouseEvent('click', {bubbles:true}));
+  await wait(200);
+  ok('пустой вывод помечен', /без видимого вывода/.test(readBox.querySelector('.sb-out-body').textContent),
+     JSON.stringify(readBox.querySelector('.sb-out-body').textContent));
+
+  // input() по ходу выполнения: программа просит ввод — появляется строка,
+  // ответ дописывается к «Вводу», запуск повторяется
+  w.PA.editor.setValue(readBox.querySelector('.pa-editor'), 'name = input()\nprint(name)');
+  readBox.querySelector('.sb-run').dispatchEvent(new w.MouseEvent('click', {bubbles:true}));
+  await wait(200);
+  const promptForm = readBox.querySelector('.sb-prompt');
+  ok('программа ждёт ввода — показана строка ввода',
+     promptForm !== null && /ждёт ввода/.test(readBox.querySelector('.sb-status').textContent),
+     readBox.querySelector('.sb-status').textContent);
+  promptForm.querySelector('.sb-prompt-input').value = 'Тим';
+  promptForm.dispatchEvent(new w.Event('submit', {bubbles:true, cancelable:true}));
+  await wait(200);
+  ok('ответ дописан к «Вводу» и программа перезапущена',
+     w.__lastRun.stdin === 'Тим\n' && readBox.querySelector('.sb-prompt') === null,
+     JSON.stringify(w.__lastRun.stdin));
+  ok('поле «Ввод» раскрылось с накопленным вводом',
+     !readBox.querySelector('.sb-stdin').classList.contains('hidden') &&
+     readBox.querySelector('.sb-stdin-input').value === 'Тим\n');
+  ok('после перезапуска — Готово', readBox.querySelector('.sb-status').textContent === 'Готово');
+
+  readBox.querySelector('.sb-reset').dispatchEvent(new w.MouseEvent('click', {bubbles:true}));
+  await wait(50);
+  ok('«Сбросить» возвращает код и ввод',
+     w.PA.editor.value(readBox.querySelector('.pa-editor')) === readBox.getAttribute('data-start') &&
+     readBox.querySelector('.sb-stdin-input').value === '');
+
+  console.log('\nИСПОЛНЯЕМЫЙ ПРИМЕР БЕЗ ДУБЛЯ');
+  const runBlock = q('.code-block.runnable');
+  ok('исполняемый пример — сразу редактор', runBlock !== null && runBlock.querySelector('.sandbox .ed-input') !== null);
+  ok('статичной копии кода над редактором нет',
+     runBlock !== null && ![...runBlock.children].some((c) => c.tagName === 'PRE'));
+  ok('заголовок и кнопка копирования на месте',
+     runBlock !== null && runBlock.querySelector('.code-title-text') !== null && runBlock.querySelector('.code-copy') !== null);
+  ok('редактор заполнен исходником',
+     runBlock !== null && runBlock.querySelector('.ed-input').value === runnable.getAttribute('data-code'));
 
   console.log(`\nИТОГ: ${pass} пройдено, ${fail} провалено`);
   process.exit(fail ? 1 : 0);
