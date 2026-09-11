@@ -20,7 +20,8 @@
         {
           "type": "code",
           "title": "Три формы подключения",
-          "code": "# 1. Весь модуль целиком\nimport math\nprint(math.sqrt(16))        # 4.0 — обращаемся через имя модуля\n\n# 2. Только нужное из модуля\nfrom math import sqrt, pi\nprint(sqrt(16))             # 4.0 — уже без префикса\nprint(pi)                   # 3.141592653589793\n\n# 3. С коротким именем\nimport math as m\nprint(m.sqrt(16))           # 4.0"
+          "code": "# 1. Весь модуль целиком\nimport math\nprint(math.sqrt(16))        # 4.0 — обращаемся через имя модуля\n\n# 2. Только нужное из модуля\nfrom math import sqrt, pi\nprint(sqrt(16))             # 4.0 — уже без префикса\nprint(pi)                   # 3.141592653589793\n\n# 3. С коротким именем\nimport math as m\nprint(m.sqrt(16))           # 4.0",
+          "run": true
         },
         {
           "type": "table",
@@ -80,7 +81,8 @@
         },
         {
           "type": "code",
-          "code": "import math\n\nprint(type(math))          # <class 'module'>\nprint(math.pi)             # константа\nprint(math.sqrt(9))        # функция\n\n# Посмотреть всё содержимое:\nprint(dir(math))           # длинный список имён\n\n# Прочитать документацию прямо из кода:\nprint(math.sqrt.__doc__)   # Return the square root of x."
+          "code": "import math\n\nprint(type(math))          # <class 'module'>\nprint(math.pi)             # константа\nprint(math.sqrt(9))        # функция\n\n# Посмотреть всё содержимое:\nprint(dir(math))           # длинный список имён\n\n# Прочитать документацию прямо из кода:\nprint(math.sqrt.__doc__)   # Return the square root of x.",
+          "run": true
         },
         {
           "type": "note",
@@ -89,6 +91,84 @@
         {
           "type": "warn",
           "text": "Не называйте свои файлы так же, как модули: файл `math.py` в папке проекта перекроет стандартный, и `import math` подключит ваш пустой файл. Ошибка выглядит загадочно: `AttributeError: module 'math' has no attribute 'sqrt'`."
+        },
+        {
+          "type": "task",
+          "id": "imp-read",
+          "title": "Что напечатает программа?",
+          "text": "Не запуская код, определите вывод — две строки, по одной на каждый `print` из примера.",
+          "example": "import math as m\nfrom math import pi\n\nprint(m.sqrt(49))\nprint(round(pi, 2))",
+          "starter": "# По строке на каждый print из примера\nprint()\nprint()",
+          "check": {
+            "mode": "stdout",
+            "cases": [
+              {
+                "stdin": "",
+                "expect": "7.0\n3.14"
+              }
+            ]
+          },
+          "hint": "`m.sqrt` — та же функция, что и `math.sqrt`, просто под новым именем; `pi`, подключённый через `from ... import`, используется без префикса.",
+          "solution": "print(7.0)\nprint(3.14)",
+          "explain": "`import math as m` не меняет саму функцию — меняется только то, как к ней обращаются. `math.sqrt` всегда возвращает `float`, поэтому первая строка — `7.0`, а не `7`."
+        },
+        {
+          "type": "task",
+          "id": "imp-sqrt",
+          "title": "Корень через from...import",
+          "text": "Программа читает целое число и печатает его квадратный корень, округлённый до двух знаков после запятой. Подключите функцию `sqrt` конструкцией `from math import sqrt`.",
+          "starter": "from math import sqrt\n\nn = int(input())\n",
+          "check": {
+            "mode": "stdout",
+            "cases": [
+              {
+                "stdin": "16",
+                "expect": "4.0"
+              },
+              {
+                "stdin": "2",
+                "expect": "1.41"
+              },
+              {
+                "stdin": "25",
+                "expect": "5.0",
+                "hidden": true,
+                "note": "результат должен остаться дробным (5.0), а не превратиться в int"
+              }
+            ]
+          },
+          "hint": "Оберните `sqrt(n)` в `round(..., 2)` — так же, как это делали с `math.pi` в примере раздела.",
+          "solution": "from math import sqrt\n\nn = int(input())\nprint(round(sqrt(n), 2))",
+          "explain": "`sqrt` здесь работает без префикса `math.` — она подключена по имени напрямую. Если посчитать через `int(sqrt(n))`, число потеряет дробную часть, и тест на n = 25 не пройдёт: вместо `5.0` получится `5`."
+        },
+        {
+          "type": "task",
+          "id": "imp-circle",
+          "title": "Длина окружности",
+          "text": "Программа читает радиус (дробное число) и печатает длину окружности `2 * pi * r`, округлённую до двух знаков. Подключите константу `pi` конструкцией `from math import pi`.",
+          "starter": "from math import pi\n\nr = float(input())\n",
+          "check": {
+            "mode": "stdout",
+            "cases": [
+              {
+                "stdin": "5",
+                "expect": "31.42"
+              },
+              {
+                "stdin": "1",
+                "expect": "6.28"
+              },
+              {
+                "stdin": "0",
+                "expect": "0.0",
+                "hidden": true,
+                "note": "радиус 0 — длина окружности тоже 0"
+              }
+            ]
+          },
+          "hint": "Формула та же, что и для площади круга в разделе `math`, только вместо `radius ** 2` — простое произведение `2 * pi * r`.",
+          "solution": "from math import pi\n\nr = float(input())\nprint(round(2 * pi * r, 2))",
+          "explain": "`pi` — это просто число (`float`), а не функция, поэтому скобки после него не нужны. Забытый `round()` даст на печать длинное число вроде `31.415926535897931` вместо `31.42`."
         }
       ]
     },
@@ -110,7 +190,8 @@
         },
         {
           "type": "code",
-          "code": "import math\n\nprint(math.ceil(3.1))     # 4  — вверх, «потолок»\nprint(math.ceil(3.9))     # 4\nprint(math.floor(3.9))    # 3  — вниз, «пол»\nprint(math.floor(-3.1))   # -4 — вниз означает В СТОРОНУ МИНУСА\n\nprint(round(3.5))         # 4  — к ближайшему чётному, см. раздел «Числа»\nprint(int(-3.9))          # -3 — просто отбрасывает дробь"
+          "code": "import math\n\nprint(math.ceil(3.1))     # 4  — вверх, «потолок»\nprint(math.ceil(3.9))     # 4\nprint(math.floor(3.9))    # 3  — вниз, «пол»\nprint(math.floor(-3.1))   # -4 — вниз означает В СТОРОНУ МИНУСА\n\nprint(round(3.5))         # 4  — к ближайшему чётному, см. раздел «Числа»\nprint(int(-3.9))          # -3 — просто отбрасывает дробь",
+          "run": true
         },
         {
           "type": "note",
@@ -144,7 +225,8 @@
         {
           "type": "code",
           "title": "Площадь круга — классика",
-          "code": "import math\n\nradius = 5\nprint(math.pi * radius ** 2)          # 78.53981633974483\nprint(round(math.pi * radius ** 2, 2))  # 78.54"
+          "code": "import math\n\nradius = 5\nprint(math.pi * radius ** 2)          # 78.53981633974483\nprint(round(math.pi * radius ** 2, 2))  # 78.54",
+          "run": true
         },
         {
           "type": "heading",
@@ -203,6 +285,110 @@
         {
           "type": "warn",
           "text": "Тригонометрия работает в радианах, а не в градусах. Переводить нужно самому: `math.sin(math.radians(30))` даст `0.5`."
+        },
+        {
+          "type": "task",
+          "id": "math-read",
+          "title": "Что напечатает программа?",
+          "text": "Не запуская код, определите вывод — три строки, по одной на каждый `print` из примера.",
+          "example": "import math\n\nprint(math.ceil(7.2))\nprint(math.floor(7.8))\nprint(math.sqrt(49))",
+          "starter": "# По строке на каждый print из примера\nprint()\nprint()\nprint()",
+          "check": {
+            "mode": "stdout",
+            "cases": [
+              {
+                "stdin": "",
+                "expect": "8\n7\n7.0"
+              }
+            ]
+          },
+          "hint": "`ceil` округляет вверх, `floor` — вниз; `sqrt` всегда возвращает `float`, даже если корень извлёкся ровно.",
+          "solution": "print(8)\nprint(7)\nprint(7.0)",
+          "explain": "7.2 округляется вверх до 8, 7.8 — вниз до 7. `math.sqrt(49)` даёт `7.0`, а не `7`: квадратный корень всегда `float`."
+        },
+        {
+          "type": "task",
+          "id": "math-boxes",
+          "title": "Сколько нужно коробок",
+          "text": "Напишите функцию `boxes_needed(items, per_box)` — она возвращает, сколько коробок понадобится, чтобы разложить `items` предметов по `per_box` штук в каждую. Неполная коробка всё равно считается целой.",
+          "starter": "def boxes_needed(items, per_box):\n    ",
+          "check": {
+            "mode": "function",
+            "entry": "boxes_needed",
+            "cases": [
+              {
+                "args": [
+                  47,
+                  10
+                ],
+                "expect": 5
+              },
+              {
+                "args": [
+                  20,
+                  5
+                ],
+                "expect": 4
+              },
+              {
+                "args": [
+                  1,
+                  10
+                ],
+                "expect": 1,
+                "hidden": true,
+                "note": "даже один предмет требует целую коробку"
+              }
+            ]
+          },
+          "hint": "`items / per_box` даёт дробное число коробок, а `math.ceil` округляет его вверх.",
+          "solution": "import math\n\n\ndef boxes_needed(items, per_box):\n    return math.ceil(items / per_box)",
+          "explain": "Целочисленное деление `//` здесь не подходит — оно отбрасывает остаток и занизит ответ. `math.ceil` учитывает даже маленький остаток: 1 предмет на 10 мест — всё равно целая коробка."
+        },
+        {
+          "type": "task",
+          "id": "math-distance",
+          "title": "Расстояние между точками",
+          "text": "Напишите функцию `distance(x1, y1, x2, y2)` — она возвращает расстояние между двумя точками на плоскости. Используйте `math.hypot`.",
+          "starter": "def distance(x1, y1, x2, y2):\n    ",
+          "check": {
+            "mode": "function",
+            "entry": "distance",
+            "cases": [
+              {
+                "args": [
+                  0,
+                  0,
+                  3,
+                  4
+                ],
+                "expect": 5.0
+              },
+              {
+                "args": [
+                  1,
+                  1,
+                  4,
+                  5
+                ],
+                "expect": 5.0
+              },
+              {
+                "args": [
+                  0,
+                  0,
+                  0,
+                  0
+                ],
+                "expect": 0.0,
+                "hidden": true,
+                "note": "точка сама с собой — расстояние 0"
+              }
+            ]
+          },
+          "hint": "`math.hypot(a, b)` сразу считает `sqrt(a**2 + b**2)` — посчитайте разницы координат и передайте их.",
+          "solution": "import math\n\n\ndef distance(x1, y1, x2, y2):\n    return math.hypot(x2 - x1, y2 - y1)",
+          "explain": "`hypot` избавляет от ручного возведения в квадрат и извлечения корня. Порядок вычитания координат не важен — после возведения в квадрат знак исчезает."
         }
       ]
     },
@@ -221,7 +407,8 @@
         {
           "type": "code",
           "title": "Основные функции",
-          "code": "import random\n\nprint(random.randint(1, 6))         # целое от 1 до 6 ВКЛЮЧИТЕЛЬНО\nprint(random.random())              # дробное от 0.0 до 1.0\nprint(random.uniform(1.5, 3.5))     # дробное в своём диапазоне\n\nfruits = ['яблоко', 'банан', 'киви']\nprint(random.choice(fruits))        # один случайный элемент\nprint(random.sample(fruits, 2))     # два разных элемента\n\nrandom.shuffle(fruits)              # перемешивает список НА МЕСТЕ\nprint(fruits)"
+          "code": "import random\n\nprint(random.randint(1, 6))         # целое от 1 до 6 ВКЛЮЧИТЕЛЬНО\nprint(random.random())              # дробное от 0.0 до 1.0\nprint(random.uniform(1.5, 3.5))     # дробное в своём диапазоне\n\nfruits = ['яблоко', 'банан', 'киви']\nprint(random.choice(fruits))        # один случайный элемент\nprint(random.sample(fruits, 2))     # два разных элемента\n\nrandom.shuffle(fruits)              # перемешивает список НА МЕСТЕ\nprint(fruits)",
+          "run": true
         },
         {
           "type": "warn",
@@ -297,7 +484,8 @@
         {
           "type": "code",
           "title": "Одинаковое зерно — одинаковые числа",
-          "code": "import random\n\nrandom.seed(42)\nprint(random.randint(1, 100), random.randint(1, 100))   # 82 15\n\nrandom.seed(42)\nprint(random.randint(1, 100), random.randint(1, 100))   # 82 15 — те же самые!"
+          "code": "import random\n\nrandom.seed(42)\nprint(random.randint(1, 100), random.randint(1, 100))   # 82 15\n\nrandom.seed(42)\nprint(random.randint(1, 100), random.randint(1, 100))   # 82 15 — те же самые!",
+          "run": true
         },
         {
           "type": "note",
@@ -306,6 +494,117 @@
         {
           "type": "warn",
           "text": "Для паролей, токенов и всего, что связано с безопасностью, `random` не годится — его последовательность предсказуема. Там применяют модуль `secrets`."
+        },
+        {
+          "type": "task",
+          "id": "rnd-read",
+          "title": "Что напечатает программа?",
+          "text": "Не запуская код, определите вывод. Такой же код с зерном `random.seed(42)` уже встречался в разделе — при одинаковом зерне последовательность чисел каждый раз одна и та же.",
+          "example": "import random\n\nrandom.seed(42)\nprint(random.randint(1, 100))\nprint(random.randint(1, 100))",
+          "starter": "# По строке на каждый print из примера\nprint()\nprint()",
+          "check": {
+            "mode": "stdout",
+            "cases": [
+              {
+                "stdin": "",
+                "expect": "82\n15"
+              }
+            ]
+          },
+          "hint": "В разделе уже показывали именно этот пример с `random.seed(42)` и его результат.",
+          "solution": "print(82)\nprint(15)",
+          "explain": "Одинаковое зерно даёт одинаковую последовательность чисел — это уже демонстрировалось в разделе. Если бы зерно не фиксировали, числа менялись бы при каждом запуске."
+        },
+        {
+          "type": "task",
+          "id": "rnd-dice",
+          "title": "Бросок двух кубиков",
+          "text": "Программа не читает ввод. Зафиксируйте `random.seed(3)` и напечатайте результаты двух бросков шестигранного кубика (`random.randint(1, 6)`) — каждый бросок на своей строке.",
+          "starter": "import random\n\nrandom.seed(3)\n",
+          "check": {
+            "mode": "stdout",
+            "cases": [
+              {
+                "stdin": "",
+                "expect": "2\n5"
+              },
+              {
+                "stdin": "что угодно",
+                "expect": "2\n5",
+                "hidden": true,
+                "note": "программа не должна использовать input() — ввод ни на что не влияет"
+              }
+            ]
+          },
+          "hint": "Вызовите `random.randint(1, 6)` дважды подряд и напечатайте оба результата — зерно уже зафиксировано в стартовом коде.",
+          "solution": "import random\n\nrandom.seed(3)\nprint(random.randint(1, 6))\nprint(random.randint(1, 6))",
+          "explain": "Раз зерно зафиксировано прямо в условии, результат всегда один и тот же — `2` и `5`. Другой порядок вызовов или другой диапазон даст уже другие числа."
+        },
+        {
+          "type": "task",
+          "id": "rnd-shuffle",
+          "title": "Перемешанная копия",
+          "text": "Напишите функцию `shuffled_copy(items)` — она копирует переданный список, фиксирует `random.seed(4)` и перемешивает копию (`random.shuffle`), не трогая исходный список. Функция возвращает перемешанную копию.",
+          "starter": "def shuffled_copy(items):\n    ",
+          "check": {
+            "mode": "function",
+            "entry": "shuffled_copy",
+            "cases": [
+              {
+                "args": [
+                  [
+                    1,
+                    2,
+                    3,
+                    4,
+                    5
+                  ]
+                ],
+                "expect": [
+                  4,
+                  5,
+                  1,
+                  3,
+                  2
+                ]
+              },
+              {
+                "args": [
+                  [
+                    "a",
+                    "b",
+                    "c",
+                    "d"
+                  ]
+                ],
+                "expect": [
+                  "c",
+                  "a",
+                  "d",
+                  "b"
+                ]
+              },
+              {
+                "args": [
+                  [
+                    10,
+                    20,
+                    30
+                  ]
+                ],
+                "expect": [
+                  30,
+                  20,
+                  10
+                ],
+                "hidden": true,
+                "note": "зерно нужно фиксировать заново при каждом вызове функции"
+              }
+            ]
+          },
+          "hint": "Сначала сделайте копию списка (`list(items)`), потом `random.seed(4)`, потом `random.shuffle` уже на копии.",
+          "solution": "import random\n\n\ndef shuffled_copy(items):\n    random.seed(4)\n    copy = list(items)\n    random.shuffle(copy)\n    return copy",
+          "explain": "Если зафиксировать зерно один раз снаружи функции, а не при каждом вызове, второй и третий вызов получат уже сдвинутую последовательность — тест на разных списках это сразу покажет."
         }
       ]
     },
@@ -362,7 +661,8 @@
         },
         {
           "type": "code",
-          "code": "from datetime import date, timedelta\n\nbirthday = date(2026, 12, 31)\ntoday = date(2026, 8, 4)\n\nleft = birthday - today          # разница дат — это timedelta\nprint(left)                      # 149 days, 0:00:00\nprint(left.days)                 # 149 — только число дней\n\nweek_later = today + timedelta(days=7)\nprint(week_later)                # 2026-08-11\n\nprint(today < birthday)          # True — даты сравниваются напрямую"
+          "code": "from datetime import date, timedelta\n\nbirthday = date(2026, 12, 31)\ntoday = date(2026, 8, 4)\n\nleft = birthday - today          # разница дат — это timedelta\nprint(left)                      # 149 days, 0:00:00\nprint(left.days)                 # 149 — только число дней\n\nweek_later = today + timedelta(days=7)\nprint(week_later)                # 2026-08-11\n\nprint(today < birthday)          # True — даты сравниваются напрямую",
+          "run": true
         },
         {
           "type": "note",
@@ -374,7 +674,8 @@
         },
         {
           "type": "code",
-          "code": "from datetime import datetime\n\nnow = datetime(2026, 8, 4, 15, 30)\n\nprint(now.strftime('%d.%m.%Y'))          # 04.08.2026\nprint(now.strftime('%d.%m.%Y %H:%M'))    # 04.08.2026 15:30\nprint(now.strftime('%Y-%m-%d'))          # 2026-08-04"
+          "code": "from datetime import datetime\n\nnow = datetime(2026, 8, 4, 15, 30)\n\nprint(now.strftime('%d.%m.%Y'))          # 04.08.2026\nprint(now.strftime('%d.%m.%Y %H:%M'))    # 04.08.2026 15:30\nprint(now.strftime('%Y-%m-%d'))          # 2026-08-04",
+          "run": true
         },
         {
           "type": "table",
@@ -433,6 +734,102 @@
         {
           "type": "warn",
           "text": "Никогда не считайте возраст как «дней разницы делить на 365»: високосные годы дадут ошибку. Сравнивайте месяц и день, как в примере выше."
+        },
+        {
+          "type": "task",
+          "id": "dt-read",
+          "title": "Что напечатает программа?",
+          "text": "Не запуская код, определите вывод — две строки, по одной на каждый `print` из примера.",
+          "example": "from datetime import date\n\nd1 = date(2024, 3, 1)\nd2 = date(2024, 3, 10)\n\nprint(d2 - d1)\nprint((d2 - d1).days)",
+          "starter": "# По строке на каждый print из примера\nprint()\nprint()",
+          "check": {
+            "mode": "stdout",
+            "cases": [
+              {
+                "stdin": "",
+                "expect": "9 days, 0:00:00\n9"
+              }
+            ]
+          },
+          "hint": "Разница двух `date` — это `timedelta`. При печати он показывает и число дней, и нулевое время; поле `.days` возвращает только число.",
+          "solution": "print('9 days, 0:00:00')\nprint(9)",
+          "explain": "`date - date` даёт `timedelta`, и печатается он в формате `N days, H:MM:SS`. У дат нет времени, поэтому вторая часть всегда `0:00:00`."
+        },
+        {
+          "type": "task",
+          "id": "dt-days",
+          "title": "Сколько дней между датами",
+          "text": "Напишите функцию `days_between(y1, m1, d1, y2, m2, d2)` — она строит из аргументов две даты (`date(y1, m1, d1)` и `date(y2, m2, d2)`) и возвращает количество дней между ними. Число может быть отрицательным, если вторая дата раньше первой.",
+          "starter": "def days_between(y1, m1, d1, y2, m2, d2):\n    ",
+          "check": {
+            "mode": "function",
+            "entry": "days_between",
+            "cases": [
+              {
+                "args": [
+                  2024,
+                  3,
+                  1,
+                  2024,
+                  3,
+                  10
+                ],
+                "expect": 9
+              },
+              {
+                "args": [
+                  2024,
+                  3,
+                  10,
+                  2024,
+                  3,
+                  1
+                ],
+                "expect": -9
+              },
+              {
+                "args": [
+                  2024,
+                  1,
+                  1,
+                  2025,
+                  1,
+                  1
+                ],
+                "expect": 366,
+                "hidden": true,
+                "note": "2024 — високосный год, в нём 366 дней"
+              }
+            ]
+          },
+          "hint": "Постройте два объекта `date` и вычтите один из другого — получится `timedelta`, у которого есть `.days`.",
+          "solution": "from datetime import date\n\n\ndef days_between(y1, m1, d1, y2, m2, d2):\n    return (date(y2, m2, d2) - date(y1, m1, d1)).days",
+          "explain": "Порядок вычитания важен: «вторая дата минус первая» может дать отрицательное число, если вторая дата раньше. Скрытый тест проверяет год из 366 дней — это легко упустить, если считать «на глаз»."
+        },
+        {
+          "type": "task",
+          "id": "dt-format",
+          "title": "Дата в человеческом формате",
+          "text": "Программа не читает ввод. Постройте `datetime(2024, 3, 1, 9, 5)` и напечатайте её в формате `01.03.2024 09:05` с помощью `strftime`. Затем постройте `datetime(2024, 12, 31, 23, 59)` и напечатайте её в том же формате.",
+          "starter": "from datetime import datetime\n\n",
+          "check": {
+            "mode": "stdout",
+            "cases": [
+              {
+                "stdin": "",
+                "expect": "01.03.2024 09:05\n31.12.2024 23:59"
+              },
+              {
+                "stdin": "что угодно",
+                "expect": "01.03.2024 09:05\n31.12.2024 23:59",
+                "hidden": true,
+                "note": "программа не должна использовать input()"
+              }
+            ]
+          },
+          "hint": "Формат — `'%d.%m.%Y %H:%M'`: день, месяц, год через точку, затем часы и минуты через двоеточие.",
+          "solution": "from datetime import datetime\n\nprint(datetime(2024, 3, 1, 9, 5).strftime('%d.%m.%Y %H:%M'))\nprint(datetime(2024, 12, 31, 23, 59).strftime('%d.%m.%Y %H:%M'))",
+          "explain": "`strftime` всегда выводит день и месяц двумя цифрами — `01`, а не `1`. Часы в примере указаны в 24-часовом формате, поэтому `23:59`, а не `11:59 PM`."
         }
       ]
     },
@@ -466,7 +863,8 @@
         {
           "type": "code",
           "title": "Разница видна сразу",
-          "code": "from decimal import Decimal\n\nprint(Decimal('0.1'))\n# 0.1 — ровно то, что записали\n\nprint(Decimal(0.1))\n# 0.1000000000000000055511151231257827021181583404541015625"
+          "code": "from decimal import Decimal\n\nprint(Decimal('0.1'))\n# 0.1 — ровно то, что записали\n\nprint(Decimal(0.1))\n# 0.1000000000000000055511151231257827021181583404541015625",
+          "run": true
         },
         {
           "type": "heading",
@@ -486,7 +884,8 @@
         },
         {
           "type": "code",
-          "code": "from decimal import Decimal, ROUND_HALF_UP\n\nvalue = Decimal('2.5')\n\nprint(round(value))                                    # 2 — банковское, как у float\nprint(value.quantize(Decimal('1'), ROUND_HALF_UP))     # 3 — школьное\n\nprice = Decimal('10.567')\nprint(price.quantize(Decimal('0.01'), ROUND_HALF_UP))  # 10.57 — до копеек"
+          "code": "from decimal import Decimal, ROUND_HALF_UP\n\nvalue = Decimal('2.5')\n\nprint(round(value))                                    # 2 — банковское, как у float\nprint(value.quantize(Decimal('1'), ROUND_HALF_UP))     # 3 — школьное\n\nprice = Decimal('10.567')\nprint(price.quantize(Decimal('0.01'), ROUND_HALF_UP))  # 10.57 — до копеек",
+          "run": true
         },
         {
           "type": "text",
@@ -528,6 +927,107 @@
         {
           "type": "warn",
           "text": "Самый простой способ обойтись без `Decimal` вообще — хранить деньги в копейках целыми числами и делить на 100 только при выводе. Для школьных проектов этого достаточно."
+        },
+        {
+          "type": "task",
+          "id": "dec-read",
+          "title": "Что напечатает программа?",
+          "text": "Не запуская код, определите вывод — две строки, по одной на каждый `print` из примера.",
+          "example": "from decimal import Decimal\n\na = Decimal('10.50')\nb = Decimal('3')\n\nprint(a + b)\nprint(a * 2)",
+          "starter": "# По строке на каждый print из примера\nprint()\nprint()",
+          "check": {
+            "mode": "stdout",
+            "cases": [
+              {
+                "stdin": "",
+                "expect": "13.50\n21.00"
+              }
+            ]
+          },
+          "hint": "`Decimal` хранит число знаков после запятой точно: результат сложения и умножения сохраняет привычную «денежную» точность.",
+          "solution": "print('13.50')\nprint('21.00')",
+          "explain": "`Decimal('10.50') + Decimal('3')` даёт `13.50` — хвостовой ноль не исчезает, в отличие от обычных чисел. Умножение на `int` работает без проблем, в отличие от смешивания с `float`."
+        },
+        {
+          "type": "task",
+          "id": "dec-total",
+          "title": "Сумма покупки",
+          "text": "Напишите функцию `total_price(price, qty)` — `price` это строка вида `'49.90'`, `qty` — целое число штук. Функция возвращает строку с итоговой суммой, округлённой до копеек по правилу `ROUND_HALF_UP` (например, `'149.70'`).",
+          "starter": "from decimal import Decimal, ROUND_HALF_UP\n\n\ndef total_price(price, qty):\n    ",
+          "check": {
+            "mode": "function",
+            "entry": "total_price",
+            "cases": [
+              {
+                "args": [
+                  "49.90",
+                  3
+                ],
+                "expect": "149.70"
+              },
+              {
+                "args": [
+                  "19.99",
+                  2
+                ],
+                "expect": "39.98"
+              },
+              {
+                "args": [
+                  "33.335",
+                  1
+                ],
+                "expect": "33.34",
+                "hidden": true,
+                "note": "округление «половина вверх», а не банковское округление float"
+              }
+            ]
+          },
+          "hint": "Постройте `Decimal(price) * qty`, затем `.quantize(Decimal('0.01'), ROUND_HALF_UP)` и переведите результат в строку через `str()`.",
+          "solution": "from decimal import Decimal, ROUND_HALF_UP\n\n\ndef total_price(price, qty):\n    result = (Decimal(price) * qty).quantize(\n        Decimal('0.01'), ROUND_HALF_UP)\n    return str(result)",
+          "explain": "Без `quantize` результат мог бы остаться с тремя и более знаками после запятой. Скрытый тест на `33.335` ловит попытку округлить обычным `round()`: у float `0.335` не представляется точно, и ответ может уехать."
+        },
+        {
+          "type": "task",
+          "id": "dec-compare",
+          "title": "Точное совпадение суммы",
+          "text": "Напишите функцию `equal_sum(a, b, target)` — принимает три строки с числами, например `'0.1'`, `'0.2'`, `'0.3'`, и возвращает `True`, если сумма первых двух ТОЧНО равна `target`, иначе `False`.",
+          "starter": "from decimal import Decimal\n\n\ndef equal_sum(a, b, target):\n    ",
+          "check": {
+            "mode": "function",
+            "entry": "equal_sum",
+            "cases": [
+              {
+                "args": [
+                  "0.1",
+                  "0.2",
+                  "0.3"
+                ],
+                "expect": true
+              },
+              {
+                "args": [
+                  "0.1",
+                  "0.2",
+                  "0.30001"
+                ],
+                "expect": false
+              },
+              {
+                "args": [
+                  "1.1",
+                  "2.2",
+                  "3.3"
+                ],
+                "expect": true,
+                "hidden": true,
+                "note": "точность работает не только для 0.1 и 0.2"
+              }
+            ]
+          },
+          "hint": "Превратите все три аргумента в `Decimal` и сравните обычным `==` — с `float` такое сравнение было бы ненадёжным.",
+          "solution": "from decimal import Decimal\n\n\ndef equal_sum(a, b, target):\n    return Decimal(a) + Decimal(b) == Decimal(target)",
+          "explain": "Если бы функция работала с `float`, `0.1 + 0.2 == 0.3` дало бы `False` из-за двоичного округления. `Decimal`, созданный из строки, хранит числа точно, и сравнение честно совпадает с математикой."
         }
       ]
     },
@@ -546,7 +1046,8 @@
         {
           "type": "code",
           "title": "Чтение и запись",
-          "code": "# Запись: файл создаётся, если его нет\nwith open('notes.txt', 'w', encoding='utf-8') as file:\n    file.write('Первая строка\\n')\n    file.write('Вторая строка\\n')\n\n# Чтение целиком\nwith open('notes.txt', 'r', encoding='utf-8') as file:\n    text = file.read()\nprint(text)"
+          "code": "# Запись: файл создаётся, если его нет\nwith open('notes.txt', 'w', encoding='utf-8') as file:\n    file.write('Первая строка\\n')\n    file.write('Вторая строка\\n')\n\n# Чтение целиком\nwith open('notes.txt', 'r', encoding='utf-8') as file:\n    text = file.read()\nprint(text)",
+          "run": true
         },
         {
           "type": "heading",
@@ -641,7 +1142,86 @@
         {
           "type": "code",
           "title": "Практика: список задач между запусками",
-          "code": "FILENAME = 'tasks.txt'\n\ndef load_tasks():\n    try:\n        with open(FILENAME, encoding='utf-8') as file:\n            return [line.strip() for line in file if line.strip()]\n    except FileNotFoundError:\n        return []\n\n\ndef save_tasks(tasks):\n    with open(FILENAME, 'w', encoding='utf-8') as file:\n        for task in tasks:\n            file.write(task + '\\n')\n\n\ntasks = load_tasks()\ntasks.append('Выучить срезы')\nsave_tasks(tasks)\nprint(tasks)"
+          "code": "FILENAME = 'tasks.txt'\n\ndef load_tasks():\n    try:\n        with open(FILENAME, encoding='utf-8') as file:\n            return [line.strip() for line in file if line.strip()]\n    except FileNotFoundError:\n        return []\n\n\ndef save_tasks(tasks):\n    with open(FILENAME, 'w', encoding='utf-8') as file:\n        for task in tasks:\n            file.write(task + '\\n')\n\n\ntasks = load_tasks()\ntasks.append('Выучить срезы')\nsave_tasks(tasks)\nprint(tasks)",
+          "run": true
+        },
+        {
+          "type": "task",
+          "id": "file-read",
+          "title": "Что напечатает программа?",
+          "text": "Не запуская код, определите вывод — две строки, по одной на каждый `print` из примера.",
+          "example": "with open('data.txt', 'w', encoding='utf-8') as f:\n    f.write('Python\\n')\n    f.write('Academy\\n')\n\nwith open('data.txt', encoding='utf-8') as f:\n    lines = f.readlines()\n\nprint(len(lines))\nprint(lines[0].strip())",
+          "starter": "# По строке на каждый print из примера\nprint()\nprint()",
+          "check": {
+            "mode": "stdout",
+            "cases": [
+              {
+                "stdin": "",
+                "expect": "2\nPython"
+              }
+            ]
+          },
+          "hint": "`readlines()` возвращает список строк, каждая из которых заканчивается символом `\\n`. `len()` считает строки, `strip()` убирает перевод строки.",
+          "solution": "print(2)\nprint('Python')",
+          "explain": "Файл был записан двумя вызовами `write`, поэтому `readlines()` вернёт список из двух элементов. Без `strip()` вторая часть вывода содержала бы невидимый перевод строки в конце."
+        },
+        {
+          "type": "task",
+          "id": "file-count",
+          "title": "Длинные слова в файле",
+          "text": "Программа читает число `n`, затем `n` слов — каждое на своей строке. Слова записываются в файл `words.txt` (каждое на отдельной строке), затем файл читается заново, и печатается количество слов длиннее трёх символов.",
+          "starter": "n = int(input())\nwords = [input() for _ in range(n)]\n",
+          "check": {
+            "mode": "stdout",
+            "cases": [
+              {
+                "stdin": "3\nкот\nбегемот\nпёс",
+                "expect": "1"
+              },
+              {
+                "stdin": "2\nabcd\nab",
+                "expect": "1"
+              },
+              {
+                "stdin": "1\nabc",
+                "expect": "0",
+                "hidden": true,
+                "note": "слово ровно из трёх букв не считается — сравнение строгое"
+              }
+            ]
+          },
+          "hint": "После чтения файла обратно не забудьте `strip()` — иначе в конце каждой «строки» останется невидимый `\\n`, и длина будет на единицу больше.",
+          "solution": "n = int(input())\nwords = [input() for _ in range(n)]\n\nwith open('words.txt', 'w', encoding='utf-8') as f:\n    for word in words:\n        f.write(word + '\\n')\n\nwith open('words.txt', encoding='utf-8') as f:\n    saved = [line.strip() for line in f]\n\nprint(sum(1 for w in saved if len(w) > 3))",
+          "explain": "Запись и чтение — фактически два разных «сеанса» работы с файлом внутри одной программы: сначала `'w'`, потом заново `'r'` по умолчанию. Если забыть `strip()`, длина каждого слова окажется на 1 больше из-за `\\n`, и слово из 3 букв ошибочно засчитается длинным."
+        },
+        {
+          "type": "task",
+          "id": "file-append",
+          "title": "Журнал с дозаписью",
+          "text": "Программа сначала создаёт файл `log.txt` и записывает в него строку `Старт`. Затем читает число `n` и `n` дополнительных строк — каждую дозаписывает в файл в режиме `'a'`. В конце файл читается целиком, и каждая строка печатается через `for line in file: print(line.strip())`.",
+          "starter": "with open('log.txt', 'w', encoding='utf-8') as f:\n    f.write('Старт\\n')\n\nn = int(input())\n",
+          "check": {
+            "mode": "stdout",
+            "cases": [
+              {
+                "stdin": "2\nШаг1\nШаг2",
+                "expect": "Старт\nШаг1\nШаг2"
+              },
+              {
+                "stdin": "0",
+                "expect": "Старт"
+              },
+              {
+                "stdin": "1\nКонец",
+                "expect": "Старт\nКонец",
+                "hidden": true,
+                "note": "одна дополнительная строка"
+              }
+            ]
+          },
+          "hint": "Открывать файл нужно второй раз, уже в режиме `'a'` — если снова открыть в `'w'`, строка «Старт» исчезнет.",
+          "solution": "with open('log.txt', 'w', encoding='utf-8') as f:\n    f.write('Старт\\n')\n\nn = int(input())\nwith open('log.txt', 'a', encoding='utf-8') as f:\n    for _ in range(n):\n        f.write(input() + '\\n')\n\nwith open('log.txt', encoding='utf-8') as f:\n    for line in f:\n        print(line.strip())",
+          "explain": "Режим `'a'` дописывает в конец, не стирая то, что уже есть, — в этом его отличие от `'w'`. Частая ошибка — снова открыть файл в `'w'` «чтобы дозаписать»: это сотрёт строку «Старт» ещё до того, как в файл попадёт хоть один новый символ."
         }
       ]
     },
@@ -702,7 +1282,8 @@
         {
           "type": "code",
           "title": "Объект в строку и обратно",
-          "code": "import json\n\ndata = {'name': 'Аня', 'grades': [5, 4], 'active': True, 'note': None}\n\ntext = json.dumps(data)\nprint(text)\n# {\"name\": \"\\u0410\\u043d\\u044f\", \"grades\": [5, 4], \"active\": true, \"note\": null}\n\ntext = json.dumps(data, ensure_ascii=False)\nprint(text)\n# {\"name\": \"Аня\", \"grades\": [5, 4], \"active\": true, \"note\": null}\n\nback = json.loads(text)\nprint(back['name'], back['grades'])   # Аня [5, 4]"
+          "code": "import json\n\ndata = {'name': 'Аня', 'grades': [5, 4], 'active': True, 'note': None}\n\ntext = json.dumps(data)\nprint(text)\n# {\"name\": \"\\u0410\\u043d\\u044f\", \"grades\": [5, 4], \"active\": true, \"note\": null}\n\ntext = json.dumps(data, ensure_ascii=False)\nprint(text)\n# {\"name\": \"Аня\", \"grades\": [5, 4], \"active\": true, \"note\": null}\n\nback = json.loads(text)\nprint(back['name'], back['grades'])   # Аня [5, 4]",
+          "run": true
         },
         {
           "type": "warn",
@@ -714,7 +1295,8 @@
         },
         {
           "type": "code",
-          "code": "import json\n\nstudents = [\n    {'name': 'Аня', 'group': '9А', 'grades': [5, 4, 5]},\n    {'name': 'Боря', 'group': '9Б', 'grades': [3, 4]},\n]\n\n# Запись\nwith open('students.json', 'w', encoding='utf-8') as file:\n    json.dump(students, file, ensure_ascii=False, indent=2)\n\n# Чтение\nwith open('students.json', encoding='utf-8') as file:\n    loaded = json.load(file)\n\nprint(loaded[0]['name'])          # Аня\nprint(len(loaded))                # 2\nprint(type(loaded))               # <class 'list'> — структура восстановлена"
+          "code": "import json\n\nstudents = [\n    {'name': 'Аня', 'group': '9А', 'grades': [5, 4, 5]},\n    {'name': 'Боря', 'group': '9Б', 'grades': [3, 4]},\n]\n\n# Запись\nwith open('students.json', 'w', encoding='utf-8') as file:\n    json.dump(students, file, ensure_ascii=False, indent=2)\n\n# Чтение\nwith open('students.json', encoding='utf-8') as file:\n    loaded = json.load(file)\n\nprint(loaded[0]['name'])          # Аня\nprint(len(loaded))                # 2\nprint(type(loaded))               # <class 'list'> — структура восстановлена",
+          "run": true
         },
         {
           "type": "note",
@@ -799,6 +1381,115 @@
           "type": "code",
           "title": "Практика: сохраняем прогресс между запусками",
           "code": "import json\n\nFILENAME = 'progress.json'\n\n\ndef load_progress():\n    try:\n        with open(FILENAME, encoding='utf-8') as file:\n            return json.load(file)\n    except (FileNotFoundError, json.JSONDecodeError):\n        return {'completed': [], 'score': 0}\n\n\ndef save_progress(progress):\n    with open(FILENAME, 'w', encoding='utf-8') as file:\n        json.dump(progress, file, ensure_ascii=False, indent=2)\n\n\nprogress = load_progress()\nprogress['completed'].append('Списки')\nprogress['score'] += 10\nsave_progress(progress)\nprint(progress)"
+        },
+        {
+          "type": "task",
+          "id": "json-read",
+          "title": "Что напечатает программа?",
+          "text": "Не запуская код, определите вывод — две строки, по одной на каждый `print` из примера.",
+          "example": "import json\n\ndata = json.dumps({'a': 1, 'b': [1, 2]})\nprint(data)\nprint(type(data))",
+          "starter": "# По строке на каждый print из примера\nprint()\nprint()",
+          "check": {
+            "mode": "stdout",
+            "cases": [
+              {
+                "stdin": "",
+                "expect": "{\"a\": 1, \"b\": [1, 2]}\n<class 'str'>"
+              }
+            ]
+          },
+          "hint": "`json.dumps` превращает объект в **строку** — печать выглядит как словарь, но `type()` это опровергает.",
+          "solution": "print('{\"a\": 1, \"b\": [1, 2]}')\nprint(\"<class 'str'>\")",
+          "explain": "Результат `json.dumps` — обычная строка `str`, даже если по виду напоминает словарь. Значит, `data['a']` работать не будет — сначала строку нужно разобрать обратно через `json.loads`."
+        },
+        {
+          "type": "task",
+          "id": "json-scores",
+          "title": "Сумма баллов из JSON",
+          "text": "Напишите функцию `total_score(json_text)` — принимает строку в формате JSON вида `'{\"scores\": [4, 5, 3]}'`, разбирает её через `json.loads` и возвращает сумму чисел из списка `scores`.",
+          "starter": "import json\n\n\ndef total_score(json_text):\n    ",
+          "check": {
+            "mode": "function",
+            "entry": "total_score",
+            "cases": [
+              {
+                "args": [
+                  "{\"scores\": [4, 5, 3]}"
+                ],
+                "expect": 12
+              },
+              {
+                "args": [
+                  "{\"scores\": [10, 20]}"
+                ],
+                "expect": 30
+              },
+              {
+                "args": [
+                  "{\"scores\": []}"
+                ],
+                "expect": 0,
+                "hidden": true,
+                "note": "пустой список — сумма 0"
+              }
+            ]
+          },
+          "hint": "Сначала получите словарь через `json.loads(json_text)`, потом сложите список под ключом `'scores'` встроенной функцией `sum()`.",
+          "solution": "import json\n\n\ndef total_score(json_text):\n    data = json.loads(json_text)\n    return sum(data['scores'])",
+          "explain": "Пока строку не разобрали через `json.loads`, это просто текст — суммировать его напрямую нельзя. `sum([])` возвращает `0`, поэтому пустой список не требует отдельной проверки."
+        },
+        {
+          "type": "task",
+          "id": "json-roundtrip",
+          "title": "Сохранить и посчитать записи",
+          "text": "Напишите функцию `save_and_count(records)` — принимает список словарей, записывает его в файл `items.json` через `json.dump` (с `ensure_ascii=False`), затем читает файл заново через `json.load` и возвращает количество записей.",
+          "starter": "import json\n\n\ndef save_and_count(records):\n    ",
+          "check": {
+            "mode": "function",
+            "entry": "save_and_count",
+            "cases": [
+              {
+                "args": [
+                  [
+                    {
+                      "a": 1
+                    },
+                    {
+                      "b": 2
+                    }
+                  ]
+                ],
+                "expect": 2
+              },
+              {
+                "args": [
+                  []
+                ],
+                "expect": 0
+              },
+              {
+                "args": [
+                  [
+                    {
+                      "x": 1
+                    },
+                    {
+                      "y": 2
+                    },
+                    {
+                      "z": 3
+                    }
+                  ]
+                ],
+                "expect": 3,
+                "hidden": true,
+                "note": "несколько записей подряд"
+              }
+            ]
+          },
+          "hint": "Сначала `with open(..., 'w', ...)` и `json.dump`, потом отдельным блоком `with open(...)` и `json.load` — и верните `len()` от результата.",
+          "solution": "import json\n\n\ndef save_and_count(records):\n    with open('items.json', 'w', encoding='utf-8') as f:\n        json.dump(records, f, ensure_ascii=False)\n\n    with open('items.json', encoding='utf-8') as f:\n        loaded = json.load(f)\n\n    return len(loaded)",
+          "explain": "Запись и чтение здесь — два отдельных блока `with`: пока первый не закрылся, данные могут быть не сброшены на диск. Пустой список сохраняется и читается так же исправно, как и непустой — `len([])` равен 0."
         }
       ]
     },
@@ -825,7 +1516,8 @@
         },
         {
           "type": "code",
-          "code": "import csv\n\nrows = [\n    ['имя', 'группа', 'балл'],\n    ['Аня', '9А', 78],\n    ['Боря', '9Б', 92],\n]\n\nwith open('students.csv', 'w', encoding='utf-8', newline='') as file:\n    writer = csv.writer(file)\n    writer.writerows(rows)          # сразу все строки\n    # writer.writerow(['Вика', '9А', 85])   — или по одной"
+          "code": "import csv\n\nrows = [\n    ['имя', 'группа', 'балл'],\n    ['Аня', '9А', 78],\n    ['Боря', '9Б', 92],\n]\n\nwith open('students.csv', 'w', encoding='utf-8', newline='') as file:\n    writer = csv.writer(file)\n    writer.writerows(rows)          # сразу все строки\n    # writer.writerow(['Вика', '9А', 85])   — или по одной",
+          "run": true
         },
         {
           "type": "warn",
@@ -915,6 +1607,122 @@
               "JSON"
             ]
           ]
+        },
+        {
+          "type": "task",
+          "id": "csv-read",
+          "title": "Что напечатает программа?",
+          "text": "Не запуская код, определите вывод — две строки, по одной на каждый `print` из примера.",
+          "example": "import csv\n\nwith open('data.csv', 'w', encoding='utf-8', newline='') as f:\n    writer = csv.writer(f)\n    writer.writerow(['имя', 'балл'])\n    writer.writerow(['Аня', 78])\n\nwith open('data.csv', encoding='utf-8', newline='') as f:\n    reader = csv.reader(f)\n    rows = list(reader)\n\nprint(len(rows))\nprint(rows[1][0])",
+          "starter": "# По строке на каждый print из примера\nprint()\nprint()",
+          "check": {
+            "mode": "stdout",
+            "cases": [
+              {
+                "stdin": "",
+                "expect": "2\nАня"
+              }
+            ]
+          },
+          "hint": "`csv.writer` записал две строки — заголовок и данные, значит, `rows` — список из двух списков.",
+          "solution": "print(2)\nprint('Аня')",
+          "explain": "`csv.reader` не отличает заголовок от данных — обе строки просто попадают в список `rows` по порядку. Число `78` при чтении вернётся строкой `'78'`, а не числом — это тоже стоит помнить."
+        },
+        {
+          "type": "task",
+          "id": "csv-total",
+          "title": "Сумма баллов из CSV",
+          "text": "Программа читает число `n` и `n` строк вида `имя балл` (через пробел). Все записи сохраняются в файл `scores.csv` через `csv.writer` — первая строка файла заголовок `имя,балл`. Затем файл читается заново через `csv.DictReader`, и печатается сумма всех баллов.",
+          "starter": "import csv\n\nn = int(input())\n",
+          "check": {
+            "mode": "stdout",
+            "cases": [
+              {
+                "stdin": "2\nАня 78\nБоря 92",
+                "expect": "170"
+              },
+              {
+                "stdin": "1\nВика 100",
+                "expect": "100"
+              },
+              {
+                "stdin": "3\nА 1\nБ 2\nВ 3",
+                "expect": "6",
+                "hidden": true,
+                "note": "несколько коротких записей подряд"
+              }
+            ]
+          },
+          "hint": "`row['балл']` из `DictReader` приходит строкой — не забудьте `int()` перед сложением.",
+          "solution": "import csv\n\nn = int(input())\nrecords = []\nfor _ in range(n):\n    name, score = input().split()\n    records.append((name, score))\n\nwith open('scores.csv', 'w', encoding='utf-8', newline='') as f:\n    writer = csv.writer(f)\n    writer.writerow(['имя', 'балл'])\n    for name, score in records:\n        writer.writerow([name, score])\n\ntotal = 0\nwith open('scores.csv', encoding='utf-8', newline='') as f:\n    for row in csv.DictReader(f):\n        total += int(row['балл'])\n\nprint(total)",
+          "explain": "`DictReader` сам взял первую строку файла как имена колонок — поэтому обращение по `row['балл']` работает, даже если порядок колонок в будущем поменяется. Забытый `int()` склеил бы баллы как строки вместо сложения чисел."
+        },
+        {
+          "type": "task",
+          "id": "csv-names",
+          "title": "Лидер турнирной таблицы",
+          "text": "Напишите функцию `top_scorer(records)` — принимает список пар `[имя, балл]`, записывает их в файл `board.csv` через `csv.writer` (без заголовка), затем читает файл заново через `csv.reader` и возвращает имя с максимальным баллом. При чтении баллы приходят строками — не забудьте `int()`.",
+          "starter": "import csv\n\n\ndef top_scorer(records):\n    ",
+          "check": {
+            "mode": "function",
+            "entry": "top_scorer",
+            "cases": [
+              {
+                "args": [
+                  [
+                    [
+                      "Аня",
+                      78
+                    ],
+                    [
+                      "Боря",
+                      92
+                    ]
+                  ]
+                ],
+                "expect": "Боря"
+              },
+              {
+                "args": [
+                  [
+                    [
+                      "Вика",
+                      50
+                    ],
+                    [
+                      "Гриша",
+                      50
+                    ]
+                  ]
+                ],
+                "expect": "Вика"
+              },
+              {
+                "args": [
+                  [
+                    [
+                      "А",
+                      10
+                    ],
+                    [
+                      "Б",
+                      20
+                    ],
+                    [
+                      "В",
+                      5
+                    ]
+                  ]
+                ],
+                "expect": "Б",
+                "hidden": true,
+                "note": "лидер не обязательно первый или последний в списке"
+              }
+            ]
+          },
+          "hint": "Заведите `best_name` и `best_score`, обновляйте их сравнением строго `>` — так первый из равных останется лидером.",
+          "solution": "import csv\n\n\ndef top_scorer(records):\n    with open('board.csv', 'w', encoding='utf-8', newline='') as f:\n        writer = csv.writer(f)\n        writer.writerows(records)\n\n    best_name, best_score = None, None\n    with open('board.csv', encoding='utf-8', newline='') as f:\n        for row in csv.reader(f):\n            name, score = row[0], int(row[1])\n            if best_score is None or score > best_score:\n                best_name, best_score = name, score\n\n    return best_name",
+          "explain": "Без `int()` сравнение баллов шло бы как у строк — `'92' > '78'` тут случайно верно, а вот `'9' > '92'` уже нет. Строгое `>` в сравнении гарантирует, что при равных баллах победит тот, кто встретился раньше."
         }
       ]
     },
@@ -933,7 +1741,8 @@
         {
           "type": "code",
           "title": "Файл utils.py",
-          "code": "# utils.py\n\nPI = 3.14159\n\n\ndef circle_area(radius):\n    return PI * radius ** 2\n\n\ndef greet(name):\n    return f'Привет, {name}!'"
+          "code": "# utils.py\n\nPI = 3.14159\n\n\ndef circle_area(radius):\n    return PI * radius ** 2\n\n\ndef greet(name):\n    return f'Привет, {name}!'",
+          "run": true
         },
         {
           "type": "code",
@@ -967,7 +1776,8 @@
         },
         {
           "type": "code",
-          "code": "# utils.py\ndef greet(name):\n    return f'Привет, {name}!'\n\n\nif __name__ == '__main__':\n    # Выполнится только при прямом запуске utils.py,\n    # а при импорте — нет\n    print('Проверяю функции:')\n    print(greet('тест'))"
+          "code": "# utils.py\ndef greet(name):\n    return f'Привет, {name}!'\n\n\nif __name__ == '__main__':\n    # Выполнится только при прямом запуске utils.py,\n    # а при импорте — нет\n    print('Проверяю функции:')\n    print(greet('тест'))",
+          "run": true
         },
         {
           "type": "note",
@@ -1013,6 +1823,80 @@
         {
           "type": "warn",
           "text": "Избегайте взаимного импорта: если `a.py` импортирует `b.py`, а `b.py` — `a.py`, программа упадёт с `ImportError`. Это признак того, что общий код пора вынести в третий файл."
+        },
+        {
+          "type": "task",
+          "id": "own-read",
+          "title": "Что напечатает программа?",
+          "text": "Не запуская код, определите вывод — две строки, по одной на каждый `print` из примера.",
+          "example": "def area(a, b):\n    return a * b\n\n\nif __name__ == '__main__':\n    print(area(3, 4))\n    print('Готово')",
+          "starter": "# По строке на каждый print из примера\nprint()\nprint()",
+          "check": {
+            "mode": "stdout",
+            "cases": [
+              {
+                "stdin": "",
+                "expect": "12\nГотово"
+              }
+            ]
+          },
+          "hint": "`__name__` равен `'__main__'` именно тогда, когда файл запущен напрямую — значит, блок внутри `if` выполнится.",
+          "solution": "print(12)\nprint('Готово')",
+          "explain": "При прямом запуске файла Python сам подставляет `__name__ = '__main__'`, поэтому код внутри `if` срабатывает. Если бы этот же файл импортировали из другого, блок остался бы без выполнения."
+        },
+        {
+          "type": "task",
+          "id": "own-alias",
+          "title": "Два способа подключить одно и то же",
+          "text": "Программа не читает ввод. Подключите модуль `math` под именем `m` (`import math as m`) и функцию `sqrt` отдельно под именем `root` (`from math import sqrt as root`). Напечатайте `m.pi`, округлённый до двух знаков, и `root(81)`.",
+          "starter": "import math as m\nfrom math import sqrt as root\n\n",
+          "check": {
+            "mode": "stdout",
+            "cases": [
+              {
+                "stdin": "",
+                "expect": "3.14\n9.0"
+              },
+              {
+                "stdin": "что угодно",
+                "expect": "3.14\n9.0",
+                "hidden": true,
+                "note": "программа не должна использовать input()"
+              }
+            ]
+          },
+          "hint": "`m.pi` — то же самое значение, что и `math.pi`, просто доступное под другим именем. `root(81)` — это `sqrt(81)` под псевдонимом, без префикса.",
+          "solution": "import math as m\nfrom math import sqrt as root\n\nprint(round(m.pi, 2))\nprint(root(81))",
+          "explain": "`as` меняет только то, как к объекту обращаются в коде, — сам объект остаётся прежним. Частая ошибка — попытаться вызвать `math.sqrt` после `import math as m`: имени `math` в программе уже нет."
+        },
+        {
+          "type": "task",
+          "id": "own-guard",
+          "title": "Функция и точка входа",
+          "text": "Программа определяет функцию `square(n)` — она возвращает `n ** 2`. Внутри блока `if __name__ == '__main__':` программа дважды считывает число через `input()` и печатает квадрат каждого числа на отдельной строке.",
+          "starter": "def square(n):\n    \n\nif __name__ == '__main__':\n    ",
+          "check": {
+            "mode": "stdout",
+            "cases": [
+              {
+                "stdin": "3\n4",
+                "expect": "9\n16"
+              },
+              {
+                "stdin": "5\n5",
+                "expect": "25\n25"
+              },
+              {
+                "stdin": "-2\n0",
+                "expect": "4\n0",
+                "hidden": true,
+                "note": "отрицательное число и ноль"
+              }
+            ]
+          },
+          "hint": "Вызовы `input()` и `print()` должны быть именно внутри блока `if __name__ == '__main__':` — саму функцию `square` определяйте снаружи, чтобы её можно было использовать и при импорте.",
+          "solution": "def square(n):\n    return n ** 2\n\n\nif __name__ == '__main__':\n    a = int(input())\n    b = int(input())\n    print(square(a))\n    print(square(b))",
+          "explain": "Разделение на «функция снаружи, ввод-вывод внутри guard» — стандартная структура модуля: функцию можно переиспользовать при импорте, а интерактивная часть сработает только при прямом запуске. `(-2) ** 2` равно `4` — знак минуса не выживает при возведении в квадрат."
         }
       ]
     },
@@ -1109,6 +1993,26 @@
         {
           "type": "warn",
           "text": "Пакет из PyPI — это чужой код, который выполнится на вашем компьютере. Устанавливайте только известные библиотеки и внимательно проверяйте название: злоумышленники специально публикуют пакеты с именами, отличающимися на одну букву от популярных."
+        },
+        {
+          "type": "task",
+          "id": "pip-version",
+          "title": "Проверка версии Python",
+          "text": "Перед установкой пакета иногда нужно проверить версию Python — не все пакеты поддерживают старые версии. Не запуская код, определите вывод — две строки, по одной на каждый print из примера.",
+          "example": "import sys\n\nprint(sys.version_info.major)\nprint(sys.version_info.major == 3)",
+          "starter": "# По строке на каждый print из примера\nprint()\nprint()",
+          "check": {
+            "mode": "stdout",
+            "cases": [
+              {
+                "stdin": "",
+                "expect": "3\nTrue"
+              }
+            ]
+          },
+          "hint": "`sys.version_info` — это именованный кортеж с полями `major`, `minor`, `micro`; курс целиком написан под Python 3.",
+          "solution": "print(3)\nprint(True)",
+          "explain": "`sys.version_info.major` — это первая цифра версии Python. Так же можно сравнивать всю версию целиком: `sys.version_info >= (3, 8)` — именно это реально проверяют перед установкой требовательного пакета."
         }
       ]
     },
@@ -1139,7 +2043,8 @@
         },
         {
           "type": "code",
-          "code": "def average(numbers):\n    if not numbers:\n        return 0\n    return sum(numbers) / len(numbers)\n\n\n# Мини-тесты прямо под функцией:\nassert average([2, 4]) == 3\nassert average([5]) == 5\nassert average([]) == 0\nassert average([1, 2, 3, 4]) == 2.5\n\nprint('Все проверки пройдены')"
+          "code": "def average(numbers):\n    if not numbers:\n        return 0\n    return sum(numbers) / len(numbers)\n\n\n# Мини-тесты прямо под функцией:\nassert average([2, 4]) == 3\nassert average([5]) == 5\nassert average([]) == 0\nassert average([1, 2, 3, 4]) == 2.5\n\nprint('Все проверки пройдены')",
+          "run": true
         },
         {
           "type": "note",
@@ -1215,6 +2120,82 @@
         {
           "type": "note",
           "text": "Идея та же самая, что и с `assert` под функцией, — просто аккуратнее оформлено и запускается одной командой. Для школьных проектов достаточно и обычных `assert`."
+        },
+        {
+          "type": "task",
+          "id": "assert-read",
+          "title": "Что напечатает программа?",
+          "text": "Не запуская код, определите вывод — две строки, по одной на каждый `print` из примера.",
+          "example": "def double(n):\n    assert n >= 0, 'n должно быть неотрицательным'\n    return n * 2\n\n\nprint(double(5))\nprint(double(0))",
+          "starter": "# По строке на каждый print из примера\nprint()\nprint()",
+          "check": {
+            "mode": "stdout",
+            "cases": [
+              {
+                "stdin": "",
+                "expect": "10\n0"
+              }
+            ]
+          },
+          "hint": "Оба вызова передают неотрицательные числа, поэтому `assert` молчит и функция просто возвращает `n * 2`.",
+          "solution": "print(10)\nprint(0)",
+          "explain": "`assert` здесь не мешает обычной работе функции — он срабатывает, только если условие ложно. `double(0)` — совершенно законный вызов: `0 >= 0` истинно, и `0 * 2` равно `0`."
+        },
+        {
+          "type": "task",
+          "id": "assert-validate",
+          "title": "Проверка процента",
+          "text": "Напишите функцию `set_percent(value)` — она проверяет через `assert`, что `value` находится в диапазоне от 0 до 100 включительно (сообщение `'некорректный процент'`), и возвращает `value` без изменений.",
+          "starter": "def set_percent(value):\n    ",
+          "check": {
+            "mode": "asserts",
+            "cases": [
+              {
+                "code": "assert set_percent(50) == 50, 'корректное значение должно возвращаться как есть'",
+                "note": "обычное значение возвращается без изменений"
+              },
+              {
+                "code": "assert set_percent(0) == 0 and set_percent(100) == 100, 'границы 0 и 100 должны быть допустимы'",
+                "note": "границы диапазона допустимы"
+              },
+              {
+                "code": "try:\n    set_percent(150)\n    raised = False\nexcept AssertionError:\n    raised = True\nassert raised, 'значение 150 должно было поднять AssertionError'",
+                "hidden": true,
+                "note": "значение вне диапазона поднимает AssertionError"
+              }
+            ]
+          },
+          "hint": "`assert 0 <= value <= 100, 'некорректный процент'` — Python понимает такую цепочку сравнений напрямую, в одну строку.",
+          "solution": "def set_percent(value):\n    assert 0 <= value <= 100, 'некорректный процент'\n    return value",
+          "explain": "`0 <= value <= 100` эквивалентно `0 <= value and value <= 100`, но короче. Если проверить только `value <= 100` и забыть нижнюю границу, отрицательные числа пройдут незамеченными."
+        },
+        {
+          "type": "task",
+          "id": "assert-transfer",
+          "title": "Безопасное деление",
+          "text": "Напишите функцию `safe_divide(a, b)` — она проверяет через `assert`, что `b` не равно нулю (сообщение `'деление на ноль'`), и возвращает `a / b`.",
+          "starter": "def safe_divide(a, b):\n    ",
+          "check": {
+            "mode": "asserts",
+            "cases": [
+              {
+                "code": "assert safe_divide(10, 2) == 5, 'обычное деление должно работать как обычно'",
+                "note": "обычное деление"
+              },
+              {
+                "code": "assert safe_divide(-9, 3) == -3, 'отрицательные числа делятся как обычно'",
+                "note": "отрицательное число делится корректно"
+              },
+              {
+                "code": "try:\n    safe_divide(5, 0)\n    raised = False\nexcept AssertionError:\n    raised = True\nassert raised, 'деление на 0 должно поднимать AssertionError'",
+                "hidden": true,
+                "note": "деление на 0 поднимает AssertionError"
+              }
+            ]
+          },
+          "hint": "Проверка `b != 0` должна стоять в функции ДО самого деления — иначе `ZeroDivisionError` вылетит раньше, чем успеет сработать `assert`.",
+          "solution": "def safe_divide(a, b):\n    assert b != 0, 'деление на ноль'\n    return a / b",
+          "explain": "Если поменять местами проверку и деление, вместо понятного `AssertionError` со своим сообщением появится стандартный `ZeroDivisionError`. Раздел «Чем assert отличается от if + raise» напоминает: здесь проверяется программистская ошибка, а не пользовательский ввод."
         }
       ]
     }
