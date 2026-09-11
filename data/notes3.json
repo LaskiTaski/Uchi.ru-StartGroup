@@ -20,7 +20,8 @@
         {
           "type": "code",
           "title": "Определение и вызов",
-          "code": "def greet():          # определение — код пока не выполняется\n    print('Привет!')\n    print('Как дела?')\n\ngreet()  # вызов — вот теперь выполнится\ngreet()  # можно сколько угодно раз"
+          "code": "def greet():          # определение — код пока не выполняется\n    print('Привет!')\n    print('Как дела?')\n\ngreet()  # вызов — вот теперь выполнится\ngreet()  # можно сколько угодно раз",
+          "run": true
         },
         {
           "type": "note",
@@ -36,7 +37,8 @@
         },
         {
           "type": "code",
-          "code": "def greet(name):        # name — параметр\n    print(f'Привет, {name}!')\n\ngreet('Аня')           # 'Аня' — аргумент\ngreet('Боря')\n\nnames = ['Вика', 'Гена']\nfor n in names:\n    greet(n)"
+          "code": "def greet(name):        # name — параметр\n    print(f'Привет, {name}!')\n\ngreet('Аня')           # 'Аня' — аргумент\ngreet('Боря')\n\nnames = ['Вика', 'Гена']\nfor n in names:\n    greet(n)",
+          "run": true
         },
         {
           "type": "table",
@@ -134,6 +136,65 @@
           "hint": "Функция должна **возвращать** строку через `return`, а не печатать её. Печать и возврат — разные вещи.",
           "solution": "def greet(name):\n    if not name:\n        return 'Привет, мир!'\n    return f'Привет, {name}!'",
           "explain": "Самая частая ошибка на этом задании — `print` вместо `return`. Такая функция напечатает нужное на экран, но вернёт `None`, и любая проверка её результата провалится."
+        },
+        {
+          "type": "task",
+          "id": "func-order",
+          "title": "Что напечатает программа?",
+          "text": "Не запуская код, определите вывод программы и напечатайте его — 2 строки, как их напечатает сама программа.",
+          "example": "def introduce(name, age):\n    print(f'{name}, {age} лет')\n\nintroduce('Тим', 20)\nintroduce(age=15, name='Аня')",
+          "starter": "# Напечатайте вывод программы — по одному print на строку\nprint()\nprint()",
+          "check": {
+            "mode": "stdout",
+            "cases": [
+              {
+                "stdin": "",
+                "expect": "Тим, 20 лет\nАня, 15 лет"
+              }
+            ]
+          },
+          "hint": "Именованные аргументы можно передавать в любом порядке — Python сопоставит их по имени, а не по позиции вызова.",
+          "solution": "print('Тим, 20 лет')\nprint('Аня, 15 лет')",
+          "explain": "Во втором вызове аргументы переставлены местами и переданы по имени (age=15, name='Аня') — Python всё равно подставит их в нужные параметры, порядок написания в вызове значения не имеет."
+        },
+        {
+          "type": "task",
+          "id": "func-rect-perimeter",
+          "title": "Периметр прямоугольника",
+          "text": "Напишите функцию `perimeter(a, b)` — она возвращает периметр прямоугольника со сторонами `a` и `b`.",
+          "starter": "def perimeter(a, b):\n    ",
+          "check": {
+            "mode": "function",
+            "entry": "perimeter",
+            "cases": [
+              {
+                "args": [
+                  3,
+                  4
+                ],
+                "expect": 14
+              },
+              {
+                "args": [
+                  5,
+                  5
+                ],
+                "expect": 20
+              },
+              {
+                "args": [
+                  0,
+                  5
+                ],
+                "expect": 10,
+                "hidden": true,
+                "note": "одна из сторон равна нулю"
+              }
+            ]
+          },
+          "hint": "Формула периметра прямоугольника — `2 * (a + b)`. Не забудьте вернуть результат через `return`.",
+          "solution": "def perimeter(a, b):\n    return 2 * (a + b)",
+          "explain": "Скобки здесь обязательны: `2 * (a + b)` и `2 * a + b` дают разные числа. Скрытый тест с нулевой стороной дополнительно проверяет, что в формуле участвуют обе стороны, а не только одна."
         }
       ]
     },
@@ -170,7 +231,8 @@
         },
         {
           "type": "code",
-          "code": "def check(n):\n    if n < 0:\n        return 'отрицательное'    # выходим сразу\n    print('эта строка не выполнится при n < 0')\n    return 'неотрицательное'\n\nprint(check(-5))  # отрицательное\nprint(check(5))   # печатает строку, затем: неотрицательное"
+          "code": "def check(n):\n    if n < 0:\n        return 'отрицательное'    # выходим сразу\n    print('эта строка не выполнится при n < 0')\n    return 'неотрицательное'\n\nprint(check(-5))  # отрицательное\nprint(check(5))   # печатает строку, затем: неотрицательное",
+          "run": true
         },
         {
           "type": "note",
@@ -193,7 +255,8 @@
         },
         {
           "type": "code",
-          "code": "def min_max(numbers):\n    return min(numbers), max(numbers)      # это кортеж\n\nlowest, highest = min_max([5, 2, 8])  # распаковка\nprint(lowest, highest)                # 2 8\n\nresult = min_max([5, 2, 8])\nprint(result)        # (2, 8) — кортеж целиком\nprint(type(result))  # <class 'tuple'>"
+          "code": "def min_max(numbers):\n    return min(numbers), max(numbers)      # это кортеж\n\nlowest, highest = min_max([5, 2, 8])  # распаковка\nprint(lowest, highest)                # 2 8\n\nresult = min_max([5, 2, 8])\nprint(result)        # (2, 8) — кортеж целиком\nprint(type(result))  # <class 'tuple'>",
+          "run": true
         },
         {
           "type": "text",
@@ -262,6 +325,72 @@
           "hint": "Проверку на пустой список делайте **первой строкой** функции — до всяких вычислений.",
           "solution": "def average(numbers):\n    if not numbers:\n        return 0\n    return sum(numbers) / len(numbers)",
           "explain": "Среднее от [0.1, 0.2] в двоичной арифметике равно 0.15000000000000002, а не ровно 0.15. Проверка сравнивает числа с допуском, поэтому такой ответ засчитывается — но помнить об этом стоит."
+        },
+        {
+          "type": "task",
+          "id": "ret-early-exit",
+          "title": "Что напечатает программа?",
+          "text": "Не запуская код, определите вывод программы и напечатайте его — 3 строки, как их напечатает сама программа.",
+          "example": "def classify(n):\n    if n < 0:\n        return 'отрицательное'\n    print('проверяем дальше')\n    return 'неотрицательное'\n\nprint(classify(-3))\nprint(classify(4))",
+          "starter": "# Напечатайте вывод программы — по одному print на строку\nprint()\nprint()\nprint()",
+          "check": {
+            "mode": "stdout",
+            "cases": [
+              {
+                "stdin": "",
+                "expect": "отрицательное\nпроверяем дальше\nнеотрицательное"
+              }
+            ]
+          },
+          "hint": "`return` сразу завершает функцию — строка `print('проверяем дальше')` выполнится, только если до неё дойдёт очередь.",
+          "solution": "print('отрицательное')\nprint('проверяем дальше')\nprint('неотрицательное')",
+          "explain": "При n = -3 функция выходит на первом же return, не доходя до print внутри себя. При n = 4 условие ложно, поэтому выполняются обе оставшиеся строки — печать и второй return."
+        },
+        {
+          "type": "task",
+          "id": "ret-min-max-diff",
+          "title": "Размах значений",
+          "text": "Напишите функцию `min_max_diff(numbers)` — она возвращает разницу между наибольшим и наименьшим числом списка `numbers`.",
+          "starter": "def min_max_diff(numbers):\n    ",
+          "check": {
+            "mode": "function",
+            "entry": "min_max_diff",
+            "cases": [
+              {
+                "args": [
+                  [
+                    5,
+                    2,
+                    8
+                  ]
+                ],
+                "expect": 6
+              },
+              {
+                "args": [
+                  [
+                    4
+                  ]
+                ],
+                "expect": 0
+              },
+              {
+                "args": [
+                  [
+                    -3,
+                    -1,
+                    -7
+                  ]
+                ],
+                "expect": 6,
+                "hidden": true,
+                "note": "отрицательные числа"
+              }
+            ]
+          },
+          "hint": "Встроенные `max(numbers)` и `min(numbers)` сами считают весь список — вручную перебирать не нужно.",
+          "solution": "def min_max_diff(numbers):\n    return max(numbers) - min(numbers)",
+          "explain": "Список из одного элемента — не ошибка: max и min совпадают, разница равна 0. Со списком из отрицательных чисел формула работает точно так же — max выбирает число, ближайшее к нулю."
         }
       ]
     },
@@ -307,7 +436,8 @@
         },
         {
           "type": "code",
-          "code": "def total(*numbers):              # numbers станет кортежем\n    print(type(numbers), numbers)\n    return sum(numbers)\n\nprint(total(1, 2))           # <class 'tuple'> (1, 2) → 3\nprint(total(1, 2, 3, 4, 5))  # → 15\nprint(total())               # → 0"
+          "code": "def total(*numbers):              # numbers станет кортежем\n    print(type(numbers), numbers)\n    return sum(numbers)\n\nprint(total(1, 2))           # <class 'tuple'> (1, 2) → 3\nprint(total(1, 2, 3, 4, 5))  # → 15\nprint(total())               # → 0",
+          "run": true
         },
         {
           "type": "note",
@@ -324,7 +454,8 @@
         {
           "type": "code",
           "title": "Всё вместе — строгий порядок",
-          "code": "def universal(required, default=0, *args, **kwargs):\n    print('обязательный:', required)\n    print('по умолчанию:', default)\n    print('лишние позиционные:', args)\n    print('лишние именованные:', kwargs)\n\nuniversal('A', 5, 'x', 'y', color='красный')\n# обязательный: A\n# по умолчанию: 5\n# лишние позиционные: ('x', 'y')\n# лишние именованные: {'color': 'красный'}"
+          "code": "def universal(required, default=0, *args, **kwargs):\n    print('обязательный:', required)\n    print('по умолчанию:', default)\n    print('лишние позиционные:', args)\n    print('лишние именованные:', kwargs)\n\nuniversal('A', 5, 'x', 'y', color='красный')\n# обязательный: A\n# по умолчанию: 5\n# лишние позиционные: ('x', 'y')\n# лишние именованные: {'color': 'красный'}",
+          "run": true
         },
         {
           "type": "heading",
@@ -337,6 +468,100 @@
         {
           "type": "note",
           "text": "Одна звёздочка распаковывает последовательность в позиционные аргументы, две — [словарь](#dict) в именованные. Ключи словаря должны совпадать с именами параметров."
+        },
+        {
+          "type": "task",
+          "id": "args-order",
+          "title": "Что напечатает программа?",
+          "text": "Не запуская код, определите вывод программы и напечатайте его — 3 строки, как их напечатает сама программа.",
+          "example": "def profile(**info):\n    for key, value in info.items():\n        print(f'{key}: {value}')\n\nprofile(name='Тим', age=20)\nprofile(city='Москва')",
+          "starter": "# Напечатайте вывод программы — по одному print на строку\nprint()\nprint()\nprint()",
+          "check": {
+            "mode": "stdout",
+            "cases": [
+              {
+                "stdin": "",
+                "expect": "name: Тим\nage: 20\ncity: Москва"
+              }
+            ]
+          },
+          "hint": "`**info` собирает все именованные аргументы вызова в словарь — порядок в нём совпадает с порядком передачи.",
+          "solution": "print('name: Тим')\nprint('age: 20')\nprint('city: Москва')",
+          "explain": "Первый вызов передаёт два именованных аргумента — цикл печатает две строки. Второй вызов передаёт только один, и `info` в нём будет уже другим, независимым словарём с одной парой ключ-значение."
+        },
+        {
+          "type": "task",
+          "id": "args-star-max",
+          "title": "Наибольшее из переданных",
+          "text": "Напишите функцию `biggest(*numbers)` — она возвращает наибольшее из переданных чисел. Если аргументов не передано, возвращается `None`.",
+          "starter": "def biggest(*numbers):\n    ",
+          "check": {
+            "mode": "function",
+            "entry": "biggest",
+            "cases": [
+              {
+                "args": [
+                  3,
+                  7,
+                  2
+                ],
+                "expect": 7
+              },
+              {
+                "args": [
+                  5
+                ],
+                "expect": 5
+              },
+              {
+                "args": [],
+                "expect": null,
+                "hidden": true,
+                "note": "без аргументов"
+              }
+            ]
+          },
+          "hint": "Проверьте `numbers` на пустоту первой строкой — до вызова `max`, который на пустом кортеже бросает ошибку.",
+          "solution": "def biggest(*numbers):\n    if not numbers:\n        return None\n    return max(numbers)",
+          "explain": "`*numbers` собирает все позиционные аргументы в кортеж, поэтому вызов без аргументов — не ошибка, а пустой кортеж `()`. `max(())` сам по себе бросает `ValueError`, если его не отсечь заранее."
+        },
+        {
+          "type": "task",
+          "id": "args-power-default",
+          "title": "Возведение в степень",
+          "text": "Напишите функцию `power(base, exponent=2)` — она возвращает `base` в степени `exponent`. Если степень не передана, она считается равной 2.",
+          "starter": "def power(base, exponent=2):\n    ",
+          "check": {
+            "mode": "function",
+            "entry": "power",
+            "cases": [
+              {
+                "args": [
+                  3
+                ],
+                "expect": 9
+              },
+              {
+                "args": [
+                  2,
+                  3
+                ],
+                "expect": 8
+              },
+              {
+                "args": [
+                  5,
+                  0
+                ],
+                "expect": 1,
+                "hidden": true,
+                "note": "нулевая степень"
+              }
+            ]
+          },
+          "hint": "Значение по умолчанию задаётся прямо в заголовке функции: `def power(base, exponent=2):`.",
+          "solution": "def power(base, exponent=2):\n    return base ** exponent",
+          "explain": "Любое число в нулевой степени равно 1 — скрытый тест проверяет, что вы используете оператор `**`, а не собственный цикл умножения, в котором легко ошибиться именно на этом граничном случае."
         }
       ]
     },
@@ -362,7 +587,8 @@
         },
         {
           "type": "code",
-          "code": "rate = 0.13             # глобальная переменная\n\ndef tax(income):\n    return income * rate  # читать глобальную — можно\n\nprint(tax(1000))        # 130.0"
+          "code": "rate = 0.13             # глобальная переменная\n\ndef tax(income):\n    return income * rate  # читать глобальную — можно\n\nprint(tax(1000))        # 130.0",
+          "run": true
         },
         {
           "type": "heading",
@@ -387,7 +613,8 @@
         },
         {
           "type": "code",
-          "code": "balance = 0\n\ndef add():\n    global balance       # заявляем: работаем с глобальной\n    balance += 100\n\nadd()\nadd()\nprint(balance)           # 200"
+          "code": "balance = 0\n\ndef add():\n    global balance       # заявляем: работаем с глобальной\n    balance += 100\n\nadd()\nadd()\nprint(balance)           # 200",
+          "run": true
         },
         {
           "type": "compare",
@@ -420,6 +647,92 @@
         {
           "type": "warn",
           "text": "Затенение встроенных имён — коварная ошибка: код падает не там, где переменная создана, а там, где позже понадобилась настоящая функция. PyCharm подсвечивает такие имена — не игнорируйте подсказку."
+        },
+        {
+          "type": "task",
+          "id": "scope-read",
+          "title": "Что напечатает программа?",
+          "text": "Не запуская код, определите вывод программы и напечатайте его — 2 строки, как их напечатает сама программа.",
+          "example": "rate = 0.2\n\ndef discount(price):\n    return price - price * rate\n\nprint(discount(100))\nprint(discount(50))",
+          "starter": "# Напечатайте вывод программы — по одному print на строку\nprint()\nprint()",
+          "check": {
+            "mode": "stdout",
+            "cases": [
+              {
+                "stdin": "",
+                "expect": "80.0\n40.0"
+              }
+            ]
+          },
+          "hint": "Функция ничего не присваивает переменной `rate` — она только читает её, а читать глобальную переменную можно без всяких дополнительных слов.",
+          "solution": "print(80.0)\nprint(40.0)",
+          "explain": "`rate` — глобальная переменная, и `discount` свободно её читает. Результат умножения на 0.2 — всегда float, поэтому в выводе 80.0 и 40.0, а не 80 и 40."
+        },
+        {
+          "type": "task",
+          "id": "scope-next-id",
+          "title": "Счётчик id",
+          "text": "Заведите глобальную переменную `counter = 0` и напишите функцию `next_id()` — при каждом вызове она увеличивает `counter` на 1 и возвращает новое значение.",
+          "starter": "counter = 0\n\ndef next_id():\n    ",
+          "check": {
+            "mode": "function",
+            "entry": "next_id",
+            "cases": [
+              {
+                "args": [],
+                "expect": 1
+              },
+              {
+                "args": [],
+                "expect": 2
+              },
+              {
+                "args": [],
+                "expect": 3,
+                "hidden": true,
+                "note": "третий вызов подряд"
+              }
+            ]
+          },
+          "hint": "Внутри функции понадобится `global counter` — без него присваивание создаст новую локальную переменную, и увеличение не сохранится между вызовами.",
+          "solution": "counter = 0\n\ndef next_id():\n    global counter\n    counter += 1\n    return counter",
+          "explain": "Проверка вызывает next_id() несколько раз подряд и смотрит на последовательность результатов — без global уже второй вызов упадёт с UnboundLocalError, потому что Python видит присваивание counter и считает её локальной во всей функции."
+        },
+        {
+          "type": "task",
+          "id": "scope-record",
+          "title": "Новый рекорд",
+          "text": "Заведите глобальную переменную `record = 0` и напишите функцию `is_new_record(score)`. Если `score` больше текущего `record`, функция обновляет `record` и возвращает `True`; иначе возвращает `False`, не изменяя `record`.",
+          "starter": "record = 0\n\ndef is_new_record(score):\n    ",
+          "check": {
+            "mode": "function",
+            "entry": "is_new_record",
+            "cases": [
+              {
+                "args": [
+                  10
+                ],
+                "expect": true
+              },
+              {
+                "args": [
+                  5
+                ],
+                "expect": false
+              },
+              {
+                "args": [
+                  20
+                ],
+                "expect": true,
+                "hidden": true,
+                "note": "новый рекорд после неудачной попытки"
+              }
+            ]
+          },
+          "hint": "Сравнивайте `score` с `record` ДО изменения, а сам `record` меняйте через `global` только внутри `if`.",
+          "solution": "record = 0\n\ndef is_new_record(score):\n    global record\n    if score > record:\n        record = score\n        return True\n    return False",
+          "explain": "Тест вызывает функцию несколько раз подряд с разными результатами — так проверяется, что record действительно сохраняет значение между вызовами и обновляется только при настоящем улучшении, а не при каждом вызове подряд."
         }
       ]
     },
@@ -451,7 +764,8 @@
         {
           "type": "code",
           "title": "Замыкание в действии",
-          "code": "def make_multiplier(factor):\n    def multiply(number):\n        return number * factor  # factor взят из внешней функции\n    return multiply             # возвращаем саму функцию, без скобок\n\n\ndouble = make_multiplier(2)\ntriple = make_multiplier(3)\n\nprint(double(10))  # 20\nprint(triple(10))  # 30\n\n# make_multiplier давно завершилась, а factor всё ещё доступен"
+          "code": "def make_multiplier(factor):\n    def multiply(number):\n        return number * factor  # factor взят из внешней функции\n    return multiply             # возвращаем саму функцию, без скобок\n\n\ndouble = make_multiplier(2)\ntriple = make_multiplier(3)\n\nprint(double(10))  # 20\nprint(triple(10))  # 30\n\n# make_multiplier давно завершилась, а factor всё ещё доступен",
+          "run": true
         },
         {
           "type": "text",
@@ -520,11 +834,80 @@
         {
           "type": "code",
           "title": "Фабрика проверок",
-          "code": "def make_validator(minimum, maximum):\n    def check(value):\n        return minimum <= value <= maximum\n    return check\n\n\nis_valid_age = make_validator(0, 120)\nis_valid_grade = make_validator(2, 5)\n\nprint(is_valid_age(150))  # False\nprint(is_valid_grade(4))  # True"
+          "code": "def make_validator(minimum, maximum):\n    def check(value):\n        return minimum <= value <= maximum\n    return check\n\n\nis_valid_age = make_validator(0, 120)\nis_valid_grade = make_validator(2, 5)\n\nprint(is_valid_age(150))  # False\nprint(is_valid_grade(4))  # True",
+          "run": true
         },
         {
           "type": "note",
           "text": "То же самое можно было бы сделать [классом](#class-basics) с методом `check` — замыкание просто короче, когда поведение одно."
+        },
+        {
+          "type": "task",
+          "id": "clos-multiplier",
+          "title": "Что напечатает программа?",
+          "text": "Не запуская код, определите вывод программы и напечатайте его — 3 строки, как их напечатает сама программа.",
+          "example": "def make_adder(n):\n    def add(x):\n        return x + n\n    return add\n\nadd5 = make_adder(5)\nadd10 = make_adder(10)\n\nprint(add5(2))\nprint(add10(2))\nprint(add5(100))",
+          "starter": "# Напечатайте вывод программы — по одному print на строку\nprint()\nprint()\nprint()",
+          "check": {
+            "mode": "stdout",
+            "cases": [
+              {
+                "stdin": "",
+                "expect": "7\n12\n105"
+              }
+            ]
+          },
+          "hint": "`add5` и `add10` — два разных замыкания, каждое помнит своё собственное значение `n`.",
+          "solution": "print(7)\nprint(12)\nprint(105)",
+          "explain": "make_adder(5) и make_adder(10) создают два независимых замыкания: add5 всегда прибавляет 5, а add10 — 10, независимо от того, в каком порядке их вызывать."
+        },
+        {
+          "type": "task",
+          "id": "clos-counter",
+          "title": "Фабрика счётчиков",
+          "text": "Напишите функцию-фабрику `make_counter()` — она возвращает функцию без аргументов, которая при каждом вызове возвращает следующее целое число, начиная с 1.",
+          "starter": "def make_counter():\n    ",
+          "check": {
+            "mode": "asserts",
+            "cases": [
+              {
+                "code": "counter = make_counter()\nassert counter() == 1 and counter() == 2 and counter() == 3, 'счётчик должен увеличиваться на 1 при каждом вызове'",
+                "note": "три вызова подряд дают 1, 2, 3"
+              },
+              {
+                "code": "a = make_counter()\nb = make_counter()\na()\na()\nassert b() == 1, 'разные счётчики, сделанные фабрикой, должны быть независимы'",
+                "hidden": true,
+                "note": "новый счётчик из фабрики не связан со старым"
+              }
+            ]
+          },
+          "hint": "Внутри вложенной функции присваивание переменной внешней функции требует `nonlocal` — иначе `count += 1` упадёт с `UnboundLocalError`.",
+          "solution": "def make_counter():\n    count = 0\n\n    def counter():\n        nonlocal count\n        count += 1\n        return count\n\n    return counter",
+          "explain": "Каждый вызов make_counter() создаёт свою собственную переменную count в замыкании — поэтому два счётчика из разных вызовов фабрики никогда не мешают друг другу, даже если один из них уже использовался."
+        },
+        {
+          "type": "task",
+          "id": "clos-discount",
+          "title": "Фабрика скидок",
+          "text": "Напишите функцию-фабрику `make_discount(percent)` — она возвращает функцию `apply(price)`, которая уменьшает `price` на `percent` процентов (по формуле `price * (100 - percent) / 100`).",
+          "starter": "def make_discount(percent):\n    ",
+          "check": {
+            "mode": "asserts",
+            "cases": [
+              {
+                "code": "ten_off = make_discount(10)\nassert abs(ten_off(200) - 180) < 1e-9, 'скидка 10% от 200 должна дать 180'",
+                "note": "скидка 10% от 200 = 180"
+              },
+              {
+                "code": "half_off = make_discount(50)\nno_off = make_discount(0)\nassert abs(half_off(80) - 40) < 1e-9 and abs(no_off(80) - 80) < 1e-9, 'разные скидки, сделанные фабрикой, не должны влиять друг на друга'",
+                "hidden": true,
+                "note": "две скидки из разных вызовов независимы"
+              }
+            ]
+          },
+          "hint": "Верните внутреннюю функцию `apply(price)`, которая использует `percent` из внешней функции, — это и есть замыкание.",
+          "solution": "def make_discount(percent):\n    def apply(price):\n        return price * (100 - percent) / 100\n    return apply",
+          "explain": "percent замыкается внутри apply в момент вызова make_discount — поэтому half_off и no_off, сделанные разными вызовами фабрики, применяют каждый свой собственный процент."
         }
       ]
     },
@@ -562,7 +945,8 @@
         {
           "type": "code",
           "title": "1. Менять намеренно и назвать это в имени",
-          "code": "def add_grade(grades, new_grade):\n    \"\"\"Дописывает оценку в переданный список (меняет его).\"\"\"\n    grades.append(new_grade)\n\nmy_grades = [5, 4]\nadd_grade(my_grades, 5)\nprint(my_grades)     # [5, 4, 5] — так и задумано"
+          "code": "def add_grade(grades, new_grade):\n    \"\"\"Дописывает оценку в переданный список (меняет его).\"\"\"\n    grades.append(new_grade)\n\nmy_grades = [5, 4]\nadd_grade(my_grades, 5)\nprint(my_grades)     # [5, 4, 5] — так и задумано",
+          "run": true
         },
         {
           "type": "code",
@@ -588,11 +972,136 @@
         {
           "type": "code",
           "title": "Защита от случайных правок — копия на входе",
-          "code": "def process(data):\n    data = data.copy()      # работаем с копией\n    data.append('служебное')\n    return data\n\noriginal = [1, 2]\nresult = process(original)\nprint(original)  # [1, 2] — в безопасности\nprint(result)    # [1, 2, 'служебное']"
+          "code": "def process(data):\n    data = data.copy()      # работаем с копией\n    data.append('служебное')\n    return data\n\noriginal = [1, 2]\nresult = process(original)\nprint(original)  # [1, 2] — в безопасности\nprint(result)    # [1, 2, 'служебное']",
+          "run": true
         },
         {
           "type": "warn",
           "text": "`.copy()` — копия **поверхностная**. Если внутри списка лежат другие списки, они останутся общими. Для вложенных структур нужен ручной обход, см. [Ссылки и копирование](#refs)."
+        },
+        {
+          "type": "task",
+          "id": "mutarg-append",
+          "title": "Что напечатает программа?",
+          "text": "Не запуская код, определите вывод программы и напечатайте его — ровно так, как его напечатает сама программа.",
+          "example": "def add_item(cart, item):\n    cart.append(item)\n\nbasket = ['хлеб']\nadd_item(basket, 'молоко')\nadd_item(basket, 'яйца')\nprint(basket)",
+          "starter": "# Напечатайте вывод программы\nprint()",
+          "check": {
+            "mode": "stdout",
+            "cases": [
+              {
+                "stdin": "",
+                "expect": "['хлеб', 'молоко', 'яйца']"
+              }
+            ]
+          },
+          "hint": "`cart.append(item)` меняет тот самый список, который передали в функцию, — копия не создаётся.",
+          "solution": "print(['хлеб', 'молоко', 'яйца'])",
+          "explain": "basket и cart внутри функции — ссылки на один и тот же список. append меняет его на месте, поэтому изменения видны и после того, как функция завершилась."
+        },
+        {
+          "type": "task",
+          "id": "mutarg-remove-dupes",
+          "title": "Без повторов",
+          "text": "Напишите функцию `without_duplicates(items)` — она возвращает новый список без повторяющихся элементов, сохраняя порядок первого появления. Исходный список `items` менять нельзя.",
+          "starter": "def without_duplicates(items):\n    ",
+          "check": {
+            "mode": "function",
+            "entry": "without_duplicates",
+            "cases": [
+              {
+                "args": [
+                  [
+                    1,
+                    2,
+                    2,
+                    3,
+                    1
+                  ]
+                ],
+                "expect": [
+                  1,
+                  2,
+                  3
+                ]
+              },
+              {
+                "args": [
+                  [
+                    "a",
+                    "b",
+                    "a"
+                  ]
+                ],
+                "expect": [
+                  "a",
+                  "b"
+                ]
+              },
+              {
+                "args": [
+                  []
+                ],
+                "expect": [],
+                "hidden": true,
+                "note": "пустой список"
+              }
+            ]
+          },
+          "hint": "Заведите новый пустой список-результат и добавляйте в него элемент, только если его там ещё нет.",
+          "solution": "def without_duplicates(items):\n    result = []\n    for item in items:\n        if item not in result:\n            result.append(item)\n    return result",
+          "explain": "Функция создаёт новый список result и не трогает items ни append, ни remove — исходные данные остаются в безопасности, даже если вызывающий код использует их ещё раз."
+        },
+        {
+          "type": "task",
+          "id": "mutarg-safe-append",
+          "title": "Список с бонусом",
+          "text": "Напишите функцию `with_bonus(scores, bonus)` — она возвращает НОВЫЙ список, где к каждому элементу `scores` прибавлено `bonus`. Исходный список `scores` должен остаться без изменений.",
+          "starter": "def with_bonus(scores, bonus):\n    ",
+          "check": {
+            "mode": "function",
+            "entry": "with_bonus",
+            "cases": [
+              {
+                "args": [
+                  [
+                    1,
+                    2,
+                    3
+                  ],
+                  10
+                ],
+                "expect": [
+                  11,
+                  12,
+                  13
+                ]
+              },
+              {
+                "args": [
+                  [
+                    0
+                  ],
+                  5
+                ],
+                "expect": [
+                  5
+                ]
+              },
+              {
+                "args": [
+                  [],
+                  7
+                ],
+                "expect": [],
+                "hidden": true,
+                "note": "пустой список"
+              }
+            ]
+          },
+          "hint": "Соберите результат в новый список через генератор списка `[... for ... in scores]` — не изменяйте элементы scores на месте.",
+          "solution": "def with_bonus(scores, bonus):\n    return [score + bonus for score in scores]",
+          "explain": "List comprehension всегда строит новый список. Если бы функция делала scores[i] += bonus в цикле, исходный список изменился бы у вызывающей стороны — именно от такого побочного эффекта предостерегает этот раздел."
         }
       ]
     },
@@ -611,7 +1120,8 @@
         {
           "type": "code",
           "title": "Ловушка в чистом виде",
-          "code": "def add(item, storage=[]):\n    storage.append(item)\n    return storage\n\nprint(add(1))  # [1]        — ожидаемо\nprint(add(2))  # [1, 2]     (!) откуда единица?\nprint(add(3))  # [1, 2, 3]  (!!)"
+          "code": "def add(item, storage=[]):\n    storage.append(item)\n    return storage\n\nprint(add(1))  # [1]        — ожидаемо\nprint(add(2))  # [1, 2]     (!) откуда единица?\nprint(add(3))  # [1, 2, 3]  (!!)",
+          "run": true
         },
         {
           "type": "text",
@@ -698,11 +1208,129 @@
         {
           "type": "code",
           "title": "Та же ловушка со словарём",
-          "code": "def save(key, value, storage={}):\n    storage[key] = value\n    return storage\n\nprint(save('a', 1))  # {'a': 1}\nprint(save('b', 2))  # {'a': 1, 'b': 2} (!)\n\n# Правильно:\ndef save(key, value, storage=None):\n    if storage is None:\n        storage = {}\n    storage[key] = value\n    return storage"
+          "code": "def save(key, value, storage={}):\n    storage[key] = value\n    return storage\n\nprint(save('a', 1))  # {'a': 1}\nprint(save('b', 2))  # {'a': 1, 'b': 2} (!)\n\n# Правильно:\ndef save(key, value, storage=None):\n    if storage is None:\n        storage = {}\n    storage[key] = value\n    return storage",
+          "run": true
         },
         {
           "type": "warn",
           "text": "Значение по умолчанию вычисляется один раз и для любых выражений. `def f(t=time.time())` зафиксирует момент запуска программы, а не момент вызова функции."
+        },
+        {
+          "type": "task",
+          "id": "def-trap",
+          "title": "Что напечатает программа?",
+          "text": "Не запуская код, определите вывод программы и напечатайте его — 3 строки, как их напечатает сама программа.",
+          "example": "def add_tag(tag, tags=[]):\n    tags.append(tag)\n    return tags\n\nprint(add_tag('питон'))\nprint(add_tag('код'))\nprint(add_tag('арт', []))",
+          "starter": "# Напечатайте вывод программы — по одному print на строку\nprint()\nprint()\nprint()",
+          "check": {
+            "mode": "stdout",
+            "cases": [
+              {
+                "stdin": "",
+                "expect": "['питон']\n['питон', 'код']\n['арт']"
+              }
+            ]
+          },
+          "hint": "Список по умолчанию создаётся один раз — в момент выполнения строки `def`, а не при каждом вызове без второго аргумента.",
+          "solution": "print(['питон'])\nprint(['питон', 'код'])\nprint(['арт'])",
+          "explain": "Первые два вызова не передают tags и потому работают с одним и тем же списком по умолчанию — он копит элементы. Третий вызов передаёт свой собственный пустой список, поэтому в нём только «арт»."
+        },
+        {
+          "type": "task",
+          "id": "def-safe-storage",
+          "title": "История без ловушки",
+          "text": "Напишите функцию `record_score(score, history=None)` — она добавляет `score` в список `history` и возвращает его. Если `history` не передан, создаётся новый пустой список (используйте `None` как маркер, а не пустой список в заголовке).",
+          "starter": "def record_score(score, history=None):\n    ",
+          "check": {
+            "mode": "function",
+            "entry": "record_score",
+            "cases": [
+              {
+                "args": [
+                  5
+                ],
+                "expect": [
+                  5
+                ]
+              },
+              {
+                "args": [
+                  7
+                ],
+                "expect": [
+                  7
+                ]
+              },
+              {
+                "args": [
+                  3,
+                  [
+                    1,
+                    2
+                  ]
+                ],
+                "expect": [
+                  1,
+                  2,
+                  3
+                ],
+                "hidden": true,
+                "note": "передан свой список"
+              }
+            ]
+          },
+          "hint": "Первой строкой проверьте `if history is None: history = []` — и только потом дописывайте `score`.",
+          "solution": "def record_score(score, history=None):\n    if history is None:\n        history = []\n    history.append(score)\n    return history",
+          "explain": "Если написать history=[] прямо в заголовке, второй вызов без аргумента продолжит дописывать в тот же список, что и первый: после record_score(5) и record_score(7) результат второго вызова окажется [5, 7] вместо [7] — та же ловушка, что и в примере выше."
+        },
+        {
+          "type": "task",
+          "id": "def-safe-dict",
+          "title": "Настройки без ловушки",
+          "text": "Напишите функцию `set_option(key, value, options=None)` — она сохраняет `key: value` в словарь `options` и возвращает его. Если `options` не передан, создаётся новый пустой словарь.",
+          "starter": "def set_option(key, value, options=None):\n    ",
+          "check": {
+            "mode": "function",
+            "entry": "set_option",
+            "cases": [
+              {
+                "args": [
+                  "theme",
+                  "dark"
+                ],
+                "expect": {
+                  "theme": "dark"
+                }
+              },
+              {
+                "args": [
+                  "lang",
+                  "ru"
+                ],
+                "expect": {
+                  "lang": "ru"
+                }
+              },
+              {
+                "args": [
+                  "x",
+                  1,
+                  {
+                    "y": 2
+                  }
+                ],
+                "expect": {
+                  "y": 2,
+                  "x": 1
+                },
+                "hidden": true,
+                "note": "передан свой словарь"
+              }
+            ]
+          },
+          "hint": "Тот же приём, что и со списком: `if options is None: options = {}` — словарь `{}` в заголовке функции создаётся только один раз на всю программу.",
+          "solution": "def set_option(key, value, options=None):\n    if options is None:\n        options = {}\n    options[key] = value\n    return options",
+          "explain": "Со словарём в заголовке (options={}) вызовы без третьего аргумента делили бы один и тот же словарь — второй вызов видел бы ключи, добавленные первым. None-маркер создаёт новый словарь при каждом таком вызове."
         }
       ]
     },
@@ -745,7 +1373,8 @@
         {
           "type": "code",
           "title": "Сортировка по своему правилу",
-          "code": "words = ['груша', 'ям', 'ананас']\n\nprint(sorted(words))                       # по алфавиту\nprint(sorted(words, key=len))              # по длине: ['ям', 'груша', 'ананас']\nprint(sorted(words, key=lambda w: w[-1]))  # по последней букве"
+          "code": "words = ['груша', 'ям', 'ананас']\n\nprint(sorted(words))                       # по алфавиту\nprint(sorted(words, key=len))              # по длине: ['ям', 'груша', 'ананас']\nprint(sorted(words, key=lambda w: w[-1]))  # по последней букве",
+          "run": true
         },
         {
           "type": "code",
@@ -767,11 +1396,143 @@
         },
         {
           "type": "code",
-          "code": "def apply_to_all(func, values):\n    result = []\n    for v in values:\n        result.append(func(v))\n    return result\n\nprint(apply_to_all(lambda x: x * 2, [1, 2, 3]))  # [2, 4, 6]\nprint(apply_to_all(str.upper, ['a', 'b']))       # ['A', 'B']\nprint(apply_to_all(len, ['кот', 'слон']))        # [3, 4]"
+          "code": "def apply_to_all(func, values):\n    result = []\n    for v in values:\n        result.append(func(v))\n    return result\n\nprint(apply_to_all(lambda x: x * 2, [1, 2, 3]))  # [2, 4, 6]\nprint(apply_to_all(str.upper, ['a', 'b']))       # ['A', 'B']\nprint(apply_to_all(len, ['кот', 'слон']))        # [3, 4]",
+          "run": true
         },
         {
           "type": "note",
           "text": "Тот же результат обычно короче записывается генератором списка: `[x * 2 for x in [1, 2, 3]]`. Генераторы разобраны в разделе [Списки](#list) первого справочника."
+        },
+        {
+          "type": "task",
+          "id": "lam-sort-key",
+          "title": "Что напечатает программа?",
+          "text": "Не запуская код, определите вывод программы и напечатайте его — 2 строки, как их напечатает сама программа.",
+          "example": "words = ['кот', 'слон', 'ёж']\n\nprint(sorted(words, key=len))\nprint(sorted(words, key=lambda w: w[-1]))",
+          "starter": "# Напечатайте вывод программы — по одному print на строку\nprint()\nprint()",
+          "check": {
+            "mode": "stdout",
+            "cases": [
+              {
+                "stdin": "",
+                "expect": "['ёж', 'кот', 'слон']\n['ёж', 'слон', 'кот']"
+              }
+            ]
+          },
+          "hint": "`key=len` сравнивает слова по длине. `key=lambda w: w[-1]` сравнивает по последней букве каждого слова.",
+          "solution": "print(['ёж', 'кот', 'слон'])\nprint(['ёж', 'слон', 'кот'])",
+          "explain": "sorted не сравнивает сами слова — она сравнивает то, что вернёт key для каждого из них: во второй сортировке это последняя буква, и слова выстраиваются по алфавитному порядку именно этих букв."
+        },
+        {
+          "type": "task",
+          "id": "lam-oldest",
+          "title": "Самый старший",
+          "text": "На вход подаётся список словарей вида `{'name': ..., 'age': ...}`. Напишите функцию `oldest(people)` — она возвращает имя человека с наибольшим возрастом.",
+          "starter": "def oldest(people):\n    ",
+          "check": {
+            "mode": "function",
+            "entry": "oldest",
+            "cases": [
+              {
+                "args": [
+                  [
+                    {
+                      "name": "Аня",
+                      "age": 15
+                    },
+                    {
+                      "name": "Боря",
+                      "age": 20
+                    }
+                  ]
+                ],
+                "expect": "Боря"
+              },
+              {
+                "args": [
+                  [
+                    {
+                      "name": "Вика",
+                      "age": 30
+                    }
+                  ]
+                ],
+                "expect": "Вика"
+              },
+              {
+                "args": [
+                  [
+                    {
+                      "name": "А",
+                      "age": 5
+                    },
+                    {
+                      "name": "Б",
+                      "age": 5
+                    }
+                  ]
+                ],
+                "expect": "А",
+                "hidden": true,
+                "note": "одинаковый возраст — первый встретившийся"
+              }
+            ]
+          },
+          "hint": "`max(people, key=lambda p: p['age'])` вернёт весь словарь целиком — не забудьте достать из него `['name']`.",
+          "solution": "def oldest(people):\n    return max(people, key=lambda p: p['age'])['name']",
+          "explain": "max с параметром key сравнивает элементы по значению, которое вернула lambda, но возвращает сам элемент — то есть исходный словарь. При равенстве возраста max оставляет первый найденный вариант, а не последний."
+        },
+        {
+          "type": "task",
+          "id": "lam-sort-desc",
+          "title": "Сортировка по убыванию длины",
+          "text": "Напишите функцию `sort_by_length_desc(words)` — она возвращает список слов `words`, отсортированный по убыванию длины.",
+          "starter": "def sort_by_length_desc(words):\n    ",
+          "check": {
+            "mode": "function",
+            "entry": "sort_by_length_desc",
+            "cases": [
+              {
+                "args": [
+                  [
+                    "кот",
+                    "бегемот",
+                    "пёс"
+                  ]
+                ],
+                "expect": [
+                  "бегемот",
+                  "кот",
+                  "пёс"
+                ]
+              },
+              {
+                "args": [
+                  [
+                    "a",
+                    "bb",
+                    "ccc"
+                  ]
+                ],
+                "expect": [
+                  "ccc",
+                  "bb",
+                  "a"
+                ]
+              },
+              {
+                "args": [
+                  []
+                ],
+                "expect": [],
+                "hidden": true,
+                "note": "пустой список"
+              }
+            ]
+          },
+          "hint": "`sorted(words, key=len, reverse=True)` — `reverse` меняет направление сортировки, а `key` остаётся тем же самым.",
+          "solution": "def sort_by_length_desc(words):\n    return sorted(words, key=len, reverse=True)",
+          "explain": "reverse=True не переставляет сравнения местами — сортировка остаётся стабильной, поэтому слова одинаковой длины ('кот' и 'пёс') сохраняют исходный порядок, а не переворачиваются."
         }
       ]
     },
@@ -798,7 +1559,8 @@
         {
           "type": "code",
           "title": "Шаг 1: функция, которая оборачивает другую",
-          "code": "def logged(func):\n    def wrapper():\n        print(f'-> вызываю {func.__name__}')\n        result = func()                    # вызываем исходную функцию\n        print(f'<- {func.__name__} отработала')\n        return result  # возвращаем её результат\n    return wrapper     # отдаём обёртку наружу\n\n\ndef greet():\n    print('Привет!')\n\n\ngreet = logged(greet)     # заменяем функцию её обёрткой\ngreet()\n\n# -> вызываю greet\n# Привет!\n# <- greet отработала"
+          "code": "def logged(func):\n    def wrapper():\n        print(f'-> вызываю {func.__name__}')\n        result = func()                    # вызываем исходную функцию\n        print(f'<- {func.__name__} отработала')\n        return result  # возвращаем её результат\n    return wrapper     # отдаём обёртку наружу\n\n\ndef greet():\n    print('Привет!')\n\n\ngreet = logged(greet)     # заменяем функцию её обёрткой\ngreet()\n\n# -> вызываю greet\n# Привет!\n# <- greet отработала",
+          "run": true
         },
         {
           "type": "note",
@@ -824,7 +1586,8 @@
         {
           "type": "code",
           "title": "Универсальный декоратор",
-          "code": "def logged(func):\n    def wrapper(*args, **kwargs):\n        print(f'-> {func.__name__}{args}')\n        result = func(*args, **kwargs)     # передаём всё как есть\n        print(f'<- вернула {result}')\n        return result\n    return wrapper\n\n\n@logged\ndef add(a, b):\n    return a + b\n\n\nprint(add(2, 3))\n\n# -> add(2, 3)\n# <- вернула 5\n# 5"
+          "code": "def logged(func):\n    def wrapper(*args, **kwargs):\n        print(f'-> {func.__name__}{args}')\n        result = func(*args, **kwargs)     # передаём всё как есть\n        print(f'<- вернула {result}')\n        return result\n    return wrapper\n\n\n@logged\ndef add(a, b):\n    return a + b\n\n\nprint(add(2, 3))\n\n# -> add(2, 3)\n# <- вернула 5\n# 5",
+          "run": true
         },
         {
           "type": "warn",
@@ -902,6 +1665,74 @@
         {
           "type": "warn",
           "text": "Не пишите декораторы там, где хватает обычного вызова функции. Они прячут поведение: глядя на `add(2, 3)`, невозможно догадаться, что перед вызовом что-то проверяется. Хороший декоратор делает одну понятную вещь."
+        },
+        {
+          "type": "task",
+          "id": "deco-order",
+          "title": "Что напечатает программа?",
+          "text": "Не запуская код, определите вывод программы и напечатайте его — ровно так, как его напечатает сама программа.",
+          "example": "def shout(func):\n    def wrapper(*args, **kwargs):\n        result = func(*args, **kwargs)\n        return result.upper()\n    return wrapper\n\n@shout\ndef greet(name):\n    return f'привет, {name}'\n\nprint(greet('аня'))",
+          "starter": "# Напечатайте вывод программы\nprint()",
+          "check": {
+            "mode": "stdout",
+            "cases": [
+              {
+                "stdin": "",
+                "expect": "ПРИВЕТ, АНЯ"
+              }
+            ]
+          },
+          "hint": "`@shout` равносильно строке `greet = shout(greet)` — вызывается уже `wrapper`, а не исходная функция.",
+          "solution": "print('ПРИВЕТ, АНЯ')",
+          "explain": "wrapper вызывает исходную greet, получает строку 'привет, аня' и переводит её в верхний регистр перед тем, как вернуть наружу — поэтому итоговая строка полностью заглавная."
+        },
+        {
+          "type": "task",
+          "id": "deco-doubled",
+          "title": "Декоратор doubled",
+          "text": "Напишите декоратор `doubled` — он оборачивает функцию так, что результат её вызова умножается на 2. Обёртка должна поддерживать любые аргументы (позиционные и именованные).",
+          "starter": "def doubled(func):\n    ",
+          "check": {
+            "mode": "asserts",
+            "cases": [
+              {
+                "code": "@doubled\ndef add(a, b):\n    return a + b\n\nassert add(2, 3) == 10, 'результат должен быть удвоен: (2 + 3) * 2 = 10'",
+                "note": "число удваивается: (2 + 3) * 2 = 10"
+              },
+              {
+                "code": "@doubled\ndef ident(x):\n    return x\n\nassert ident('ok') == 'okok', 'умножение строки на 2 — это повтор строки, а не ошибка'",
+                "hidden": true,
+                "note": "работает и для строк, не только для чисел"
+              }
+            ]
+          },
+          "hint": "Обёртка принимает `*args, **kwargs`, вызывает `func(*args, **kwargs)` и возвращает `result * 2` — `return` внутри неё обязателен.",
+          "solution": "def doubled(func):\n    def wrapper(*args, **kwargs):\n        result = func(*args, **kwargs)\n        return result * 2\n    return wrapper",
+          "explain": "* 2 работает не только для чисел: для строки это повтор дважды. Забытый return внутри wrapper — самая частая ошибка декораторов: функция отработает, а результат молча потеряется, и wrapper вернёт None."
+        },
+        {
+          "type": "task",
+          "id": "deco-guard",
+          "title": "Декоратор non_empty",
+          "text": "Напишите декоратор `non_empty` — он оборачивает функцию с одним строковым аргументом. Если аргумент — пустая строка, декоратор бросает `ValueError('пустая строка')`, не вызывая исходную функцию; иначе вызывает её как обычно.",
+          "starter": "def non_empty(func):\n    ",
+          "check": {
+            "mode": "asserts",
+            "cases": [
+              {
+                "code": "@non_empty\ndef shout(text):\n    return text.upper()\n\nassert shout('привет') == 'ПРИВЕТ', 'непустая строка должна обрабатываться как обычно'",
+                "note": "непустая строка работает без изменений"
+              },
+              {
+                "code": "@non_empty\ndef shout(text):\n    return text.upper()\n\ntry:\n    shout('')\n    raised = False\nexcept ValueError:\n    raised = True\nassert raised, 'пустая строка должна вызывать ValueError'",
+                "hidden": true,
+                "note": "пустая строка вызывает ValueError"
+              }
+            ]
+          },
+          "hint": "Проверка — внутри `wrapper`, до вызова исходной функции: `if not text: raise ValueError(...)`.",
+          "solution": "def non_empty(func):\n    def wrapper(text):\n        if not text:\n            raise ValueError('пустая строка')\n        return func(text)\n    return wrapper",
+          "explain": "Как и в примере с positive_only, проверка живёт в обёртке отдельно от самой функции — shout ничего не знает о валидации и просто переводит текст в верхний регистр."
         }
       ]
     },
@@ -920,7 +1751,8 @@
         {
           "type": "code",
           "title": "Разбираем for по шагам",
-          "code": "items = [10, 20, 30]\n\n# Так пишем мы:\nfor item in items:\n    print(item)\n\n# А вот что делает Python:\niterator = iter(items)          # 1. получить итератор\nwhile True:\n    try:\n        item = next(iterator)  # 2. взять следующий элемент\n    except StopIteration:      # 3. элементы кончились\n        break\n    print(item)"
+          "code": "items = [10, 20, 30]\n\n# Так пишем мы:\nfor item in items:\n    print(item)\n\n# А вот что делает Python:\niterator = iter(items)          # 1. получить итератор\nwhile True:\n    try:\n        item = next(iterator)  # 2. взять следующий элемент\n    except StopIteration:      # 3. элементы кончились\n        break\n    print(item)",
+          "run": true
         },
         {
           "type": "note",
@@ -975,7 +1807,8 @@
         },
         {
           "type": "code",
-          "code": "names = ['Аня', 'Боря']\nscores = [78, 92]\n\npairs = zip(names, scores)\nprint(pairs)        # <zip object at 0x...> — не список\nprint(list(pairs))  # [('Аня', 78), ('Боря', 92)] — вот содержимое\nprint(list(pairs))  # [] — второй раз пусто, объект исчерпан\n\n# Если нужно пройти дважды — сохраните результат:\npairs = list(zip(names, scores))\nprint(len(pairs), pairs[0])   # 2 ('Аня', 78)"
+          "code": "names = ['Аня', 'Боря']\nscores = [78, 92]\n\npairs = zip(names, scores)\nprint(pairs)        # <zip object at 0x...> — не список\nprint(list(pairs))  # [('Аня', 78), ('Боря', 92)] — вот содержимое\nprint(list(pairs))  # [] — второй раз пусто, объект исчерпан\n\n# Если нужно пройти дважды — сохраните результат:\npairs = list(zip(names, scores))\nprint(len(pairs), pairs[0])   # 2 ('Аня', 78)",
+          "run": true
         },
         {
           "type": "warn",
@@ -1001,6 +1834,159 @@
         {
           "type": "text",
           "text": "Свой объект, выдающий значения по одному, проще всего сделать не вручную, а [генератором](#generators) — о нём следующий раздел."
+        },
+        {
+          "type": "task",
+          "id": "iter-manual",
+          "title": "Что напечатает программа?",
+          "text": "Не запуская код, определите вывод программы и напечатайте его — 3 строки, как их напечатает сама программа.",
+          "example": "letters = ['a', 'b', 'c']\n\nit = iter(letters)\nprint(next(it))\nprint(next(it))\nprint(list(it))",
+          "starter": "# Напечатайте вывод программы — по одному print на строку\nprint()\nprint()\nprint()",
+          "check": {
+            "mode": "stdout",
+            "cases": [
+              {
+                "stdin": "",
+                "expect": "a\nb\n['c']"
+              }
+            ]
+          },
+          "hint": "`next(it)` каждый раз сдвигает итератор на один элемент вперёд. `list(it)` заберёт всё, что осталось после этих сдвигов.",
+          "solution": "print('a')\nprint('b')\nprint(['c'])",
+          "explain": "Два вызова next забрали 'a' и 'b' — итератор it запомнил, что остановился на третьем элементе. list(it) достаёт только то, что осталось, поэтому в результате список из одного 'c', а не всех трёх букв."
+        },
+        {
+          "type": "task",
+          "id": "iter-first-rest",
+          "title": "Первый и остальные",
+          "text": "Напишите функцию `first_and_rest(items)` — она принимает непустой список, использует `iter()` и `next()` и возвращает кортеж `(первый элемент, список оставшихся элементов)`.",
+          "starter": "def first_and_rest(items):\n    ",
+          "check": {
+            "mode": "function",
+            "entry": "first_and_rest",
+            "cases": [
+              {
+                "args": [
+                  [
+                    1,
+                    2,
+                    3
+                  ]
+                ],
+                "expect": [
+                  1,
+                  [
+                    2,
+                    3
+                  ]
+                ]
+              },
+              {
+                "args": [
+                  [
+                    5
+                  ]
+                ],
+                "expect": [
+                  5,
+                  []
+                ]
+              },
+              {
+                "args": [
+                  [
+                    9,
+                    8,
+                    7,
+                    6
+                  ]
+                ],
+                "expect": [
+                  9,
+                  [
+                    8,
+                    7,
+                    6
+                  ]
+                ],
+                "hidden": true,
+                "note": "список длиннее двух элементов"
+              }
+            ]
+          },
+          "hint": "Получите итератор через `iter(items)`, возьмите первый элемент `next()`, а всё, что осталось, соберите через `list(...)` на том же итераторе.",
+          "solution": "def first_and_rest(items):\n    it = iter(items)\n    first = next(it)\n    rest = list(it)\n    return first, rest",
+          "explain": "После next(it) итератор уже сдвинут на один элемент — list(it) достаёт именно то, что осталось, а не весь список заново. Возвращённый кортеж (first, rest) при сравнении с ожидаемым значением превращается в пару значений."
+        },
+        {
+          "type": "task",
+          "id": "iter-pair-sums",
+          "title": "Суммы пар",
+          "text": "Напишите функцию `pair_sums(a, b)` — она возвращает список сумм соответствующих элементов списков `a` и `b`, используя `zip`. Если списки разной длины, лишние элементы длинного списка игнорируются.",
+          "starter": "def pair_sums(a, b):\n    ",
+          "check": {
+            "mode": "function",
+            "entry": "pair_sums",
+            "cases": [
+              {
+                "args": [
+                  [
+                    1,
+                    2,
+                    3
+                  ],
+                  [
+                    10,
+                    20,
+                    30
+                  ]
+                ],
+                "expect": [
+                  11,
+                  22,
+                  33
+                ]
+              },
+              {
+                "args": [
+                  [
+                    0,
+                    0
+                  ],
+                  [
+                    5,
+                    5
+                  ]
+                ],
+                "expect": [
+                  5,
+                  5
+                ]
+              },
+              {
+                "args": [
+                  [
+                    1,
+                    1
+                  ],
+                  [
+                    1,
+                    1,
+                    1
+                  ]
+                ],
+                "expect": [
+                  2,
+                  2
+                ],
+                "hidden": true,
+                "note": "списки разной длины — zip обрезает по короткому"
+              }
+            ]
+          },
+          "hint": "`[x + y for x, y in zip(a, b)]` — `zip` сам остановится, когда закончится более короткий список.",
+          "solution": "def pair_sums(a, b):\n    return [x + y for x, y in zip(a, b)]",
+          "explain": "zip — итератор, который перестаёт выдавать пары, как только заканчивается самый короткий из списков. Поэтому лишний элемент более длинного списка просто не попадает ни в одну пару."
         }
       ]
     },
@@ -1082,7 +2068,8 @@
         {
           "type": "code",
           "title": "Бесконечный генератор",
-          "code": "def even_numbers():\n    number = 0\n    while True:          # бесконечный цикл — и это нормально\n        yield number\n        number += 2\n\n\nfor value in even_numbers():\n    if value > 10:\n        break            # выходим сами, когда достаточно\n    print(value)\n\n# 0 2 4 6 8 10"
+          "code": "def even_numbers():\n    number = 0\n    while True:          # бесконечный цикл — и это нормально\n        yield number\n        number += 2\n\n\nfor value in even_numbers():\n    if value > 10:\n        break            # выходим сами, когда достаточно\n    print(value)\n\n# 0 2 4 6 8 10",
+          "run": true
         },
         {
           "type": "warn",
@@ -1098,7 +2085,8 @@
         },
         {
           "type": "code",
-          "code": "numbers = [1, 2, 3, 4, 5]\n\nsquares_list = [n ** 2 for n in numbers]  # список — создаётся сразу\nsquares_gen = (n ** 2 for n in numbers)   # генератор — ленивый\n\nprint(squares_list)       # [1, 4, 9, 16, 25]\nprint(squares_gen)        # <generator object <genexpr> at 0x...>\nprint(list(squares_gen))  # [1, 4, 9, 16, 25]\n\n# В функции скобки можно не дублировать:\nprint(sum(n ** 2 for n in numbers))  # 55\nprint(max(n ** 2 for n in numbers))  # 25"
+          "code": "numbers = [1, 2, 3, 4, 5]\n\nsquares_list = [n ** 2 for n in numbers]  # список — создаётся сразу\nsquares_gen = (n ** 2 for n in numbers)   # генератор — ленивый\n\nprint(squares_list)       # [1, 4, 9, 16, 25]\nprint(squares_gen)        # <generator object <genexpr> at 0x...>\nprint(list(squares_gen))  # [1, 4, 9, 16, 25]\n\n# В функции скобки можно не дублировать:\nprint(sum(n ** 2 for n in numbers))  # 55\nprint(max(n ** 2 for n in numbers))  # 25",
+          "run": true
         },
         {
           "type": "note",
@@ -1127,6 +2115,74 @@
         {
           "type": "warn",
           "text": "Генератор одноразовый, как и любой [итератор](#iterators). Если результат нужен дважды — сохраните его в список: `values = list(my_generator())`."
+        },
+        {
+          "type": "task",
+          "id": "gen-yield-order",
+          "title": "Что напечатает программа?",
+          "text": "Не запуская код, определите вывод программы и напечатайте его — 3 строки, как их напечатает сама программа.",
+          "example": "def countdown(n):\n    while n > 0:\n        yield n\n        n -= 1\n\ngen = countdown(3)\nprint(next(gen))\nprint(next(gen))\nprint(list(gen))",
+          "starter": "# Напечатайте вывод программы — по одному print на строку\nprint()\nprint()\nprint()",
+          "check": {
+            "mode": "stdout",
+            "cases": [
+              {
+                "stdin": "",
+                "expect": "3\n2\n[1]"
+              }
+            ]
+          },
+          "hint": "Каждый `next(gen)` возобновляет генератор с того места, где он остановился на предыдущем `yield`, а не запускает его заново.",
+          "solution": "print(3)\nprint(2)\nprint([1])",
+          "explain": "Первые два next забирают значения 3 и 2, генератор при этом приостанавливается прямо на месте yield. list(gen) дозавершает перебор и получает только то, что осталось, — единственное число 1."
+        },
+        {
+          "type": "task",
+          "id": "gen-evens",
+          "title": "Генератор чётных чисел",
+          "text": "Напишите генератор `evens(limit)` — с помощью `yield` он должен выдавать чётные числа от `0` до `limit`, не включая `limit`.",
+          "starter": "def evens(limit):\n    ",
+          "check": {
+            "mode": "asserts",
+            "cases": [
+              {
+                "code": "assert list(evens(10)) == [0, 2, 4, 6, 8], 'должны быть чётные числа от 0 до limit, не включая его'",
+                "note": "evens(10) даёт [0, 2, 4, 6, 8]"
+              },
+              {
+                "code": "assert list(evens(0)) == [], 'при limit=0 подходящих чисел нет вовсе'",
+                "hidden": true,
+                "note": "limit = 0 — пустой результат"
+              }
+            ]
+          },
+          "hint": "Переберите `range(0, limit, 2)` и отдавайте каждое число через `yield` — шаг 2 сразу даёт только чётные.",
+          "solution": "def evens(limit):\n    for number in range(0, limit, 2):\n        yield number",
+          "explain": "yield внутри цикла превращает функцию в генератор: значения вычисляются по одному, а не собираются в список заранее. list(...) в проверке принудительно забирает их все, чтобы сравнить с ожидаемым списком."
+        },
+        {
+          "type": "task",
+          "id": "gen-naturals",
+          "title": "Бесконечный генератор",
+          "text": "Напишите бесконечный генератор `naturals()` — с помощью `yield` в бесконечном цикле он должен выдавать натуральные числа 1, 2, 3, ... без остановки. Ограничивать количество значений должен вызывающий код, а не сам генератор.",
+          "starter": "def naturals():\n    ",
+          "check": {
+            "mode": "asserts",
+            "cases": [
+              {
+                "code": "gen = naturals()\nfirst_five = [next(gen) for _ in range(5)]\nassert first_five == [1, 2, 3, 4, 5], 'первые пять значений должны быть 1, 2, 3, 4, 5'",
+                "note": "первые пять значений — 1, 2, 3, 4, 5"
+              },
+              {
+                "code": "gen = naturals()\ncollected = []\nfor value in gen:\n    if value > 3:\n        break\n    collected.append(value)\nassert collected == [1, 2, 3], 'нужно уметь прерывать перебор вручную через break'",
+                "hidden": true,
+                "note": "перебор можно остановить снаружи через break"
+              }
+            ]
+          },
+          "hint": "`while True: yield number; number += 1` — условие выхода здесь не нужно: генератор бесконечен по своей природе, а останавливает его вызывающий код.",
+          "solution": "def naturals():\n    number = 1\n    while True:\n        yield number\n        number += 1",
+          "explain": "list(naturals()) зависнет навсегда — такой генератор всегда нужно ограничивать снаружи: фиксированным числом вызовов next() или break в цикле, как в проверке."
         }
       ]
     },
@@ -1145,7 +2201,8 @@
         {
           "type": "code",
           "title": "Факториал",
-          "code": "def factorial(n):\n    if n <= 1:            # базовый случай — выход из рекурсии\n        return 1\n    return n * factorial(n - 1)   # шаг к базовому случаю\n\nprint(factorial(5))       # 120\n\n# Как это разворачивается:\n# факториал(5) = 5 * факториал(4)\n#              = 5 * 4 * факториал(3)\n#              = 5 * 4 * 3 * 2 * 1 = 120"
+          "code": "def factorial(n):\n    if n <= 1:            # базовый случай — выход из рекурсии\n        return 1\n    return n * factorial(n - 1)   # шаг к базовому случаю\n\nprint(factorial(5))       # 120\n\n# Как это разворачивается:\n# факториал(5) = 5 * факториал(4)\n#              = 5 * 4 * факториал(3)\n#              = 5 * 4 * 3 * 2 * 1 = 120",
+          "run": true
         },
         {
           "type": "warn",
@@ -1169,7 +2226,8 @@
         {
           "type": "code",
           "title": "Обход вложенной структуры неизвестной глубины",
-          "code": "def flatten(data):\n    \"\"\"Превращает список любой вложенности в плоский.\"\"\"\n    result = []\n    for item in data:\n        if isinstance(item, list):\n            result.extend(flatten(item))   # рекурсия\n        else:\n            result.append(item)\n    return result\n\nprint(flatten([1, [2, [3, [4]], 5]]))   # [1, 2, 3, 4, 5]"
+          "code": "def flatten(data):\n    \"\"\"Превращает список любой вложенности в плоский.\"\"\"\n    result = []\n    for item in data:\n        if isinstance(item, list):\n            result.extend(flatten(item))   # рекурсия\n        else:\n            result.append(item)\n    return result\n\nprint(flatten([1, [2, [3, [4]], 5]]))   # [1, 2, 3, 4, 5]",
+          "run": true
         },
         {
           "type": "note",
@@ -1202,6 +2260,127 @@
         {
           "type": "text",
           "text": "Приём `a, b = b, a + b` — это распаковка [кортежа](#tuple): правая часть вычисляется целиком до присваивания, поэтому временная переменная не нужна."
+        },
+        {
+          "type": "task",
+          "id": "rec-trace",
+          "title": "Что напечатает программа?",
+          "text": "Не запуская код, определите вывод программы и напечатайте его — 4 строки, как их напечатает сама программа.",
+          "example": "def countdown(n):\n    if n == 0:\n        print('Пуск!')\n        return\n    print(n)\n    countdown(n - 1)\n\ncountdown(3)",
+          "starter": "# Напечатайте вывод программы — по одному print на строку\nprint()\nprint()\nprint()\nprint()",
+          "check": {
+            "mode": "stdout",
+            "cases": [
+              {
+                "stdin": "",
+                "expect": "3\n2\n1\nПуск!"
+              }
+            ]
+          },
+          "hint": "Каждый вызов countdown печатает своё n, а затем вызывает саму себя с n - 1 — так продолжается, пока не будет достигнут базовый случай n == 0.",
+          "solution": "print(3)\nprint(2)\nprint(1)\nprint('Пуск!')",
+          "explain": "Функция вызывает себя четыре раза подряд: countdown(3), countdown(2), countdown(1), countdown(0). Первые три раза печатается число, а на последнем срабатывает базовый случай — печатается «Пуск!», и рекурсия завершается через return."
+        },
+        {
+          "type": "task",
+          "id": "rec-sum-list",
+          "title": "Сумма рекурсией",
+          "text": "Напишите рекурсивную функцию `sum_list(numbers)` — она возвращает сумму чисел списка `numbers`, не используя `sum()` и циклы.",
+          "starter": "def sum_list(numbers):\n    ",
+          "check": {
+            "mode": "function",
+            "entry": "sum_list",
+            "cases": [
+              {
+                "args": [
+                  [
+                    1,
+                    2,
+                    3
+                  ]
+                ],
+                "expect": 6
+              },
+              {
+                "args": [
+                  [
+                    5
+                  ]
+                ],
+                "expect": 5
+              },
+              {
+                "args": [
+                  []
+                ],
+                "expect": 0,
+                "hidden": true,
+                "note": "пустой список — базовый случай"
+              }
+            ]
+          },
+          "hint": "Базовый случай — пустой список: сумма равна 0. Иначе — первый элемент плюс сумма всех остальных: `numbers[0] + sum_list(numbers[1:])`.",
+          "solution": "def sum_list(numbers):\n    if not numbers:\n        return 0\n    return numbers[0] + sum_list(numbers[1:])",
+          "explain": "Каждый рекурсивный вызов получает список на один элемент короче — numbers[1:] — поэтому рекурсия обязательно доходит до пустого списка и завершается. Без этого базового случая функция упала бы с IndexError на пустом списке."
+        },
+        {
+          "type": "task",
+          "id": "rec-count-nested",
+          "title": "Подсчёт во вложенных списках",
+          "text": "Напишите рекурсивную функцию `count_items(data)` — `data` может содержать вложенные списки любой глубины. Функция возвращает общее количество элементов, которые НЕ являются списками.",
+          "starter": "def count_items(data):\n    ",
+          "check": {
+            "mode": "function",
+            "entry": "count_items",
+            "cases": [
+              {
+                "args": [
+                  [
+                    1,
+                    2,
+                    3
+                  ]
+                ],
+                "expect": 3
+              },
+              {
+                "args": [
+                  [
+                    1,
+                    [
+                      2,
+                      3
+                    ],
+                    4
+                  ]
+                ],
+                "expect": 4
+              },
+              {
+                "args": [
+                  [
+                    1,
+                    [
+                      2,
+                      [
+                        3,
+                        [
+                          4
+                        ]
+                      ],
+                      5
+                    ]
+                  ]
+                ],
+                "expect": 5,
+                "hidden": true,
+                "note": "вложенность в несколько уровней"
+              }
+            ]
+          },
+          "hint": "Если элемент — список (`isinstance(item, list)`), рекурсивно посчитайте элементы внутри него; иначе прибавьте 1 к итогу.",
+          "solution": "def count_items(data):\n    total = 0\n    for item in data:\n        if isinstance(item, list):\n            total += count_items(item)\n        else:\n            total += 1\n    return total",
+          "explain": "Задача близка к flatten из примера, но вместо накопления плоского списка функция считает количество: isinstance(item, list) отличает вложенную структуру от обычного элемента, а рекурсия применяется к каждому уровню вложенности отдельно."
         }
       ]
     },
@@ -1220,7 +2399,8 @@
         {
           "type": "code",
           "title": "Синтаксис",
-          "code": "def greet(name: str, age: int) -> str:\n    return f'{name}, {age} лет'\n\n\nprint(greet('Аня', 15))    # Аня, 15 лет\n\n# Аргументы: имя: тип\n# Результат: стрелка -> тип после скобок"
+          "code": "def greet(name: str, age: int) -> str:\n    return f'{name}, {age} лет'\n\n\nprint(greet('Аня', 15))    # Аня, 15 лет\n\n# Аргументы: имя: тип\n# Результат: стрелка -> тип после скобок",
+          "run": true
         },
         {
           "type": "code",
@@ -1260,7 +2440,8 @@
         {
           "type": "code",
           "title": "Аннотация — не гарантия",
-          "code": "def double(number: int) -> int:\n    return number * 2\n\n\nprint(double('кот'))     # коткот  — никакой ошибки!\n\n# Строку умножили на 2, как обычно.\n# Аннотация никого ни к чему не обязывает."
+          "code": "def double(number: int) -> int:\n    return number * 2\n\n\nprint(double('кот'))     # коткот  — никакой ошибки!\n\n# Строку умножили на 2, как обычно.\n# Аннотация никого ни к чему не обязывает.",
+          "run": true
         },
         {
           "type": "warn",
@@ -1313,6 +2494,94 @@
         {
           "type": "warn",
           "text": "Аннотации не заменяют понятные имена и [docstring](#func). Строка `def f(a: int, b: int) -> int` типы объясняет, а смысл — нет."
+        },
+        {
+          "type": "task",
+          "id": "ann-print",
+          "title": "Что напечатает программа?",
+          "text": "Не запуская код, определите вывод программы и напечатайте его — 2 строки, как их напечатает сама программа.",
+          "example": "def scale(value: float, factor: int = 2) -> float:\n    return value * factor\n\nprint(scale(3.5))\nprint(scale(2, 3))",
+          "starter": "# Напечатайте вывод программы — по одному print на строку\nprint()\nprint()",
+          "check": {
+            "mode": "stdout",
+            "cases": [
+              {
+                "stdin": "",
+                "expect": "7.0\n6"
+              }
+            ]
+          },
+          "hint": "Аннотации `value: float` и `-> float` ничего не проверяют и не преобразуют — реальный тип результата зависит только от того, что реально передали и как Python это вычислил.",
+          "solution": "print(7.0)\nprint(6)",
+          "explain": "Во втором вызове value — обычный int, хотя аннотация обещает float. 2 * 3 в Python остаётся int, поэтому печатается 6, а не 6.0 — аннотация результата на это никак не влияет."
+        },
+        {
+          "type": "task",
+          "id": "ann-find-grade",
+          "title": "Поиск оценки",
+          "text": "Напишите функцию `find_grade(name: str, grades: dict[str, int]) -> int | None` — она возвращает оценку по имени `name` из словаря `grades`, либо `None`, если такого имени в словаре нет.",
+          "starter": "def find_grade(name: str, grades: dict[str, int]) -> int | None:\n    ",
+          "check": {
+            "mode": "function",
+            "entry": "find_grade",
+            "cases": [
+              {
+                "args": [
+                  "Аня",
+                  {
+                    "Аня": 5,
+                    "Боря": 4
+                  }
+                ],
+                "expect": 5
+              },
+              {
+                "args": [
+                  "Вика",
+                  {
+                    "Аня": 5
+                  }
+                ],
+                "expect": null
+              },
+              {
+                "args": [
+                  "",
+                  {}
+                ],
+                "expect": null,
+                "hidden": true,
+                "note": "пустой словарь"
+              }
+            ]
+          },
+          "hint": "У словарей есть метод `get`, который сам возвращает `None`, если ключа нет, — не придётся писать `if` вручную.",
+          "solution": "def find_grade(name: str, grades: dict[str, int]) -> int | None:\n    return grades.get(name)",
+          "explain": "Аннотация int | None честно предупреждает вызывающий код: результат нужно проверить перед использованием, ведь оценки может и не быть. grades.get(name) делает это естественным образом, без отдельной проверки на существование ключа."
+        },
+        {
+          "type": "task",
+          "id": "ann-check-dunder",
+          "title": "Аннотации внутри функции",
+          "text": "Напишите функцию `parse_price(text: str) -> float` — она переводит текстовую цену (например, `'19.99'`) в число. Аннотации должны остаться в заголовке функции — они попадают в специальный словарь `__annotations__`.",
+          "starter": "def parse_price(text: str) -> float:\n    ",
+          "check": {
+            "mode": "asserts",
+            "cases": [
+              {
+                "code": "assert parse_price('19.99') == 19.99, 'строка должна превращаться в float'",
+                "note": "'19.99' -> 19.99"
+              },
+              {
+                "code": "assert parse_price.__annotations__.get('text') is str, 'параметр text должен быть аннотирован как str'\nassert parse_price.__annotations__.get('return') is float, 'аннотация результата должна быть float'",
+                "hidden": true,
+                "note": "аннотации сохранились в __annotations__"
+              }
+            ]
+          },
+          "hint": "Просто оберните `text` в `float(...)` и верните результат — заголовок функции с аннотациями `text: str` и `-> float` уже даёт нужную информацию через `__annotations__`.",
+          "solution": "def parse_price(text: str) -> float:\n    return float(text)",
+          "explain": "Аннотации автоматически попадают в словарь __annotations__ самой функции — по нему можно программно узнать заявленные типы, даже не читая тело функции. Именно так работают инструменты вроде mypy."
         }
       ]
     }
