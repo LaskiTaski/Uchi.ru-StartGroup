@@ -344,7 +344,8 @@
         {
           "type": "code",
           "title": "Перебор чего угодно",
-          "code": "for letter in 'кот':\n    print(letter)              # к, о, т\n\nfor number in [10, 20, 30]:\n    print(number)              # 10, 20, 30\n\nfor key in {'a': 1, 'b': 2}:\n    print(key)               # a, b — по ключам словаря"
+          "code": "for letter in 'кот':\n    print(letter)              # к, о, т\n\nfor number in [10, 20, 30]:\n    print(number)              # 10, 20, 30\n\nfor key in {'a': 1, 'b': 2}:\n    print(key)               # a, b — по ключам словаря",
+          "run": true
         },
         {
           "type": "note",
@@ -406,6 +407,35 @@
           "type": "code",
           "title": "Накопление результата — типовой шаблон",
           "code": "numbers = [4, 7, 2, 9]\n\ntotal = 0\nmaximum = numbers[0]\n\nfor n in numbers:\n    total += n\n    if n > maximum:\n        maximum = n\n\nprint(total, maximum)      # 22 9\n\n# Хотя для этих задач есть готовые функции:\nprint(sum(numbers), max(numbers))   # 22 9"
+        },
+        {
+          "type": "task",
+          "id": "for-sum",
+          "title": "Сумма от 1 до n",
+          "text": "Программа читает число `n` и печатает сумму всех целых чисел от 1 до `n`.",
+          "starter": "n = int(input())\n",
+          "check": {
+            "mode": "stdout",
+            "cases": [
+              {
+                "stdin": "5",
+                "expect": "15"
+              },
+              {
+                "stdin": "1",
+                "expect": "1"
+              },
+              {
+                "stdin": "0",
+                "expect": "0",
+                "hidden": true,
+                "note": "ноль: цикл не выполнится ни разу"
+              }
+            ]
+          },
+          "hint": "`range(1, n + 1)` — правая граница не входит в диапазон, поэтому без `+ 1` последнее число потеряется.",
+          "solution": "n = int(input())\ntotal = 0\nfor i in range(1, n + 1):\n    total += i\nprint(total)",
+          "explain": "Накопитель `total` объявляется до цикла — иначе он будет обнуляться на каждом витке. При n = 0 диапазон пуст, цикл не делает ни одного шага, и печатается стартовый ноль."
         }
       ]
     },
@@ -629,6 +659,35 @@
         {
           "type": "warn",
           "text": "Не злоупотребляйте: в сложном выражении морж делает строку нечитаемой. Он оправдан ровно там, где иначе пришлось бы повторять один и тот же вызов дважды."
+        },
+        {
+          "type": "task",
+          "id": "while-countdown",
+          "title": "Обратный отсчёт",
+          "text": "Программа читает число и печатает отсчёт до единицы — каждое число на своей строке, — а затем `Пуск!`",
+          "starter": "n = int(input())\n",
+          "check": {
+            "mode": "stdout",
+            "cases": [
+              {
+                "stdin": "3",
+                "expect": "3\n2\n1\nПуск!"
+              },
+              {
+                "stdin": "5",
+                "expect": "5\n4\n3\n2\n1\nПуск!"
+              },
+              {
+                "stdin": "0",
+                "expect": "Пуск!",
+                "hidden": true,
+                "note": "считать нечего — сразу пуск"
+              }
+            ]
+          },
+          "hint": "Уменьшать `n` нужно внутри цикла. Если забыть — условие никогда не станет ложным, и программа зависнет.",
+          "solution": "n = int(input())\nwhile n > 0:\n    print(n)\n    n -= 1\nprint('Пуск!')",
+          "explain": "Это классическое место для бесконечного цикла. Если запуск подвис — песочница остановит его сама через пять секунд и скажет об этом."
         }
       ]
     },

@@ -18,11 +18,16 @@
   };
 
   const IFRAME_ALLOW = 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture';
+  // Подписи курсов: ключ -> [текст, css-класс]
   const TAG_LABELS = {
-    practice: '🛠️ практика', project: '🎯 проект', theory: '📘 теория',
-    test: '📝 тест', exam: '🎓 экзамен'
+    free:     ['Бесплатно', 'tag-free'],       paid:   ['Платный', 'tag-paid'],
+    easy:     ['Легко', 'tag-easy'],           medium: ['Нормально', 'tag-medium'],
+    hard:     ['Сложно', 'tag-hard'],          heavy:  ['Тяжело', 'tag-heavy'],
+    useful:   ['Полезно', 'tag-useful'],       super:  ['Очень полезно', 'tag-super'],
+    start:    ['Для старта', 'tag-start'],
+    optional: ['Необязательно', 'tag-optional'], unknown: ['Неизвестно', 'tag-unknown']
   };
-  const REMEMBER_KEY = 'pa_auth';
+  const REMEMBER_KEY = 'pa_m5_unlocked';
   const SECRET_PASSWORD = 'NwrBJQF92k&=';
 
   /* ── Состояние ───────────────────────────────────────── */
@@ -85,6 +90,67 @@
   }
 
   const byId = (id) => document.getElementById(id);
+
+  /* ── Состояние блоков переживает перерисовку (этап 0.2) ─
+     loadModule заменяет весь innerHTML, поэтому введённый
+     учеником код обязан жить вне разметки. Реестром служит
+     PA.store: он же дублирует данные в localStorage, так что
+     код переживает и переключение вкладки, и перезагрузку.   */
+
+  const hasPA = typeof window.PA !== 'undefined';
+
+  function blockKeyOf(ctx, index, block) {
+    if (block && block.id) return 'id:' + block.id;
+    return (ctx && ctx.anchor ? ctx.anchor : 'x') + ':' + index;
+  }
+
+  function draftOf(key) {
+    if (!hasPA || !key) return null;
+    const saved = window.PA.store.get('drafts', key, null);
+    if (typeof saved === 'string') return { code: saved, stdin: '' };
+    return saved;
+  }
+
+  function saveDraft(key, patch) {
+    if (!hasPA || !key) return;
+    const prev = draftOf(key) || {};
+    window.PA.store.set('drafts', key, Object.assign({}, prev, patch));
+  }
+
+  /* Снять состояние со всех живых редакторов перед перерисовкой */
+  function captureEditors() {
+    if (!hasPA) return;
+    document.querySelectorAll('.sandbox[data-block-key]').forEach((box) => {
+      const key = box.getAttribute('data-block-key');
+      const editor = box.querySelector('.pa-editor');
+      const stdin = box.querySelector('.sb-stdin-input');
+      if (!editor) return;
+      const code = window.PA.editor.value(editor);
+      // Нетронутый пример хранить незачем: он и так есть в JSON
+      if (code === box.getAttribute('data-start') && !(stdin && stdin.value)) {
+        window.PA.store.set('drafts', key, null);
+        return;
+      }
+      saveDraft(key, { code: code, stdin: stdin ? stdin.value : '' });
+    });
+    window.PA.store.flush();
+  }
+
+  /** Единственная точка замены содержимого страницы. */
+  function setContent(html) {
+    captureEditors();
+    const content = byId('content');
+    content.innerHTML = html;
+    hydrate(content);
+  }
+
+  /* Достроить то, что нельзя выразить строкой разметки */
+  function hydrate(root) {
+    if (!hasPA) return;
+    root.querySelectorAll('.pa-editor').forEach((editor) => {
+      window.PA.editor.sync(editor);
+    });
+  }
 
   /* ── Конфигурация из манифеста ───────────────────────── */
 
@@ -284,28 +350,26 @@
    * после отрисовки. Именно это убрало ожидание рендера опросом.
    */
   function loadModule(modId) {
-    const content = byId('content');
-
     if (getModuleMeta(modId) && getModuleMeta(modId).protected && !state.authToken) {
-      content.innerHTML = renderLoginForm();
+      setContent(renderLoginForm());
       return Promise.resolve();
     }
 
     if (loaded.has(modId)) {
-      content.innerHTML = renderModule(loaded.get(modId));
+      setContent(renderModule(loaded.get(modId)));
       return Promise.resolve(loaded.get(modId));
     }
 
-    content.innerHTML = h('div', { class: 'empty-state' }, 'Загрузка…');
+    setContent(h('div', { class: 'empty-state' }, 'Загрузка…'));
 
     return fetchModuleCached(modId).then((data) => {
-      if (state.activeModule === modId) content.innerHTML = renderModule(data);
+      if (state.activeModule === modId) setContent(renderModule(data));
       return data;
     }).catch(() => {
       const meta = getModuleMeta(modId);
-      content.innerHTML = h('div', { class: 'empty-state' },
+      setContent(h('div', { class: 'empty-state' },
         '⚠️ Не удалось загрузить модуль. Проверьте, что файл ' +
-        esc(meta ? meta.file : '') + ' на месте.');
+        esc(meta ? meta.file : '') + ' на месте.'));
     });
   }
 
@@ -335,7 +399,7 @@
     if (!input) return;
 
     if (input.value.trim() !== SECRET_PASSWORD) {
-      byId('content').innerHTML = renderLoginForm('Неверный пароль. Попробуйте ещё раз.');
+      setContent(renderLoginForm('Неверный пароль. Попробуйте ещё раз.'));
       return;
     }
 
@@ -775,7 +839,8 @@
     var chips = '';
     (data.sections || []).forEach(function (sec) {
       if (!sec.anchor || !sec.chip) return;
-      chips += '<button class="qn-chip" data-anchor="' + esc(sec.anchor) + '">' +
+      chips += '<button class="qn-chip' + (sectionSolved(sec) ? ' qn-solved' : '') +
+        '" data-anchor="' + esc(sec.anchor) + '">' +
         '<span class="qn-code">' + esc(sec.chip) + '</span>' +
         (sec.chipNote ? '<span class="qn-note">' + esc(sec.chipNote) + '</span>' : '') +
         '</button>';
@@ -824,8 +889,8 @@
       if (section.desc) {
         bodyParts += '<p class="lesson-desc">' + inlineFmt(section.desc) + '</p>';
       }
-      (section.blocks || []).forEach(function (block) {
-        bodyParts += renderNoteBlock(block);
+      (section.blocks || []).forEach(function (block, index) {
+        bodyParts += renderNoteBlock(block, { anchor: section.anchor }, index);
       });
 
       var idAttr = section.anchor ? ' id="ref-' + esc(section.anchor) + '"' : '';
@@ -844,17 +909,30 @@
       '</div>';
     });
 
-    return headerHtml + aboutHtml + roadHtml + navHtml + sectionsHtml;
+    return headerHtml + renderProgressBar(data) + aboutHtml + roadHtml + navHtml + sectionsHtml;
   }
 
-  function renderNoteBlock(block) {
+  /* Раздел считается пройденным, когда решены все его задания */
+  function sectionSolved(section) {
+    var tasks = (section.blocks || []).filter(function (b) {
+      return b.type === 'task' && b.check && b.id;
+    });
+    if (!tasks.length || !hasPA) return false;
+    return tasks.every(function (b) { return window.PA.store.isSolved(b.id); });
+  }
+
+  function renderNoteBlock(block, ctx, index) {
     switch (block.type) {
       case 'text':
         return '<p class="note-text">' + inlineFmt(block.text) + '</p>';
       case 'heading':
         return '<div class="section-divider"></div><div class="section-label">' + esc(block.text) + '</div>';
       case 'code':
-        return renderCodeBlock(block.title, block.code, block.lang);
+        return renderCodeBlock(block.title, block.code, block.lang, {
+          run: block.run === true,
+          stdin: block.stdin,
+          key: blockKeyOf(ctx, index, block)
+        });
       case 'table':
         return renderNoteTable(block);
       case 'compare':
@@ -867,7 +945,7 @@
       case 'bad':
         return renderCompareCard('bad', block);
       case 'task':
-        return renderTaskBlock(block);
+        return renderTaskBlock(block, ctx, index);
       case 'checklist':
         var items = '';
         (block.items || []).forEach(function (it) {
@@ -885,22 +963,43 @@
     }
   }
 
-  /* Практическое задание: условие, подсказка и разбор под спойлером */
-  function renderTaskBlock(block) {
-    var html = '<div class="task">' +
+  /* Практическое задание: условие, песочница с автопроверкой,
+     подсказка и разбор под спойлером */
+  function renderTaskBlock(block, ctx, index) {
+    var key = blockKeyOf(ctx, index, block);
+    var solved = hasPA && block.id && window.PA.store.isSolved(block.id);
+
+    var html = '<div class="task' + (solved ? ' task-solved' : '') + '"' +
+        (block.id ? ' data-task-id="' + esc(block.id) + '"' : '') + '>' +
       '<div class="task-head"><span class="task-badge">Задание</span>' +
-      (block.title ? '<span class="task-title">' + esc(block.title) + '</span>' : '') + '</div>' +
+      (block.title ? '<span class="task-title">' + esc(block.title) + '</span>' : '') +
+      '<span class="task-state">' + (solved ? '✅ решено' : '') + '</span></div>' +
       '<div class="task-text">' + inlineFmt(block.text) + '</div>';
 
     if (block.example) {
       html += renderCodeBlock('Пример работы', block.example);
     }
+
+    // Задание с автопроверкой получает редактор, без неё — прежний вид
+    if (block.check && canRun()) {
+      var draft = draftOf(key);
+      html += renderSandbox({
+        key: key,
+        start: block.starter || '',
+        code: draft && draft.code !== undefined ? draft.code : (block.starter || ''),
+        stdin: draft && draft.stdin ? draft.stdin : (block.check.stdin || ''),
+        showStdin: block.check.mode === 'stdout' || !!block.check.stdin,
+        check: block.check,
+        taskId: block.id || null
+      });
+    }
+
     if (block.hint) {
       html += '<div class="callout callout-note">💡 <span>' + inlineFmt(block.hint) + '</span></div>';
     }
     if (block.solution) {
       html += '<div class="solution">' +
-        '<button class="solution-toggle" type="button">Показать разбор</button>' +
+        '<button class="solution-toggle" type="button" aria-expanded="false">Показать разбор</button>' +
         '<div class="solution-body">' + renderCodeBlock(null, block.solution) +
         (block.explain ? '<p class="note-text">' + inlineFmt(block.explain) + '</p>' : '') +
         '</div></div>';
@@ -908,12 +1007,94 @@
     return html + '</div>';
   }
 
-  function renderCodeBlock(title, code, lang) {
-    // Подсвечиваем только Python: команды терминала показываем как есть
-    var body = (lang && lang !== 'python') ? esc(code) : highlightPy(code);
-    var titleHtml = title ? h('div', { class: 'code-title' }, esc(title)) : '';
-    return h('div', { class: 'code-block' + (lang ? ' lang-' + lang : '') },
-      titleHtml + h('pre', null, h('code', null, body)));
+  /**
+   * Блок кода. opts.run === true добавляет песочницу.
+   * Оригинал кода кладём в data-code: копировать нужно исходник,
+   * а не textContent подсвеченного <pre> — иначе на длинных
+   * примерах ловим расхождение по пробелам.
+   */
+  function renderCodeBlock(title, code, lang, opts) {
+    opts = opts || {};
+    var isPython = !lang || lang === 'python';
+    var body = isPython ? highlightPy(code) : esc(code);
+    var copyBtn = '<button class="code-copy" type="button" ' +
+      'aria-label="Копировать код">Копировать</button>';
+
+    var head = title
+      ? '<div class="code-title"><span class="code-title-text">' + esc(title) + '</span>' + copyBtn + '</div>'
+      : '<div class="code-actions">' + copyBtn + '</div>';
+
+    var view = h('div', {
+      class: 'code-block' + (lang ? ' lang-' + lang : '') + (title ? '' : ' no-title'),
+      'data-code': code
+    }).replace('</div>', '') + head + '<pre><code>' + body + '</code></pre></div>';
+
+    // Терминальным командам кнопка запуска не нужна — исполнять нечем
+    if (!opts.run || !isPython || !canRun()) return view;
+
+    var draft = draftOf(opts.key);
+    return view + renderSandbox({
+      key: opts.key,
+      start: code,
+      code: draft && draft.code !== undefined ? draft.code : code,
+      stdin: draft && draft.stdin ? draft.stdin : (opts.stdin || ''),
+      showStdin: /\binput\s*\(/.test(code) || !!opts.stdin,
+      check: null,
+      taskId: null,
+      standalone: true
+    });
+  }
+
+  function canRun() {
+    return hasPA && window.PA.sandbox.available();
+  }
+
+  /* ── Песочница ───────────────────────────────────────── */
+
+  var SANDBOX_HINT = 'Python работает прямо в браузере. Нет доступа в сеть ' +
+    'и к файлам проекта, файлы живут только до перезагрузки страницы.';
+
+  function renderSandbox(opts) {
+    var editorHtml =
+      '<div class="pa-editor">' +
+        '<div class="ed-gutter"><span>1</span></div>' +
+        '<div class="ed-area">' +
+          '<pre class="ed-view" aria-hidden="true"><code>' + highlightPy(opts.code) + '</code></pre>' +
+          '<textarea class="ed-input" spellcheck="false" autocapitalize="off" ' +
+            'autocomplete="off" wrap="off" aria-label="Код программы">' +
+            esc(opts.code) + '</textarea>' +
+        '</div>' +
+      '</div>';
+
+    var stdinHtml =
+      '<div class="sb-stdin' + (opts.showStdin ? '' : ' hidden') + '">' +
+        '<label class="sb-label">Ввод <span>— по строке на каждый <code class="ic">input()</code></span></label>' +
+        '<textarea class="sb-stdin-input" spellcheck="false" rows="2" ' +
+          'aria-label="Данные для ввода">' + esc(opts.stdin || '') + '</textarea>' +
+      '</div>';
+
+    var buttons =
+      '<button class="sb-btn sb-run" type="button">▶ Запустить</button>' +
+      (opts.check ? '<button class="sb-btn sb-check" type="button">Проверить</button>' : '') +
+      '<button class="sb-btn sb-ghost sb-reset" type="button">Сбросить</button>' +
+      (opts.showStdin ? '' : '<button class="sb-btn sb-ghost sb-stdin-toggle" type="button">Нужен ввод</button>');
+
+    return h('div', {
+      class: 'sandbox' + (opts.standalone ? ' sandbox-standalone' : ''),
+      'data-block-key': opts.key || null,
+      'data-start': opts.start || '',
+      'data-task-id': opts.taskId || null,
+      'data-check': opts.check ? JSON.stringify(opts.check) : null
+    }).replace('</div>', '') +
+      editorHtml +
+      stdinHtml +
+      '<div class="sb-bar">' + buttons +
+        '<span class="sb-status" role="status"></span>' +
+        '<span class="sb-hint" title="' + esc(SANDBOX_HINT) + '">?</span>' +
+      '</div>' +
+      '<div class="sb-output hidden"><div class="sb-out-label">Вывод</div><pre class="sb-out-body"></pre></div>' +
+      '<div class="sb-report hidden"></div>' +
+    '</div>';
   }
 
   function renderCompareCard(kind, item) {
@@ -1047,11 +1228,327 @@
 
   /* ── Делегирование событий ───────────────────────────── */
 
+  /* ── Поведение песочницы ─────────────────────────────── */
+
+  function sbStatus(sb, text, kind) {
+    var el = sb.querySelector('.sb-status');
+    if (!el) return;
+    el.textContent = text || '';
+    el.className = 'sb-status' + (kind ? ' sb-' + kind : '');
+  }
+
+  function sbOutput(sb, text, append) {
+    var box = sb.querySelector('.sb-output');
+    var body = sb.querySelector('.sb-out-body');
+    if (!box || !body) return;
+    if (append) body.textContent += text;
+    else body.textContent = text;
+    box.classList.toggle('hidden', body.textContent === '');
+  }
+
+  function sbBusy(sb, busy) {
+    sb.querySelectorAll('.sb-btn').forEach(function (b) { b.disabled = busy; });
+    sb.classList.toggle('running', busy);
+  }
+
+  /* Человеческие формулировки вместо трейсбека */
+  function describeError(err) {
+    if (!err) return 'Что-то пошло не так.';
+    if (err.kind === 'PA_NO_INPUT') {
+      return 'Программа ждёт ввода, но поле «Ввод» пустое (или строк не хватило).';
+    }
+    if (err.kind === 'PA_NO_ENTRY') {
+      return 'Не нашли функцию «' + err.message + '». Проверьте имя — оно должно совпадать буква в букву.';
+    }
+    var where = err.line ? ' (строка ' + err.line + ')' : '';
+    if (err.kind === 'SyntaxError' || err.kind === 'IndentationError' || err.kind === 'TabError') {
+      return 'Python не смог разобрать код' + where + ': ' + err.message;
+    }
+    return err.kind + where + ': ' + err.message;
+  }
+
+  function runSandbox(sb, mode) {
+    if (!canRun()) return;
+    var editor = sb.querySelector('.pa-editor');
+    var stdinEl = sb.querySelector('.sb-stdin-input');
+    var code = window.PA.editor.value(editor);
+    var stdin = stdinEl ? stdinEl.value : '';
+    var check = mode === 'check' ? JSON.parse(sb.getAttribute('data-check') || 'null') : null;
+
+    if (window.PA.sandbox.busy()) {
+      sbStatus(sb, 'Другой запуск ещё не закончился', 'warn');
+      return;
+    }
+
+    sbBusy(sb, true);
+    sbOutput(sb, '');
+    var report = sb.querySelector('.sb-report');
+    if (report) { report.classList.add('hidden'); report.innerHTML = ''; }
+    sbStatus(sb, window.PA.sandbox.booted
+      ? 'Выполняем…'
+      : 'Готовим Python, ~10 МБ, только в первый раз…', 'wait');
+
+    window.PA.sandbox.send({
+      code: code,
+      stdin: stdin,
+      check: check,
+      onReady: function () { sbStatus(sb, 'Выполняем…', 'wait'); },
+      onOut: function (stream, text) { sbOutput(sb, text, true); }
+    }).then(function (result) {
+      sbBusy(sb, false);
+
+      if (result.timeout === 'boot') {
+        sbStatus(sb, 'Не удалось загрузить Python. Проверьте соединение и попробуйте ещё раз.', 'bad');
+        return;
+      }
+      if (result.timeout === 'run') {
+        sbStatus(sb, 'Программа выполнялась слишком долго. Возможно, цикл не заканчивается.', 'bad');
+        return;
+      }
+      if (result.fatal) { sbStatus(sb, result.fatal, 'bad'); return; }
+
+      if (mode === 'check') { showReport(sb, result.report); return; }
+
+      if (result.ok) {
+        sbStatus(sb, 'Готово', 'good');
+      } else {
+        sbStatus(sb, describeError(result.error), 'bad');
+      }
+    });
+  }
+
+  /* Результат проверки: открытые кейсы показываем целиком,
+     у скрытых — только пояснение, чтобы не выдать ответ */
+  function showReport(sb, report) {
+    var box = sb.querySelector('.sb-report');
+    if (!box || !report) return;
+
+    if (report.output) sbOutput(sb, report.output);
+
+    if (report.fatal) {
+      box.className = 'sb-report bad';
+      box.innerHTML = '<div class="rp-line rp-fail">' + esc(describeError(report.fatal)) + '</div>';
+      sbStatus(sb, 'Проверка не запустилась', 'bad');
+      markTask(sb, false);
+      return;
+    }
+
+    var results = report.results || [];
+    var failed = results.filter(function (r) { return !r.ok; }).length;
+    var rows = '';
+
+    results.forEach(function (item) {
+      var kase = item.case || {};
+      var hidden = kase.hidden === true;
+      var label;
+
+      if (hidden) {
+        label = 'скрытый тест' + (kase.note ? ': ' + kase.note : '');
+      } else if (item.label) {
+        label = item.label + (kase.expect !== undefined && item.ok ? ' → ' + item.got : '');
+      } else if (kase.stdin !== undefined && kase.stdin !== '') {
+        label = 'ввод: ' + String(kase.stdin).replace(/\n/g, ' ⏎ ');
+      } else {
+        label = kase.note || 'запуск без ввода';
+      }
+
+      rows += '<div class="rp-line ' + (item.ok ? 'rp-ok' : 'rp-fail') + '">' +
+        (item.ok ? '✅ ' : '❌ ') + esc(label) + '</div>';
+
+      if (!item.ok) {
+        var detail = '';
+        if (item.error) {
+          detail = describeError(item.error);
+        } else if (kase.expect !== undefined) {
+          detail = 'ожидалось ' + shortValue(kase.expect) + ', получено ' + shortValue(item.got);
+        } else if (item.got) {
+          detail = item.got;
+        }
+        if (detail) rows += '<div class="rp-detail">' + esc(detail) + '</div>';
+      }
+    });
+
+    box.className = 'sb-report ' + (failed ? 'bad' : 'good');
+    box.innerHTML = rows;
+    box.classList.remove('hidden');
+
+    // Формулировка при провале не приговор, а счёт по ходу дела
+    sbStatus(sb, failed
+      ? 'Пока не проходит ' + failed + ' из ' + results.length
+      : 'Все проверки пройдены', failed ? 'bad' : 'good');
+
+    markTask(sb, failed === 0 && results.length > 0);
+  }
+
+  function shortValue(value) {
+    var text = typeof value === 'string' ? value : JSON.stringify(value);
+    if (text === undefined) text = String(value);
+    text = text.replace(/\n/g, '⏎');
+    return text.length > 120 ? text.slice(0, 117) + '…' : text;
+  }
+
+  /* ── Прогресс ученика (этап 4) ───────────────────────── */
+
+  function markTask(sb, solved) {
+    var taskId = sb.getAttribute('data-task-id');
+    if (!taskId || !hasPA) return;
+    window.PA.store.markTask(taskId, solved ? 'solved' : 'tried');
+
+    var task = sb.closest('.task');
+    if (task) {
+      task.classList.toggle('task-solved', window.PA.store.isSolved(taskId));
+      var state = task.querySelector('.task-state');
+      if (state) state.textContent = window.PA.store.isSolved(taskId) ? '✅ решено' : '';
+    }
+    refreshProgress();
+  }
+
+  /* Сколько заданий с автопроверкой в модуле и сколько решено */
+  function progressOf(data) {
+    var total = 0, solved = 0, first = null;
+    (data.sections || []).forEach(function (section) {
+      (section.blocks || []).forEach(function (block) {
+        if (block.type !== 'task' || !block.check || !block.id) return;
+        total++;
+        if (hasPA && window.PA.store.isSolved(block.id)) solved++;
+        else if (!first) first = { anchor: section.anchor, id: block.id };
+      });
+    });
+    return { total: total, solved: solved, first: first };
+  }
+
+  function renderProgressBar(data) {
+    var p = progressOf(data);
+    if (!p.total) return '';
+    var percent = Math.round(p.solved / p.total * 100);
+    return h('div', modAttrs(data.id, { class: 'progress-bar' })).replace('</div>', '') +
+      '<div class="pb-track"><div class="pb-fill" style="width:' + percent + '%"></div></div>' +
+      '<div class="pb-text">Решено ' + p.solved + ' из ' + p.total + '</div>' +
+      (p.first
+        ? '<button class="pb-continue" type="button" data-anchor="' + esc(p.first.anchor) + '">Продолжить</button>'
+        : '<span class="pb-done">Все задания модуля решены</span>') +
+      '<button class="pb-io" type="button" data-io="export" title="Скачать прогресс файлом">⭳</button>' +
+      '<button class="pb-io" type="button" data-io="import" title="Загрузить прогресс из файла">⭱</button>' +
+    '</div>';
+  }
+
+  /* Перерисовать только индикаторы, не трогая введённый код */
+  function refreshProgress() {
+    var data = loaded.get(state.activeModule);
+    if (!data) return;
+    var bar = document.querySelector('.progress-bar');
+    if (bar) {
+      var wrap = document.createElement('div');
+      wrap.innerHTML = renderProgressBar(data);
+      if (wrap.firstChild) bar.replaceWith(wrap.firstChild);
+    }
+    markSolvedChips(data);
+  }
+
+  /* Галочки на плитках «Быстрого перехода» */
+  function markSolvedChips(data) {
+    (data.sections || []).forEach(function (section) {
+      var tasks = (section.blocks || []).filter(function (b) {
+        return b.type === 'task' && b.check && b.id;
+      });
+      if (!tasks.length) return;
+      var done = tasks.every(function (b) { return hasPA && window.PA.store.isSolved(b.id); });
+      document.querySelectorAll('.qn-chip[data-anchor="' + section.anchor + '"]')
+        .forEach(function (chip) { chip.classList.toggle('qn-solved', done); });
+    });
+  }
+
+  function exportProgress() {
+    var blob = new Blob([window.PA.store.export()], { type: 'application/json' });
+    var link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = 'python-academy-progress.json';
+    link.click();
+    setTimeout(function () { URL.revokeObjectURL(link.href); }, 1000);
+  }
+
+  function importProgress() {
+    var picker = document.createElement('input');
+    picker.type = 'file';
+    picker.accept = 'application/json,.json';
+    picker.addEventListener('change', function () {
+      var file = picker.files && picker.files[0];
+      if (!file) return;
+      file.text().then(function (text) {
+        try {
+          window.PA.store.import(text);
+          loadModule(state.activeModule);
+        } catch (e) {
+          alert('Не удалось прочитать файл прогресса: ' + e.message);
+        }
+      });
+    });
+    picker.click();
+  }
+
+  /* ── Копирование кода ────────────────────────────────── */
+
+  function copyCode(button) {
+    var block = button.closest('.code-block');
+    var source = block ? block.getAttribute('data-code') : null;
+    if (source === null) return;
+
+    var done = function () {
+      var was = button.textContent;
+      button.textContent = 'Скопировано';
+      button.classList.add('copied');
+      setTimeout(function () {
+        button.textContent = was;
+        button.classList.remove('copied');
+      }, 1500);
+    };
+
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(source).then(done, function () { fallbackCopy(source, done); });
+    } else {
+      fallbackCopy(source, done);
+    }
+  }
+
+  function fallbackCopy(text, done) {
+    var area = document.createElement('textarea');
+    area.value = text;
+    area.style.position = 'fixed';
+    area.style.opacity = '0';
+    document.body.appendChild(area);
+    area.select();
+    try { document.execCommand('copy'); done(); } catch (e) { /* нечем — молчим */ }
+    area.remove();
+  }
+
+  function resetSandbox(sb) {
+    var editor = sb.querySelector('.pa-editor');
+    window.PA.editor.setValue(editor, sb.getAttribute('data-start') || '');
+    var key = sb.getAttribute('data-block-key');
+    if (key) window.PA.store.set('drafts', key, null);
+    sbStatus(sb, '');
+    sbOutput(sb, '');
+    var report = sb.querySelector('.sb-report');
+    if (report) { report.classList.add('hidden'); report.innerHTML = ''; }
+  }
+
   /* ── События: таблица маршрутов вместо цепочки if ─────
      Добавить интерактивный элемент = добавить строку сюда. */
 
   const CLICK_ROUTES = [
     ['.sr-item',          (el) => openSearchResult(parseInt(el.getAttribute('data-index'), 10))],
+    ['.code-copy',        (el) => copyCode(el)],
+    ['.sb-run',           (el) => runSandbox(el.closest('.sandbox'), 'run')],
+    ['.sb-check',         (el) => runSandbox(el.closest('.sandbox'), 'check')],
+    ['.sb-reset',         (el) => resetSandbox(el.closest('.sandbox'))],
+    ['.sb-stdin-toggle',  (el) => {
+      const sb = el.closest('.sandbox');
+      sb.querySelector('.sb-stdin').classList.remove('hidden');
+      el.remove();
+      sb.querySelector('.sb-stdin-input').focus();
+    }],
+    ['.pb-continue',      (el) => goToAnchor(el.getAttribute('data-anchor'))],
+    ['.pb-io',            (el) => el.getAttribute('data-io') === 'export' ? exportProgress() : importProgress()],
     ['.solution-toggle',  (el) => toggleSolution(el)],
     ['.tab-caret',        (el, e) => { e.stopPropagation(); toggleTabMenu(el); }],
     ['.tab-menu-item',    (el) => goToAnchor(el.getAttribute('data-anchor'))],
@@ -1067,8 +1564,9 @@
 
   function toggleSolution(button) {
     const solution = button.parentElement;
-    solution.classList.toggle('open');
-    button.textContent = solution.classList.contains('open') ? 'Скрыть разбор' : 'Показать разбор';
+    const open = solution.classList.toggle('open');
+    button.textContent = open ? 'Скрыть разбор' : 'Показать разбор';
+    button.setAttribute('aria-expanded', open ? 'true' : 'false');
   }
 
   function onTabClick(tab) {
@@ -1085,6 +1583,15 @@
     lightbox.querySelector('img').src = src;
     lightbox.classList.add('active');
   }
+
+  /* Черновик пишется по ходу набора: PA.store сам дебаунсит запись */
+  document.addEventListener('input', function (e) {
+    const sb = e.target.closest && e.target.closest('.sandbox[data-block-key]');
+    if (!sb) return;
+    const key = sb.getAttribute('data-block-key');
+    if (e.target.classList.contains('ed-input')) saveDraft(key, { code: e.target.value });
+    if (e.target.classList.contains('sb-stdin-input')) saveDraft(key, { stdin: e.target.value });
+  });
 
   document.addEventListener('click', function (e) {
     for (const [selector, handler] of CLICK_ROUTES) {
@@ -1236,6 +1743,9 @@
   });
 
   /* ── Запуск: сначала манифест, потом всё остальное ───── */
+
+  // Подсветка в проекте одна: редактор пользуется той же функцией
+  if (hasPA) window.PA.setHighlighter(highlightPy);
 
   fetch('data/manifest.json')
     .then((response) => response.json())

@@ -3,12 +3,16 @@
 Сборка поискового индекса.
 
     python3 tools/build_search_index.py
+    python3 tools/build_search_index.py --check   # только сверка, без записи
 
 Читает манифест и все незащищённые модули, складывает из них
 компактный индекс в data/search-index.json. Браузеру больше не нужно
 скачивать все материалы целиком ради поиска.
 
 Запускать после правки контента — вместе с tools/validate.py.
+Режим --check не пишет файл, а сравнивает лежащий в репозитории
+индекс с пересобранным и возвращает 1 при расхождении: забытая
+пересборка иначе молча оставляет поиск на старых данных.
 """
 
 import json
@@ -54,7 +58,7 @@ def lesson_anchor(module_id: int, num) -> str:
     return f"l{module_id}-{str(num).replace('.', '-')}"
 
 
-def main() -> int:
+def build() -> list[dict]:
     manifest = json.loads((DATA / 'manifest.json').read_text(encoding='utf-8'))
     index = []
 
@@ -88,11 +92,29 @@ def main() -> int:
                 'body': clean(lesson.get('desc', ''))[:BODY_LIMIT],
             })
 
-    OUTPUT.write_text(
-        json.dumps(index, ensure_ascii=False, separators=(',', ':')),
-        encoding='utf-8'
-    )
+    return index
 
+
+def serialize(index: list[dict]) -> str:
+    return json.dumps(index, ensure_ascii=False, separators=(',', ':'))
+
+
+def main() -> int:
+    index = build()
+    payload = serialize(index)
+
+    if '--check' in sys.argv:
+        current = OUTPUT.read_text(encoding='utf-8') if OUTPUT.exists() else ''
+        if current == payload:
+            print(f'Индекс актуален: {len(index)} записей.')
+            return 0
+        print('❌ data/search-index.json не совпадает с пересобранным.')
+        print('   Запустите: python3 tools/build_search_index.py')
+        return 1
+
+    OUTPUT.write_text(payload, encoding='utf-8')
+
+    manifest = json.loads((DATA / 'manifest.json').read_text(encoding='utf-8'))
     source_size = sum((ROOT / m['file']).stat().st_size
                       for m in manifest['modules'] if not m.get('protected'))
     index_size = OUTPUT.stat().st_size
