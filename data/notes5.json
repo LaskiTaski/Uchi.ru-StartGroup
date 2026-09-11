@@ -67,7 +67,8 @@
         {
           "type": "code",
           "title": "То же самое через класс",
-          "code": "class Student:\n    def __init__(self, name, age, grades):\n        self.name = name\n        self.age = age\n        self.grades = grades\n\n    def average(self):\n        return sum(self.grades) / len(self.grades)\n\n\nanya = Student('Аня', 15, [5, 4, 5])\n\nprint(anya.name)        # Аня\nprint(anya.average())    # 4.666666666666667"
+          "code": "class Student:\n    def __init__(self, name, age, grades):\n        self.name = name\n        self.age = age\n        self.grades = grades\n\n    def average(self):\n        return sum(self.grades) / len(self.grades)\n\n\nanya = Student('Аня', 15, [5, 4, 5])\n\nprint(anya.name)        # Аня\nprint(anya.average())    # 4.666666666666667",
+          "run": true
         },
         {
           "type": "note",
@@ -120,6 +121,26 @@
           "type": "code",
           "title": "Встроенные типы — те же классы",
           "code": "print(type('привет'))     # <class 'str'>\nprint(type([1, 2]))       # <class 'list'>\n\nwords = ['кот', 'пёс']\nwords.append('ёж')        # метод объекта — ровно как anya.average()\n\n# Создавая свой класс, вы добавляете в язык новый тип данных"
+        },
+        {
+          "type": "task",
+          "id": "oop-why-trace",
+          "title": "Что напечатает программа?",
+          "text": "Не запуская код, определите вывод — две строки, по одной на каждый `print` из примера.",
+          "example": "class Item:\n    def __init__(self, name, price):\n        self.name = name\n        self.price = price\n\n    def total(self, qty):\n        return self.price * qty\n\n\napple = Item('Яблоко', 50)\nprint(apple.name)\nprint(apple.total(3))",
+          "starter": "# По строке на каждый print из примера\nprint()\nprint()",
+          "check": {
+            "mode": "stdout",
+            "cases": [
+              {
+                "stdin": "",
+                "expect": "Яблоко\n150"
+              }
+            ]
+          },
+          "hint": "`apple.total(3)` — обычный вызов метода: Python сам подставит `apple` как `self`, а `qty` получит значение 3.",
+          "solution": "print('Яблоко')\nprint(150)",
+          "explain": "`apple.name` — обычный атрибут объекта. `apple.total(3)` вызывает метод, который вернёт `self.price * qty`, то есть 50 * 3 = 150."
         }
       ]
     },
@@ -134,7 +155,8 @@
         {
           "type": "code",
           "title": "Минимальный класс",
-          "code": "class Cat:\n    def __init__(self, name, age):\n        self.name = name\n        self.age = age\n\n\nbarsik = Cat('Барсик', 3)\nmurka = Cat('Мурка', 5)\n\nprint(barsik.name)   # Барсик\nprint(murka.age)     # 5"
+          "code": "class Cat:\n    def __init__(self, name, age):\n        self.name = name\n        self.age = age\n\n\nbarsik = Cat('Барсик', 3)\nmurka = Cat('Мурка', 5)\n\nprint(barsik.name)   # Барсик\nprint(murka.age)     # 5",
+          "run": true
         },
         {
           "type": "table",
@@ -248,6 +270,54 @@
           "hint": "Кличку принимает `__init__(self, name)`, а сохраняет строка `self.name = name`. Без `self.` значение исчезнет вместе с вызовом.",
           "solution": "class Dog:\n    def __init__(self, name):\n        self.name = name\n\n    def bark(self):\n        return f'{self.name}: Гав!'",
           "explain": "Скрытый тест ловит запись клички в атрибут класса (`name = name` вместо `self.name = name`): такая кличка станет общей для всех собак сразу."
+        },
+        {
+          "type": "task",
+          "id": "oop-cls-trace",
+          "title": "Что напечатает программа?",
+          "text": "Не запуская код, определите вывод — две строки, по одной на каждый `print` из примера.",
+          "example": "class Point:\n    def __init__(self, x, y):\n        self.x = x\n        self.y = y\n\n\np1 = Point(1, 2)\np2 = Point(10, 20)\np1.x = 100\n\nprint(p1.x)\nprint(p2.x)",
+          "starter": "# По строке на каждый print из примера\nprint()\nprint()",
+          "check": {
+            "mode": "stdout",
+            "cases": [
+              {
+                "stdin": "",
+                "expect": "100\n10"
+              }
+            ]
+          },
+          "hint": "Каждый вызов `Point(...)` создаёт отдельный объект со своим набором атрибутов.",
+          "solution": "print(100)\nprint(10)",
+          "explain": "`p1` и `p2` — разные объекты. Изменение `p1.x` никак не влияет на `p2.x`, потому что у каждого объекта свои собственные атрибуты."
+        },
+        {
+          "type": "task",
+          "id": "oop-cls-book",
+          "title": "Класс Book",
+          "text": "Создайте класс `Book`. При создании он принимает название и автора и сохраняет их в атрибутах `title` и `author`. Метод `info()` возвращает строку вида `Война и мир — Толстой`.",
+          "starter": "class Book:\n    ",
+          "check": {
+            "mode": "asserts",
+            "cases": [
+              {
+                "code": "b = Book('Война и мир', 'Толстой')\nassert b.title == 'Война и мир', 'атрибут title не хранит название'\nassert b.author == 'Толстой', 'атрибут author не хранит автора'",
+                "note": "название и автор сохраняются"
+              },
+              {
+                "code": "assert Book('Война и мир', 'Толстой').info() == 'Война и мир — Толстой', 'info() вернул не ту строку'",
+                "note": "info() возвращает «Название — Автор»"
+              },
+              {
+                "code": "a = Book('Книга1', 'Автор1')\nb = Book('Книга2', 'Автор2')\nassert a.title != b.title and a.author != b.author, 'данные оказались общими на все книги'",
+                "hidden": true,
+                "note": "у каждой книги свои данные"
+              }
+            ]
+          },
+          "hint": "Оба значения принимает `__init__(self, title, author)` и сохраняет через `self.title = title`, `self.author = author`.",
+          "solution": "class Book:\n    def __init__(self, title, author):\n        self.title = title\n        self.author = author\n\n    def info(self):\n        return f'{self.title} — {self.author}'",
+          "explain": "Скрытый тест ловит запись в атрибуты класса (`title = title` вместо `self.title = title`): тогда все книги делили бы одни и те же название и автора."
         }
       ]
     },
@@ -266,7 +336,8 @@
         {
           "type": "code",
           "title": "Класс с несколькими методами",
-          "code": "class Rectangle:\n    def __init__(self, width, height):\n        self.width = width\n        self.height = height\n\n    def area(self):\n        return self.width * self.height\n\n    def perimeter(self):\n        return 2 * (self.width + self.height)\n\n    def is_square(self):\n        return self.width == self.height\n\n\nr = Rectangle(3, 4)\nprint(r.area())        # 12\nprint(r.perimeter())   # 14\nprint(r.is_square())   # False"
+          "code": "class Rectangle:\n    def __init__(self, width, height):\n        self.width = width\n        self.height = height\n\n    def area(self):\n        return self.width * self.height\n\n    def perimeter(self):\n        return 2 * (self.width + self.height)\n\n    def is_square(self):\n        return self.width == self.height\n\n\nr = Rectangle(3, 4)\nprint(r.area())        # 12\nprint(r.perimeter())   # 14\nprint(r.is_square())   # False",
+          "run": true
         },
         {
           "type": "heading",
@@ -323,6 +394,82 @@
         {
           "type": "text",
           "text": "Приём с `key=lambda` здесь тот же, что в разделе [lambda и функции как значения](#lambda)."
+        },
+        {
+          "type": "task",
+          "id": "oop-meth-trace",
+          "title": "Что напечатает программа?",
+          "text": "Не запуская код, определите вывод — две строки, по одной на каждый `print` из примера.",
+          "example": "class Rectangle:\n    def __init__(self, width, height):\n        self.width = width\n        self.height = height\n\n    def area(self):\n        return self.width * self.height\n\n    def describe(self):\n        return f'{self.width}x{self.height}, площадь {self.area()}'\n\n\nr = Rectangle(5, 2)\nprint(r.area())\nprint(r.describe())",
+          "starter": "# По строке на каждый print из примера\nprint()\nprint()",
+          "check": {
+            "mode": "stdout",
+            "cases": [
+              {
+                "stdin": "",
+                "expect": "10\n5x2, площадь 10"
+              }
+            ]
+          },
+          "hint": "`describe()` обращается к соседнему методу через `self.area()` — он вернёт то же число, что и прямой вызов `r.area()`.",
+          "solution": "print(10)\nprint('5x2, площадь 10')",
+          "explain": "Метод `describe` вызывает `area()` через `self` — только так методы могут обращаться друг к другу. Простой вызов `area()` без `self` дал бы `NameError`."
+        },
+        {
+          "type": "task",
+          "id": "oop-meth-circle",
+          "title": "Класс Circle с площадью и длиной окружности",
+          "text": "Создайте класс `Circle`. При создании он принимает радиус и хранит его в атрибуте `radius`. Метод `area()` возвращает площадь круга (`3.14159 * radius ** 2`), метод `circumference()` — длину окружности (`2 * 3.14159 * radius`).",
+          "starter": "class Circle:\n    ",
+          "check": {
+            "mode": "asserts",
+            "cases": [
+              {
+                "code": "c = Circle(2)\nassert abs(c.area() - 12.56636) < 1e-6, 'area() считает неверно'",
+                "note": "area() возвращает площадь"
+              },
+              {
+                "code": "c = Circle(1)\nassert abs(c.circumference() - 6.28318) < 1e-6, 'circumference() считает неверно'",
+                "note": "circumference() возвращает длину окружности"
+              },
+              {
+                "code": "c = Circle(3)\nassert abs(c.area() - 28.27431) < 1e-6, 'area() не работает для другого радиуса — проверьте, что используется self.radius'",
+                "hidden": true,
+                "note": "работает для любого радиуса, не только из примера"
+              }
+            ]
+          },
+          "hint": "Сохраните `radius` в `self.radius` внутри `__init__`, а в методах используйте именно `self.radius`.",
+          "solution": "class Circle:\n    def __init__(self, radius):\n        self.radius = radius\n\n    def area(self):\n        return 3.14159 * self.radius ** 2\n\n    def circumference(self):\n        return 2 * 3.14159 * self.radius",
+          "explain": "Скрытый тест берёт другой радиус: если методы случайно захватили значение не из `self.radius`, при новом радиусе результат не изменится вместе с ним."
+        },
+        {
+          "type": "task",
+          "id": "oop-meth-wallet",
+          "title": "Кошелёк",
+          "text": "Создайте класс `Wallet`. При создании он принимает начальную сумму и хранит её в атрибуте `balance`. Метод `add(amount)` увеличивает `balance` на `amount` (ничего не возвращает). Метод `spend(amount)` уменьшает `balance` на `amount`, если средств хватает, и возвращает `True`; если не хватает — не меняет `balance` и возвращает `False`.",
+          "starter": "class Wallet:\n    ",
+          "check": {
+            "mode": "asserts",
+            "cases": [
+              {
+                "code": "w = Wallet(100)\nw.add(50)\nassert w.balance == 150, 'add() не увеличил balance'",
+                "note": "add() увеличивает баланс"
+              },
+              {
+                "code": "w = Wallet(100)\nassert w.spend(30) is True, 'spend() должен вернуть True при достаточной сумме'\nassert w.balance == 70, 'spend() не списал сумму с баланса'",
+                "note": "spend() списывает деньги и возвращает True"
+              },
+              {
+                "code": "w = Wallet(100)\nassert w.spend(500) is False, 'spend() должен вернуть False, если денег не хватает'\nassert w.balance == 100, 'баланс не должен меняться при неудачном spend()'",
+                "hidden": true,
+                "note": "при нехватке денег баланс не меняется"
+              }
+            ]
+          },
+          "hint": "В `spend()` сначала проверьте `amount > self.balance`, и только потом меняйте `self.balance` и возвращайте `True`; иначе верните `False`, не трогая баланс.",
+          "solution": "class Wallet:\n    def __init__(self, balance):\n        self.balance = balance\n\n    def add(self, amount):\n        self.balance += amount\n\n    def spend(self, amount):\n        if amount > self.balance:\n            return False\n        self.balance -= amount\n        return True",
+          "explain": "Скрытый тест проверяет случай нехватки денег: наивное решение часто забывает вернуть `False` или всё равно списывает сумму в минус — ровно от этого защищает проверка внутри метода."
         }
       ]
     },
@@ -341,7 +488,8 @@
         {
           "type": "code",
           "title": "Оба вида рядом",
-          "code": "class Student:\n    school = 'Гимназия №1'        # атрибут класса — общий\n\n    def __init__(self, name):\n        self.name = name          # атрибут объекта — личный\n\n\nanya = Student('Аня')\nborya = Student('Боря')\n\nprint(anya.name, '|', anya.school)    # Аня | Гимназия №1\nprint(borya.name, '|', borya.school)  # Боря | Гимназия №1\nprint(Student.school)                 # Гимназия №1 — доступен и без объекта"
+          "code": "class Student:\n    school = 'Гимназия №1'        # атрибут класса — общий\n\n    def __init__(self, name):\n        self.name = name          # атрибут объекта — личный\n\n\nanya = Student('Аня')\nborya = Student('Боря')\n\nprint(anya.name, '|', anya.school)    # Аня | Гимназия №1\nprint(borya.name, '|', borya.school)  # Боря | Гимназия №1\nprint(Student.school)                 # Гимназия №1 — доступен и без объекта",
+          "run": true
         },
         {
           "type": "table",
@@ -460,6 +608,82 @@
             "title": "Список в теле класса",
             "code": "class Student:\n    grades = []      # ОДИН на всех!\n\n    def __init__(self, name):\n        self.name = name\n\na = Student('Аня')\nb = Student('Боря')\na.grades.append(5)\n\nprint(a.grades)   # [5]\nprint(b.grades)   # [5] (!)"
           }
+        },
+        {
+          "type": "task",
+          "id": "oop-attr-trace",
+          "title": "Что напечатает программа?",
+          "text": "Не запуская код, определите вывод — две строки, по одной на каждый `print` из примера.",
+          "example": "class Item:\n    tax = 0.2\n\n    def __init__(self, price):\n        self.price = price\n\n\na = Item(100)\nb = Item(200)\n\nprint(a.tax, b.tax)\nItem.tax = 0.1\nprint(a.tax, b.tax)",
+          "starter": "# По строке на каждый print из примера\nprint()\nprint()",
+          "check": {
+            "mode": "stdout",
+            "cases": [
+              {
+                "stdin": "",
+                "expect": "0.2 0.2\n0.1 0.1"
+              }
+            ]
+          },
+          "hint": "`tax` — атрибут класса, общий для всех объектов, пока никто не создал свой личный `tax` через `self`.",
+          "solution": "print(0.2, 0.2)\nprint(0.1, 0.1)",
+          "explain": "Изменение `Item.tax` меняет значение сразу для всех объектов, потому что они читают общий атрибут класса, а не свою копию."
+        },
+        {
+          "type": "task",
+          "id": "oop-attr-counter",
+          "title": "Счётчик заказов",
+          "text": "Создайте класс `Order`. У класса есть общий атрибут `count`, равный `0`. При создании каждого объекта `count` увеличивается на 1 (через имя класса, не через `self`). `__init__` также принимает `item` и сохраняет его в `self.item`.",
+          "starter": "class Order:\n    ",
+          "check": {
+            "mode": "asserts",
+            "cases": [
+              {
+                "code": "Order('Книга')\nOrder('Ручка')\nOrder('Тетрадь')\nassert Order.count == 3, 'счётчик Order.count должен считать все созданные заказы'",
+                "note": "count считает количество созданных заказов"
+              },
+              {
+                "code": "o = Order('Книга')\nassert o.item == 'Книга', 'атрибут item не сохраняет переданное значение'",
+                "note": "item сохраняется в объекте"
+              },
+              {
+                "code": "a = Order('А')\nb = Order('Б')\nassert Order.count >= 2 and a.count == b.count == Order.count, 'count должен быть общим на всех — self.count создаёт отдельный атрибут у объекта'",
+                "hidden": true,
+                "note": "count общий, а не личный у каждого объекта"
+              }
+            ]
+          },
+          "hint": "Увеличивайте счётчик записью `Order.count += 1` внутри `__init__`. `self.count += 1` создаст отдельный личный атрибут и не изменит общий.",
+          "solution": "class Order:\n    count = 0\n\n    def __init__(self, item):\n        self.item = item\n        Order.count += 1",
+          "explain": "Скрытый тест ловит классическую ловушку `self.count += 1`: такая запись читает общий атрибут один раз, но пишет уже в новый личный, и `Order.count` остаётся нулём."
+        },
+        {
+          "type": "task",
+          "id": "oop-attr-tags",
+          "title": "Список меток",
+          "text": "Создайте класс `Note`. При создании он принимает заголовок и сохраняет его в `self.title`, а также создаёт **личный** пустой список в `self.tags`. Метод `add_tag(tag)` добавляет метку в `self.tags`.",
+          "starter": "class Note:\n    ",
+          "check": {
+            "mode": "asserts",
+            "cases": [
+              {
+                "code": "n = Note('План')\nn.add_tag('важное')\nassert n.tags == ['важное'], 'add_tag() не добавляет метку в tags'",
+                "note": "add_tag() добавляет метку"
+              },
+              {
+                "code": "n = Note('План')\nassert n.title == 'План', 'title не хранит заголовок'",
+                "note": "заголовок сохраняется"
+              },
+              {
+                "code": "a = Note('А')\nb = Note('Б')\na.add_tag('срочно')\nassert b.tags == [], 'tags должен быть личным у каждого объекта, а не общим списком'",
+                "hidden": true,
+                "note": "у каждой заметки свой список меток"
+              }
+            ]
+          },
+          "hint": "Пустой список заводите строкой `self.tags = []` внутри `__init__`, а не как `tags = []` в теле класса — иначе список станет общим на все объекты.",
+          "solution": "class Note:\n    def __init__(self, title):\n        self.title = title\n        self.tags = []\n\n    def add_tag(self, tag):\n        self.tags.append(tag)",
+          "explain": "Скрытый тест ловит список, объявленный в теле класса: такой список создаётся один раз и становится общим на все объекты — добавление метки одной заметке затронуло бы все остальные."
         }
       ]
     },
@@ -478,7 +702,8 @@
         {
           "type": "code",
           "title": "Проблема: атрибут можно испортить",
-          "code": "class BankAccount:\n    def __init__(self, owner):\n        self.owner = owner\n        self.balance = 0\n\n    def withdraw(self, amount):\n        if amount > self.balance:\n            print('Недостаточно средств')\n            return\n        self.balance -= amount\n\n\naccount = BankAccount('Аня')\naccount.balance = -1000000     # проверка обойдена!\nprint(account.balance)         # -1000000"
+          "code": "class BankAccount:\n    def __init__(self, owner):\n        self.owner = owner\n        self.balance = 0\n\n    def withdraw(self, amount):\n        if amount > self.balance:\n            print('Недостаточно средств')\n            return\n        self.balance -= amount\n\n\naccount = BankAccount('Аня')\naccount.balance = -1000000     # проверка обойдена!\nprint(account.balance)         # -1000000",
+          "run": true
         },
         {
           "type": "heading",
@@ -551,6 +776,82 @@
         {
           "type": "warn",
           "text": "Не превращайте каждый атрибут в свойство «на всякий случай». Начинайте с обычных публичных атрибутов и добавляйте `@property` только там, где действительно нужна проверка или расчёт."
+        },
+        {
+          "type": "task",
+          "id": "oop-enc-trace",
+          "title": "Что напечатает программа?",
+          "text": "Не запуская код, определите вывод — две строки, по одной на каждый `print` из примера.",
+          "example": "class Rectangle:\n    def __init__(self, width, height):\n        self.width = width\n        self.height = height\n\n    @property\n    def area(self):\n        return self.width * self.height\n\n\nr = Rectangle(3, 4)\nprint(r.area)\nr.width = 10\nprint(r.area)",
+          "starter": "# По строке на каждый print из примера\nprint()\nprint()",
+          "check": {
+            "mode": "stdout",
+            "cases": [
+              {
+                "stdin": "",
+                "expect": "12\n40"
+              }
+            ]
+          },
+          "hint": "`area` — свойство: оно пересчитывается заново при каждом обращении, поэтому после изменения `width` результат меняется.",
+          "solution": "print(12)\nprint(40)",
+          "explain": "`@property` позволяет обращаться к `area` без скобок, как к обычному атрибуту, но каждый раз выполняется код метода — поэтому после `r.width = 10` значение пересчиталось само."
+        },
+        {
+          "type": "task",
+          "id": "oop-enc-temp",
+          "title": "Свойство fahrenheit",
+          "text": "Создайте класс `Temperature`. При создании он принимает температуру в градусах Цельсия и сохраняет её в `self.celsius`. Добавьте свойство (`@property`) `fahrenheit`, которое возвращает температуру в Фаренгейтах по формуле `celsius * 9 / 5 + 32`.",
+          "starter": "class Temperature:\n    ",
+          "check": {
+            "mode": "asserts",
+            "cases": [
+              {
+                "code": "t = Temperature(0)\nassert abs(t.fahrenheit - 32) < 1e-9, 'fahrenheit должен возвращать 32 для 0 градусов Цельсия'",
+                "note": "0°C соответствует 32°F"
+              },
+              {
+                "code": "t = Temperature(100)\nassert abs(t.fahrenheit - 212) < 1e-9, 'fahrenheit считает неверно'",
+                "note": "100°C соответствует 212°F"
+              },
+              {
+                "code": "t = Temperature(20)\nt.celsius = 30\nassert abs(t.fahrenheit - 86) < 1e-9, 'fahrenheit должен пересчитываться при изменении celsius, а не запоминать старое значение'",
+                "hidden": true,
+                "note": "fahrenheit пересчитывается при изменении celsius"
+              }
+            ]
+          },
+          "hint": "`fahrenheit` должен быть методом с декоратором `@property`, который каждый раз вычисляет значение из `self.celsius`, а не хранит готовое число, посчитанное один раз в `__init__`.",
+          "solution": "class Temperature:\n    def __init__(self, celsius):\n        self.celsius = celsius\n\n    @property\n    def fahrenheit(self):\n        return self.celsius * 9 / 5 + 32",
+          "explain": "Скрытый тест меняет `celsius` после создания объекта: если `fahrenheit` был обычным атрибутом, посчитанным один раз в `__init__`, он не изменится вместе с `celsius` — а именно в этом смысл `@property`."
+        },
+        {
+          "type": "task",
+          "id": "oop-enc-age",
+          "title": "Проверка возраста",
+          "text": "Создайте класс `Person`. При создании он принимает имя (`self.name`) и возраст, который сохраняется через свойство `age` с `@property` и `@age.setter`. Установка отрицательного возраста или возраста больше 120 должна вызывать `ValueError`.",
+          "starter": "class Person:\n    ",
+          "check": {
+            "mode": "asserts",
+            "cases": [
+              {
+                "code": "p = Person('Аня', 15)\nassert p.age == 15, 'age должен хранить переданный возраст'",
+                "note": "корректный возраст сохраняется"
+              },
+              {
+                "code": "p = Person('Аня', 15)\ntry:\n    p.age = -5\nexcept ValueError:\n    pass\nelse:\n    assert False, 'отрицательный возраст должен вызывать ValueError'",
+                "note": "отрицательный возраст вызывает ValueError"
+              },
+              {
+                "code": "p = Person('Аня', 15)\ntry:\n    p.age = 200\nexcept ValueError:\n    pass\nelse:\n    assert False, 'возраст больше 120 должен вызывать ValueError'\nassert p.age == 15, 'после неудачной попытки старое значение age должно сохраниться'",
+                "hidden": true,
+                "note": "слишком большой возраст отклоняется, старое значение не портится"
+              }
+            ]
+          },
+          "hint": "Setter (`@age.setter`) должен проверять `0 <= value <= 120` и вызывать `raise ValueError(...)` при нарушении — до того, как менять `self._age`.",
+          "solution": "class Person:\n    def __init__(self, name, age):\n        self.name = name\n        self._age = 0\n        self.age = age\n\n    @property\n    def age(self):\n        return self._age\n\n    @age.setter\n    def age(self, value):\n        if not 0 <= value <= 120:\n            raise ValueError('Некорректный возраст')\n        self._age = value",
+          "explain": "Скрытый тест проверяет, что после неудачной попытки записать плохое значение старое значение `age` не потерялось — типичная ошибка: сохранить `value` в `self._age` до проверки, а не после неё."
         }
       ]
     },
@@ -577,7 +878,8 @@
         {
           "type": "code",
           "title": "__str__ — как объект выглядит для человека",
-          "code": "class Cat:\n    def __init__(self, name, age):\n        self.name = name\n        self.age = age\n\n    def __str__(self):\n        return f'Кот {self.name}, {self.age} лет'\n\n\nbarsik = Cat('Барсик', 3)\nprint(barsik)          # Кот Барсик, 3 лет\nprint(str(barsik))     # то же самое\nprint(f'{barsik}')     # и в f-строке тоже"
+          "code": "class Cat:\n    def __init__(self, name, age):\n        self.name = name\n        self.age = age\n\n    def __str__(self):\n        return f'Кот {self.name}, {self.age} лет'\n\n\nbarsik = Cat('Барсик', 3)\nprint(barsik)          # Кот Барсик, 3 лет\nprint(str(barsik))     # то же самое\nprint(f'{barsik}')     # и в f-строке тоже",
+          "run": true
         },
         {
           "type": "note",
@@ -703,6 +1005,82 @@
         {
           "type": "warn",
           "text": "Магических методов в Python несколько десятков, но начинающему нужны ровно три: `__init__`, `__str__` и иногда `__eq__`. Остальные добавляйте, когда появится конкретная задача."
+        },
+        {
+          "type": "task",
+          "id": "oop-dun-trace",
+          "title": "Что напечатает программа?",
+          "text": "Не запуская код, определите вывод — две строки, по одной на каждый `print` из примера.",
+          "example": "class Point:\n    def __init__(self, x, y):\n        self.x = x\n        self.y = y\n\n    def __str__(self):\n        return f'точка ({self.x}, {self.y})'\n\n    def __repr__(self):\n        return f'Point({self.x}, {self.y})'\n\n\np = Point(1, 2)\nprint(p)\nprint([p, p])",
+          "starter": "# По строке на каждый print из примера\nprint()\nprint()",
+          "check": {
+            "mode": "stdout",
+            "cases": [
+              {
+                "stdin": "",
+                "expect": "точка (1, 2)\n[Point(1, 2), Point(1, 2)]"
+              }
+            ]
+          },
+          "hint": "`print(p)` использует `__str__`, а вывод списка внутри всегда идёт через `__repr__`, даже если `__str__` определён.",
+          "solution": "print('точка (1, 2)')\nprint('[Point(1, 2), Point(1, 2)]')",
+          "explain": "Прямой `print(p)` вызывает `__str__`, а объект внутри списка печатается через `__repr__` — так устроен Python, и это частая причина путаницы."
+        },
+        {
+          "type": "task",
+          "id": "oop-dun-book",
+          "title": "Читаемое представление книги",
+          "text": "Создайте класс `Book` с атрибутами `title` и `author` (задаются в `__init__`). Добавьте метод `__str__`, который возвращает строку вида `«Война и мир» (Толстой)`.",
+          "starter": "class Book:\n    ",
+          "check": {
+            "mode": "asserts",
+            "cases": [
+              {
+                "code": "b = Book('Война и мир', 'Толстой')\nassert str(b) == '«Война и мир» (Толстой)', '__str__ вернул не ту строку'",
+                "note": "str(book) возвращает «Название» (Автор)"
+              },
+              {
+                "code": "b = Book('Мастер и Маргарита', 'Булгаков')\nassert f'{b}' == '«Мастер и Маргарита» (Булгаков)', 'f-строка должна использовать __str__'",
+                "note": "работает и в f-строке"
+              },
+              {
+                "code": "b = Book('Идиот', 'Достоевский')\nassert isinstance(str(b), str), '__str__ должен возвращать строку, а не печатать её'\nassert str(b) != 'None', '__str__ не должен использовать print() внутри себя'",
+                "hidden": true,
+                "note": "__str__ возвращает строку, а не печатает её через print"
+              }
+            ]
+          },
+          "hint": "`__str__` обязан заканчиваться `return` с готовой строкой. Если внутри написать `print(...)`, метод вернёт `None`, и в тексте появится «None».",
+          "solution": "class Book:\n    def __init__(self, title, author):\n        self.title = title\n        self.author = author\n\n    def __str__(self):\n        return f'«{self.title}» ({self.author})'",
+          "explain": "Скрытый тест ловит частую ошибку: `print()` внутри `__str__` вместо `return`. Такой метод сам печатает нужный текст на экран, но возвращает `None`, и любое место, ожидающее строку, получит «None»."
+        },
+        {
+          "type": "task",
+          "id": "oop-dun-point-eq",
+          "title": "Сравнение точек по координатам",
+          "text": "Создайте класс `Point` с атрибутами `x` и `y`. Добавьте метод `__eq__`, чтобы два объекта считались равными, если совпадают обе координаты.",
+          "starter": "class Point:\n    ",
+          "check": {
+            "mode": "asserts",
+            "cases": [
+              {
+                "code": "assert Point(1, 2) == Point(1, 2), 'точки с одинаковыми координатами должны быть равны'",
+                "note": "точки с одинаковыми координатами равны"
+              },
+              {
+                "code": "assert Point(1, 2) != Point(5, 5), 'точки с разными координатами не должны быть равны'",
+                "note": "точки с разными координатами не равны"
+              },
+              {
+                "code": "a = Point(3, 4)\nb = Point(3, 4)\nassert (a == b) is True, '__eq__ должен возвращать True/False, а не сравнивать сами объекты (is)'\nassert a is not b, 'это должны быть разные объекты, просто с одинаковыми координатами'",
+                "hidden": true,
+                "note": "сравниваются координаты, а не сами объекты (is)"
+              }
+            ]
+          },
+          "hint": "Без `__eq__` Python сравнивает объекты как `is` — два разных объекта с одинаковыми `x` и `y` окажутся не равны. Определите `__eq__(self, other)`, сравнивающий `self.x == other.x and self.y == other.y`.",
+          "solution": "class Point:\n    def __init__(self, x, y):\n        self.x = x\n        self.y = y\n\n    def __eq__(self, other):\n        return self.x == other.x and self.y == other.y",
+          "explain": "Скрытый тест напоминает: без `__eq__` оператор `==` работал бы как `is`, и даже точки с одинаковыми координатами оказались бы «не равны», потому что это разные объекты в памяти."
         }
       ]
     },
@@ -726,7 +1104,8 @@
         {
           "type": "code",
           "title": "Учим складываться",
-          "code": "class Money:\n    def __init__(self, rub):\n        self.rub = rub\n\n    def __add__(self, other):\n        return Money(self.rub + other.rub)   # возвращаем НОВЫЙ объект\n\n    def __str__(self):\n        return f'{self.rub} руб.'\n\n\nprint(Money(100) + Money(50))   # 150 руб."
+          "code": "class Money:\n    def __init__(self, rub):\n        self.rub = rub\n\n    def __add__(self, other):\n        return Money(self.rub + other.rub)   # возвращаем НОВЫЙ объект\n\n    def __str__(self):\n        return f'{self.rub} руб.'\n\n\nprint(Money(100) + Money(50))   # 150 руб.",
+          "run": true
         },
         {
           "type": "note",
@@ -819,6 +1198,82 @@
         {
           "type": "warn",
           "text": "Перегружайте операторы только там, где смысл очевиден. `Money + Money` понятно всем, а `Student + Student` — загадка. Если операция вызывает вопрос «а что это вообще значит», лучше обычный метод с говорящим именем."
+        },
+        {
+          "type": "task",
+          "id": "oop-op-trace",
+          "title": "Что напечатает программа?",
+          "text": "Не запуская код, определите вывод — пять строк, по одной на каждый `print` из примера.",
+          "example": "class Bag:\n    def __init__(self, items):\n        self.items = items\n\n    def __len__(self):\n        return len(self.items)\n\n    def __getitem__(self, index):\n        return self.items[index]\n\n\nbag = Bag(['ключи', 'кошелёк', 'телефон'])\nprint(len(bag))\nprint(bag[1])\nfor item in bag:\n    print(item)",
+          "starter": "# По строке на каждый print из примера\nprint()\nprint()\nprint()\nprint()\nprint()",
+          "check": {
+            "mode": "stdout",
+            "cases": [
+              {
+                "stdin": "",
+                "expect": "3\nкошелёк\nключи\nкошелёк\nтелефон"
+              }
+            ]
+          },
+          "hint": "`__getitem__` делает объект «списком»: цикл `for` сам перебирает индексы 0, 1, 2… пока не наткнётся на `IndexError`.",
+          "solution": "print(3)\nprint('кошелёк')\nprint('ключи')\nprint('кошелёк')\nprint('телефон')",
+          "explain": "`len(bag)` вызывает `__len__` и даёт 3, `bag[1]` вызывает `__getitem__` и возвращает второй элемент. Цикл `for` работает благодаря тому же `__getitem__` — Python обращается по индексам 0, 1, 2, пока не получит `IndexError`."
+        },
+        {
+          "type": "task",
+          "id": "oop-op-add",
+          "title": "Сложение денег",
+          "text": "Создайте класс `Money` с атрибутом `rub` (задаётся в `__init__`). Добавьте метод `__add__`, чтобы `Money(100) + Money(50)` возвращал **новый** объект `Money` с суммой рублей. Добавьте метод `__str__`, возвращающий строку вида `150 руб.`",
+          "starter": "class Money:\n    ",
+          "check": {
+            "mode": "asserts",
+            "cases": [
+              {
+                "code": "result = Money(100) + Money(50)\nassert str(result) == '150 руб.', '__add__ вернул неверную сумму'",
+                "note": "Money(100) + Money(50) даёт «150 руб.»"
+              },
+              {
+                "code": "a = Money(100)\nb = Money(50)\nresult = a + b\nassert isinstance(result, Money), '__add__ должен возвращать объект Money, а не число'",
+                "note": "результат сложения — объект Money"
+              },
+              {
+                "code": "a = Money(100)\nb = Money(50)\nresult = a + b\nassert a.rub == 100 and b.rub == 50, '__add__ не должен менять исходные объекты — только создавать новый'",
+                "hidden": true,
+                "note": "исходные объекты не меняются"
+              }
+            ]
+          },
+          "hint": "`__add__(self, other)` должен вернуть `Money(self.rub + other.rub)` — новый объект, а не изменённый `self`.",
+          "solution": "class Money:\n    def __init__(self, rub):\n        self.rub = rub\n\n    def __add__(self, other):\n        return Money(self.rub + other.rub)\n\n    def __str__(self):\n        return f'{self.rub} руб.'",
+          "explain": "Скрытый тест проверяет, что исходные объекты остались нетронутыми: `__add__` обязан возвращать новый объект, а не менять `self.rub` на месте — так же ведут себя встроенные неизменяемые типы вроде чисел и строк."
+        },
+        {
+          "type": "task",
+          "id": "oop-op-lt",
+          "title": "Сортировка учеников по баллу",
+          "text": "Создайте класс `Student` с атрибутами `name` и `score` (задаются в `__init__`). Добавьте метод `__lt__`, чтобы `sorted()` сортировала учеников по возрастанию `score`.",
+          "starter": "class Student:\n    ",
+          "check": {
+            "mode": "asserts",
+            "cases": [
+              {
+                "code": "assert Student('Аня', 78) < Student('Боря', 92), 'ученик с меньшим score должен быть \"меньше\"'",
+                "note": "сравнение по score через <"
+              },
+              {
+                "code": "group = [Student('Аня', 78), Student('Боря', 92), Student('Вика', 85)]\nresult = [s.name for s in sorted(group)]\nassert result == ['Аня', 'Вика', 'Боря'], 'sorted() должна упорядочить по возрастанию score'",
+                "note": "sorted() упорядочивает по score"
+              },
+              {
+                "code": "group = [Student('А', 50), Student('Б', 50), Student('В', 10)]\nresult = [s.name for s in sorted(group)]\nassert result[0] == 'В', 'наименьший score должен оказаться первым при любых значениях'",
+                "hidden": true,
+                "note": "работает для произвольного набора баллов, включая совпадающие"
+              }
+            ]
+          },
+          "hint": "`__lt__(self, other)` должен возвращать `self.score < other.score` — именно этот метод использует `sorted()` для сравнения объектов попарно.",
+          "solution": "class Student:\n    def __init__(self, name, score):\n        self.name = name\n        self.score = score\n\n    def __lt__(self, other):\n        return self.score < other.score",
+          "explain": "Скрытый тест берёт другой набор баллов, включая совпадающие значения, — наивное решение, сравнивающее что-то кроме `score` (например, имя), даст неверный порядок."
         }
       ]
     },
@@ -842,7 +1297,8 @@
         {
           "type": "code",
           "title": "Решение: общий родитель",
-          "code": "class Animal:\n    def __init__(self, name):\n        self.name = name\n\n    def eat(self):\n        print(f'{self.name} ест')\n\n\nclass Dog(Animal):        # Dog наследует от Animal\n    def speak(self):\n        print('Гав!')\n\n\nclass Cat(Animal):\n    def speak(self):\n        print('Мяу!')\n\n\nrex = Dog('Рекс')\nrex.eat()      # Рекс ест  — метод достался от родителя\nrex.speak()    # Гав!      — свой собственный"
+          "code": "class Animal:\n    def __init__(self, name):\n        self.name = name\n\n    def eat(self):\n        print(f'{self.name} ест')\n\n\nclass Dog(Animal):        # Dog наследует от Animal\n    def speak(self):\n        print('Гав!')\n\n\nclass Cat(Animal):\n    def speak(self):\n        print('Мяу!')\n\n\nrex = Dog('Рекс')\nrex.eat()      # Рекс ест  — метод достался от родителя\nrex.speak()    # Гав!      — свой собственный",
+          "run": true
         },
         {
           "type": "table",
@@ -930,6 +1386,82 @@
         {
           "type": "warn",
           "text": "Не увлекайтесь глубиной наследования. Три-четыре уровня — уже тяжело читать: чтобы понять, что делает метод, придётся открывать все классы по цепочке."
+        },
+        {
+          "type": "task",
+          "id": "oop-inh-trace",
+          "title": "Что напечатает программа?",
+          "text": "Не запуская код, определите вывод — две строки, по одной на каждый `print` из примера.",
+          "example": "class Animal:\n    def __init__(self, name):\n        self.name = name\n\n    def speak(self):\n        return f'{self.name}: ...'\n\n\nclass Cat(Animal):\n    def speak(self):\n        return f'{self.name}: Мяу!'\n\n\nclass Fish(Animal):\n    pass\n\n\nzoo = [Cat('Барсик'), Fish('Немо')]\nfor animal in zoo:\n    print(animal.speak())",
+          "starter": "# По строке на каждый print из примера\nprint()\nprint()",
+          "check": {
+            "mode": "stdout",
+            "cases": [
+              {
+                "stdin": "",
+                "expect": "Барсик: Мяу!\nНемо: ..."
+              }
+            ]
+          },
+          "hint": "`Fish` не переопределяет `speak()`, поэтому вызывается метод родителя `Animal`.",
+          "solution": "print('Барсик: Мяу!')\nprint('Немо: ...')",
+          "explain": "Python сначала ищет `speak()` в самом классе объекта, и только если не находит — у родителя. `Cat` переопределил метод, `Fish` — нет, поэтому у него сработал вариант из `Animal`."
+        },
+        {
+          "type": "task",
+          "id": "oop-inh-super",
+          "title": "Класс Manager наследует Employee",
+          "text": "Создайте класс `Employee` — при создании принимает имя и зарплату, сохраняет их в `self.name` и `self.salary`. Создайте класс `Manager(Employee)` — принимает ещё и размер команды `team_size`, вызывает `super().__init__()` для имени и зарплаты, а `team_size` сохраняет сам.",
+          "starter": "class Employee:\n    ",
+          "check": {
+            "mode": "asserts",
+            "cases": [
+              {
+                "code": "e = Employee('Аня', 80000)\nassert e.name == 'Аня' and e.salary == 80000, 'Employee должен хранить name и salary'",
+                "note": "Employee хранит имя и зарплату"
+              },
+              {
+                "code": "m = Manager('Борис', 120000, 5)\nassert m.name == 'Борис' and m.salary == 120000, 'Manager должен унаследовать name и salary через super()'",
+                "note": "Manager получает name и salary от родителя"
+              },
+              {
+                "code": "m = Manager('Борис', 120000, 5)\nassert m.team_size == 5, 'team_size должен сохраняться отдельно, в дополнение к атрибутам родителя'",
+                "hidden": true,
+                "note": "team_size сохраняется дополнительно к атрибутам родителя"
+              }
+            ]
+          },
+          "hint": "В `__init__` класса `Manager` вызовите `super().__init__(name, salary)` и отдельной строкой сохраните `self.team_size = team_size`.",
+          "solution": "class Employee:\n    def __init__(self, name, salary):\n        self.name = name\n        self.salary = salary\n\n\nclass Manager(Employee):\n    def __init__(self, name, salary, team_size):\n        super().__init__(name, salary)\n        self.team_size = team_size",
+          "explain": "Скрытый тест проверяет `team_size` отдельно от унаследованных полей: если забыть `super().__init__(...)`, у `Manager` вообще не появятся `name` и `salary` — обращение к ним даст `AttributeError`."
+        },
+        {
+          "type": "task",
+          "id": "oop-inh-override",
+          "title": "Скидка для VIP-клиента",
+          "text": "Создайте класс `Customer` с методом `price(self, base)`, который просто возвращает `base` без изменений. Создайте класс `VipCustomer(Customer)`, который переопределяет `price`, возвращая `base * 0.9` (скидка 10%).",
+          "starter": "class Customer:\n    ",
+          "check": {
+            "mode": "asserts",
+            "cases": [
+              {
+                "code": "assert Customer().price(100) == 100, 'Customer.price() должен возвращать base без изменений'",
+                "note": "обычный клиент платит полную цену"
+              },
+              {
+                "code": "assert VipCustomer().price(100) == 90, 'VipCustomer.price() должен давать скидку 10%'",
+                "note": "VIP-клиент получает скидку 10%"
+              },
+              {
+                "code": "assert VipCustomer().price(200) == 180, 'скидка должна работать для любой суммы, а не только для 100'",
+                "hidden": true,
+                "note": "скидка работает для произвольной суммы"
+              }
+            ]
+          },
+          "hint": "`VipCustomer.price(self, base)` — обычный метод, переопределяющий метод родителя своим именем; `super()` здесь не обязателен, потому что метод считает всё заново.",
+          "solution": "class Customer:\n    def price(self, base):\n        return base\n\n\nclass VipCustomer(Customer):\n    def price(self, base):\n        return base * 0.9",
+          "explain": "Скрытый тест берёт другую сумму: наивное решение иногда просто возвращает число 90 вместо формулы — тогда оно проходит только на первом кейсе, а на новой сумме ломается."
         }
       ]
     },
@@ -952,7 +1484,8 @@
         {
           "type": "code",
           "title": "Встроенные типы ведут себя полиморфно",
-          "code": "print(len('привет'))       # 6 — считает символы\nprint(len([1, 2, 3]))      # 3 — считает элементы\nprint(len({'a': 1}))       # 1 — считает пары\n\nprint('a' + 'b')           # 'ab' — склейка\nprint(1 + 2)               # 3   — сложение\nprint([1] + [2])           # [1, 2] — объединение\n\n# Один и тот же len() и один и тот же +,\n# а поведение зависит от типа объекта"
+          "code": "print(len('привет'))       # 6 — считает символы\nprint(len([1, 2, 3]))      # 3 — считает элементы\nprint(len({'a': 1}))       # 1 — считает пары\n\nprint('a' + 'b')           # 'ab' — склейка\nprint(1 + 2)               # 3   — сложение\nprint([1] + [2])           # [1, 2] — объединение\n\n# Один и тот же len() и один и тот же +,\n# а поведение зависит от типа объекта",
+          "run": true
         },
         {
           "type": "heading",
@@ -1009,6 +1542,82 @@
         {
           "type": "warn",
           "text": "Если в коде появляется длинная цепочка `if isinstance(...)`, ведущая себя как выбор поведения — почти наверняка это задача для полиморфизма. Такую цепочку заменяют методом, который каждый класс реализует по-своему."
+        },
+        {
+          "type": "task",
+          "id": "oop-poly-trace",
+          "title": "Что напечатает программа?",
+          "text": "Не запуская код, определите вывод — две строки, по одной на каждый `print` из примера.",
+          "example": "class Dog:\n    def speak(self):\n        return 'Гав!'\n\n\nclass Duck:\n    def speak(self):\n        return 'Кря!'\n\n\nfor animal in [Dog(), Duck()]:\n    print(animal.speak())",
+          "starter": "# По строке на каждый print из примера\nprint()\nprint()",
+          "check": {
+            "mode": "stdout",
+            "cases": [
+              {
+                "stdin": "",
+                "expect": "Гав!\nКря!"
+              }
+            ]
+          },
+          "hint": "У `Dog` и `Duck` нет общего родителя — работает утиная типизация: важно только, что у обоих есть метод `speak()`.",
+          "solution": "print('Гав!')\nprint('Кря!')",
+          "explain": "Цикл не проверяет тип объекта — он просто вызывает `speak()` у каждого, а объект сам знает, что ответить. Общий класс-предок для этого не нужен."
+        },
+        {
+          "type": "task",
+          "id": "oop-poly-shapes",
+          "title": "Сумма площадей фигур",
+          "text": "Есть классы `Square` (атрибут `side`, метод `area()` возвращает `side ** 2`) и `Circle` (атрибут `r`, метод `area()` возвращает `3.14159 * r ** 2`) — они уже реализованы отдельно друг от друга, без общего родителя. Напишите функцию `total_area(shapes)`, которая возвращает сумму `area()` всех фигур списка.",
+          "starter": "class Square:\n    def __init__(self, side):\n        self.side = side\n\n    def area(self):\n        return self.side ** 2\n\n\nclass Circle:\n    def __init__(self, r):\n        self.r = r\n\n    def area(self):\n        return 3.14159 * self.r ** 2\n\n\ndef total_area(shapes):\n    ",
+          "check": {
+            "mode": "asserts",
+            "cases": [
+              {
+                "code": "assert abs(total_area([Square(2), Square(3)]) - 13) < 1e-6, 'сумма площадей двух квадратов посчитана неверно'",
+                "note": "работает на одинаковых фигурах"
+              },
+              {
+                "code": "assert abs(total_area([Square(2), Circle(1)]) - (4 + 3.14159)) < 1e-6, 'сумма площадей разных фигур посчитана неверно'",
+                "note": "работает на смеси квадратов и кругов"
+              },
+              {
+                "code": "assert total_area([]) == 0, 'для пустого списка сумма должна быть 0'",
+                "hidden": true,
+                "note": "пустой список фигур"
+              }
+            ]
+          },
+          "hint": "Переберите `shapes` в цикле и суммируйте `shape.area()` — тип фигуры проверять не нужно, у каждой есть свой `area()`.",
+          "solution": "class Square:\n    def __init__(self, side):\n        self.side = side\n\n    def area(self):\n        return self.side ** 2\n\n\nclass Circle:\n    def __init__(self, r):\n        self.r = r\n\n    def area(self):\n        return 3.14159 * self.r ** 2\n\n\ndef total_area(shapes):\n    total = 0\n    for shape in shapes:\n        total += shape.area()\n    return total",
+          "explain": "Функция не спрашивает `isinstance(shape, ...)` — она просто зовёт `area()` у каждой фигуры, а нужное поведение выбирает сам объект. Это и есть полиморфизм в действии."
+        },
+        {
+          "type": "task",
+          "id": "oop-poly-duck",
+          "title": "Утиная типизация: посчитать зарплату",
+          "text": "Есть классы `Robot` и `Human` — у обоих есть метод `pay()`, возвращающий их дневную ставку числом, но общего родителя у классов нет. Напишите функцию `total_pay(workers)`, которая возвращает сумму `pay()` всех работников списка.",
+          "starter": "class Robot:\n    def __init__(self, rate):\n        self.rate = rate\n\n    def pay(self):\n        return self.rate\n\n\nclass Human:\n    def __init__(self, rate):\n        self.rate = rate\n\n    def pay(self):\n        return self.rate * 1.5\n\n\ndef total_pay(workers):\n    ",
+          "check": {
+            "mode": "asserts",
+            "cases": [
+              {
+                "code": "assert total_pay([Robot(100)]) == 100, 'для одного робота сумма должна равняться его ставке'",
+                "note": "работает с одним роботом"
+              },
+              {
+                "code": "assert total_pay([Robot(100), Human(100)]) == 250, 'сумма должна учитывать pay() каждого работника по отдельности'",
+                "note": "работает со смешанным списком"
+              },
+              {
+                "code": "assert total_pay([]) == 0, 'для пустого списка работников сумма должна быть 0'",
+                "hidden": true,
+                "note": "пустой список работников"
+              }
+            ]
+          },
+          "hint": "Не проверяйте `isinstance` — просто вызывайте `worker.pay()` для каждого элемента и суммируйте результат.",
+          "solution": "class Robot:\n    def __init__(self, rate):\n        self.rate = rate\n\n    def pay(self):\n        return self.rate\n\n\nclass Human:\n    def __init__(self, rate):\n        self.rate = rate\n\n    def pay(self):\n        return self.rate * 1.5\n\n\ndef total_pay(workers):\n    total = 0\n    for worker in workers:\n        total += worker.pay()\n    return total",
+          "explain": "У `Robot` и `Human` нет общего родителя, но оба умеют `pay()` — этого достаточно. Проверка типов через `isinstance` здесь не нужна и только усложнила бы код."
         }
       ]
     },
@@ -1027,7 +1636,8 @@
         {
           "type": "code",
           "title": "Проблема: бессмысленный объект можно создать",
-          "code": "class Shape:\n    def area(self):\n        return 0\n\n\nshape = Shape()      # создаётся, хотя это бессмыслица\nprint(shape.area())  # 0 — и молча врёт"
+          "code": "class Shape:\n    def area(self):\n        return 0\n\n\nshape = Shape()      # создаётся, хотя это бессмыслица\nprint(shape.area())  # 0 — и молча врёт",
+          "run": true
         },
         {
           "type": "heading",
@@ -1102,6 +1712,82 @@
         {
           "type": "warn",
           "text": "В Python абстрактные классы нужны реже, чем в Java или C#: благодаря утиной типизации объекты и без общего родителя прекрасно работают вместе. Заводите абстракцию, когда важно **гарантировать** набор методов, а не просто на всякий случай."
+        },
+        {
+          "type": "task",
+          "id": "oop-abs-cant",
+          "title": "Абстрактный класс нельзя создать",
+          "text": "Создайте абстрактный класс `Shape` (наследник `ABC` из модуля `abc`) с абстрактным методом `area()` без реализации (используйте `@abstractmethod`). Затем создайте класс `Square(Shape)`, который реализует `area()` — возвращает `side ** 2`, где `side` задаётся в `__init__`.",
+          "starter": "from abc import ABC, abstractmethod\n\n\nclass Shape(ABC):\n    ",
+          "check": {
+            "mode": "asserts",
+            "cases": [
+              {
+                "code": "try:\n    Shape()\nexcept TypeError:\n    pass\nelse:\n    assert False, 'создать объект Shape напрямую нельзя — он абстрактный'",
+                "note": "Shape() без реализации area() не создаётся"
+              },
+              {
+                "code": "assert Square(4).area() == 16, 'Square.area() должен вернуть side ** 2'",
+                "note": "Square реализует area() и создаётся"
+              },
+              {
+                "code": "class Triangle(Shape):\n    pass\n\ntry:\n    Triangle()\nexcept TypeError:\n    pass\nelse:\n    assert False, 'наследник без реализации area() тоже не должен создаваться'",
+                "hidden": true,
+                "note": "наследник, не реализовавший area(), тоже не создаётся"
+              }
+            ]
+          },
+          "hint": "`Shape(ABC)` с методом `area()`, помеченным `@abstractmethod` (тело можно оставить как `...`) — тогда Python сам запретит создание объектов без реализации.",
+          "solution": "from abc import ABC, abstractmethod\n\n\nclass Shape(ABC):\n    @abstractmethod\n    def area(self):\n        ...\n\n\nclass Square(Shape):\n    def __init__(self, side):\n        self.side = side\n\n    def area(self):\n        return self.side ** 2",
+          "explain": "Скрытый тест создаёт ещё одного наследника без `area()`: `TypeError` должен возникать при любой попытке создать объект без реализации, не только для самого `Shape`."
+        },
+        {
+          "type": "task",
+          "id": "oop-abs-vehicle",
+          "title": "Абстрактный класс Vehicle",
+          "text": "Создайте абстрактный класс `Vehicle(ABC)` с абстрактным методом `fuel_type()` и обычным методом `describe()`, который возвращает строку `Едет на: <результат fuel_type()>`. Создайте класс `ElectricCar(Vehicle)`, у которого `fuel_type()` возвращает `'электричество'`.",
+          "starter": "from abc import ABC, abstractmethod\n\n\nclass Vehicle(ABC):\n    ",
+          "check": {
+            "mode": "asserts",
+            "cases": [
+              {
+                "code": "car = ElectricCar()\nassert car.fuel_type() == 'электричество', 'fuel_type() должен вернуть \"электричество\"'",
+                "note": "ElectricCar.fuel_type() возвращает «электричество»"
+              },
+              {
+                "code": "car = ElectricCar()\nassert car.describe() == 'Едет на: электричество', 'describe() должен использовать результат fuel_type()'",
+                "note": "describe() собирает строку через fuel_type()"
+              },
+              {
+                "code": "try:\n    Vehicle()\nexcept TypeError:\n    pass\nelse:\n    assert False, 'Vehicle нельзя создать напрямую — у него есть нереализованный abstractmethod'",
+                "hidden": true,
+                "note": "сам Vehicle остаётся абстрактным"
+              }
+            ]
+          },
+          "hint": "`describe()` — обычный метод в `Vehicle`, он может вызывать `self.fuel_type()`, даже если сам `fuel_type()` определён только у наследника.",
+          "solution": "from abc import ABC, abstractmethod\n\n\nclass Vehicle(ABC):\n    @abstractmethod\n    def fuel_type(self):\n        ...\n\n    def describe(self):\n        return f'Едет на: {self.fuel_type()}'\n\n\nclass ElectricCar(Vehicle):\n    def fuel_type(self):\n        return 'электричество'",
+          "explain": "Скрытый тест проверяет, что сам `Vehicle` остался абстрактным: обычные методы (`describe`) можно писать в абстрактном классе, а абстрактные (`fuel_type`) — только объявлять."
+        },
+        {
+          "type": "task",
+          "id": "oop-abs-trace",
+          "title": "Что напечатает программа?",
+          "text": "Не запуская код, определите вывод — две строки, по одной на каждый `print` из примера.",
+          "example": "from abc import ABC, abstractmethod\n\n\nclass Shape(ABC):\n    @abstractmethod\n    def area(self):\n        ...\n\n    def describe(self):\n        return f'Площадь: {self.area()}'\n\n\nclass Square(Shape):\n    def __init__(self, side):\n        self.side = side\n\n    def area(self):\n        return self.side ** 2\n\n\nprint(Square(3).describe())\nprint(Square(5).area())",
+          "starter": "# По строке на каждый print из примера\nprint()\nprint()",
+          "check": {
+            "mode": "stdout",
+            "cases": [
+              {
+                "stdin": "",
+                "expect": "Площадь: 9\n25"
+              }
+            ]
+          },
+          "hint": "`describe()` вызывает `self.area()` — тот самый метод, который реализован в `Square`, а не в `Shape`.",
+          "solution": "print('Площадь: 9')\nprint(25)",
+          "explain": "`Square(3).describe()` обращается через `self` к `area()`, реализованному именно в `Square`. Абстрактный класс лишь гарантирует, что такой метод обязательно появится у любого наследника."
         }
       ]
     },
@@ -1137,7 +1823,8 @@
         {
           "type": "code",
           "title": "Кто победит",
-          "code": "class A:\n    def hello(self):\n        print('Привет из A')\n\n\nclass B:\n    def hello(self):\n        print('Привет из B')\n\n\nclass C(A, B):\n    pass\n\n\nC().hello()      # Привет из A — A указан первым\n\nprint([cls.__name__ for cls in C.__mro__])\n# ['C', 'A', 'B', 'object']"
+          "code": "class A:\n    def hello(self):\n        print('Привет из A')\n\n\nclass B:\n    def hello(self):\n        print('Привет из B')\n\n\nclass C(A, B):\n    pass\n\n\nC().hello()      # Привет из A — A указан первым\n\nprint([cls.__name__ for cls in C.__mro__])\n# ['C', 'A', 'B', 'object']",
+          "run": true
         },
         {
           "type": "text",
@@ -1183,6 +1870,54 @@
               "Практически никогда"
             ]
           ]
+        },
+        {
+          "type": "task",
+          "id": "oop-mro-order",
+          "title": "Что напечатает программа?",
+          "text": "Не запуская код, определите вывод — две строки, по одной на каждый `print` из примера.",
+          "example": "class A:\n    def hello(self):\n        return 'A'\n\n\nclass B:\n    def hello(self):\n        return 'B'\n\n\nclass C(A, B):\n    pass\n\n\nprint(C().hello())\nprint(C.__mro__[1].__name__)",
+          "starter": "# По строке на каждый print из примера\nprint()\nprint()",
+          "check": {
+            "mode": "stdout",
+            "cases": [
+              {
+                "stdin": "",
+                "expect": "A\nA"
+              }
+            ]
+          },
+          "hint": "Python ищет метод слева направо по списку родителей: сначала `A`, потом `B`. `C.__mro__[1]` — первый родитель в этом порядке.",
+          "solution": "print('A')\nprint('A')",
+          "explain": "`C(A, B)` — родитель `A` указан первым, поэтому и `hello()`, и первый элемент после самого `C` в `__mro__` — это `A`."
+        },
+        {
+          "type": "task",
+          "id": "oop-mro-diamond",
+          "title": "Порядок наследования у миксинов",
+          "text": "Создайте классы `Flyer` с методом `move()`, возвращающим `'летит'`, и `Swimmer` с методом `move()`, возвращающим `'плывёт'`. Создайте класс `Duck(Flyer, Swimmer)` без своих методов — благодаря порядку родителей `Duck().move()` должен вернуть `'летит'`.",
+          "starter": "class Flyer:\n    ",
+          "check": {
+            "mode": "asserts",
+            "cases": [
+              {
+                "code": "assert Duck().move() == 'летит', 'при Duck(Flyer, Swimmer) должен сработать метод первого родителя — Flyer'",
+                "note": "первым родителем побеждает Flyer"
+              },
+              {
+                "code": "assert Flyer().move() == 'летит' and Swimmer().move() == 'плывёт', 'move() отдельно у Flyer и Swimmer должен работать как задумано'",
+                "note": "у самих Flyer и Swimmer move() свой"
+              },
+              {
+                "code": "assert [cls.__name__ for cls in Duck.__mro__][:3] == ['Duck', 'Flyer', 'Swimmer'], 'порядок в Duck.__mro__ должен идти как в списке родителей: Duck, Flyer, Swimmer'",
+                "hidden": true,
+                "note": "порядок __mro__ совпадает с порядком родителей в объявлении"
+              }
+            ]
+          },
+          "hint": "`class Duck(Flyer, Swimmer): pass` — раз в `Duck` нет своего `move()`, Python возьмёт его у первого подходящего родителя по MRO, то есть у `Flyer`.",
+          "solution": "class Flyer:\n    def move(self):\n        return 'летит'\n\n\nclass Swimmer:\n    def move(self):\n        return 'плывёт'\n\n\nclass Duck(Flyer, Swimmer):\n    pass",
+          "explain": "Скрытый тест напрямую смотрит на `Duck.__mro__`: порядок поиска методов идёт слева направо по родителям, указанным при объявлении класса."
         }
       ]
     },
@@ -1201,7 +1936,8 @@
         {
           "type": "code",
           "title": "Объект внутри объекта — самый простой вариант",
-          "code": "class Engine:\n    def __init__(self, power):\n        self.power = power\n\n    def start(self):\n        print(f'Двигатель {self.power} л.с. запущен')\n\n\nclass Car:\n    def __init__(self, brand, power):\n        self.brand = brand\n        self.engine = Engine(power)   # машина СОДЕРЖИТ двигатель\n\n    def start(self):\n        print(f'{self.brand}:', end=' ')\n        self.engine.start()\n\n\ncar = Car('Лада', 106)\ncar.start()             # Лада: Двигатель 106 л.с. запущен\nprint(car.engine.power) # 106"
+          "code": "class Engine:\n    def __init__(self, power):\n        self.power = power\n\n    def start(self):\n        print(f'Двигатель {self.power} л.с. запущен')\n\n\nclass Car:\n    def __init__(self, brand, power):\n        self.brand = brand\n        self.engine = Engine(power)   # машина СОДЕРЖИТ двигатель\n\n    def start(self):\n        print(f'{self.brand}:', end=' ')\n        self.engine.start()\n\n\ncar = Car('Лада', 106)\ncar.start()             # Лада: Двигатель 106 л.с. запущен\nprint(car.engine.power) # 106",
+          "run": true
         },
         {
           "type": "warn",
@@ -1406,6 +2142,82 @@
         {
           "type": "warn",
           "text": "Общее правило: **начинайте с композиции**. Наследование берите, только когда отношение «является» действительно очевидно, а общего кода много."
+        },
+        {
+          "type": "task",
+          "id": "oop-comp-trace",
+          "title": "Что напечатает программа?",
+          "text": "Не запуская код, определите вывод — две строки, по одной на каждый `print` из примера.",
+          "example": "class Engine:\n    def __init__(self, power):\n        self.power = power\n\n    def start(self):\n        return f'{self.power} л.с. запущен'\n\n\nclass Car:\n    def __init__(self, brand, engine):\n        self.brand = brand\n        self.engine = engine\n\n    def start(self):\n        return f'{self.brand}: {self.engine.start()}'\n\n\ncar = Car('Лада', Engine(106))\nprint(car.start())\nprint(car.engine.power)",
+          "starter": "# По строке на каждый print из примера\nprint()\nprint()",
+          "check": {
+            "mode": "stdout",
+            "cases": [
+              {
+                "stdin": "",
+                "expect": "Лада: 106 л.с. запущен\n106"
+              }
+            ]
+          },
+          "hint": "`car.engine` — обычный атрибут, хранящий отдельный объект `Engine`; `Car.start()` обращается к нему через `self.engine`.",
+          "solution": "print('Лада: 106 л.с. запущен')\nprint(106)",
+          "explain": "`Car` не является двигателем — он его содержит в `self.engine`. `Car.start()` делегирует часть работы методу `engine.start()`, а не дублирует логику."
+        },
+        {
+          "type": "task",
+          "id": "oop-comp-order",
+          "title": "Заказ содержит товары",
+          "text": "Создайте класс `Item` с атрибутами `name` и `price` (задаются в `__init__`). Создайте класс `Order`, который при создании получает пустой список `self.items`. Метод `add(item)` добавляет товар в список, метод `total()` возвращает сумму `price` всех товаров заказа.",
+          "starter": "class Item:\n    ",
+          "check": {
+            "mode": "asserts",
+            "cases": [
+              {
+                "code": "order = Order()\norder.add(Item('Книга', 300))\norder.add(Item('Ручка', 50))\nassert order.total() == 350, 'total() должен суммировать price всех товаров'",
+                "note": "total() суммирует цены товаров"
+              },
+              {
+                "code": "order = Order()\norder.add(Item('Книга', 300))\nassert len(order.items) == 1, 'add() должен добавлять товар в items'",
+                "note": "add() добавляет товар в items"
+              },
+              {
+                "code": "order = Order()\nassert order.total() == 0, 'для заказа без товаров total() должен вернуть 0'",
+                "hidden": true,
+                "note": "пустой заказ — сумма 0"
+              }
+            ]
+          },
+          "hint": "`self.items = []` создавайте в `__init__` класса `Order`, а `total()` считайте через `sum(item.price for item in self.items)`.",
+          "solution": "class Item:\n    def __init__(self, name, price):\n        self.name = name\n        self.price = price\n\n\nclass Order:\n    def __init__(self):\n        self.items = []\n\n    def add(self, item):\n        self.items.append(item)\n\n    def total(self):\n        return sum(item.price for item in self.items)",
+          "explain": "`Order` содержит список `Item` — это композиция: «заказ содержит товары», а не «заказ является товаром». Скрытый тест проверяет пустой список, где `sum()` пустого генератора корректно даёт 0."
+        },
+        {
+          "type": "task",
+          "id": "oop-comp-inject",
+          "title": "Подмена движка для проверки",
+          "text": "Создайте класс `Car`, который принимает `brand` и уже готовый объект `engine` через `__init__` (не создавайте `Engine` внутри `Car`). Метод `start()` возвращает `f'{brand}: ' + engine.start()`.",
+          "starter": "class Car:\n    ",
+          "check": {
+            "mode": "asserts",
+            "cases": [
+              {
+                "code": "class RealEngine:\n    def start(self):\n        return 'двигатель запущен'\n\ncar = Car('Лада', RealEngine())\nassert car.start() == 'Лада: двигатель запущен', 'start() должен использовать переданный engine'",
+                "note": "работает с обычным движком"
+              },
+              {
+                "code": "class ElectricEngine:\n    def start(self):\n        return 'электромотор включён'\n\ncar = Car('Тесла', ElectricEngine())\nassert car.start() == 'Тесла: электромотор включён', 'должен работать любой объект с методом start()'",
+                "note": "работает с любым объектом, у которого есть start()"
+              },
+              {
+                "code": "class FakeEngine:\n    def __init__(self):\n        self.called = False\n\n    def start(self):\n        self.called = True\n        return 'заглушка'\n\nengine = FakeEngine()\ncar = Car('Тест', engine)\ncar.start()\nassert engine.called, 'Car должен вызывать именно переданный объект engine, а не создавать свой внутри'",
+                "hidden": true,
+                "note": "используется именно переданный объект, а не новый внутри Car"
+              }
+            ]
+          },
+          "hint": "В `__init__` просто сохраните оба аргумента: `self.brand = brand` и `self.engine = engine` — никакой `Engine(...)` внутри `Car` создавать не нужно.",
+          "solution": "class Car:\n    def __init__(self, brand, engine):\n        self.brand = brand\n        self.engine = engine\n\n    def start(self):\n        return f'{self.brand}: ' + self.engine.start()",
+          "explain": "Скрытый тест подсовывает заглушку с флагом `called`: если `Car` создаёт двигатель сам внутри `__init__`, заглушка никогда не вызовется — это и есть смысл внедрения зависимости."
         }
       ]
     },
@@ -1460,7 +2272,8 @@
         },
         {
           "type": "code",
-          "code": "class Student:\n    def __init__(self, name, age):\n        self.name = name\n        self.age = age\n\n    @classmethod\n    def from_string(cls, text):\n        # cls — это сам класс Student\n        name, age = text.split(',')\n        return cls(name.strip(), int(age))\n\n    def __str__(self):\n        return f'{self.name}, {self.age} лет'\n\n\na = Student('Аня', 15)                    # обычный способ\nb = Student.from_string('Боря, 16')       # из строки\n\nprint(a)   # Аня, 15 лет\nprint(b)   # Боря, 16 лет"
+          "code": "class Student:\n    def __init__(self, name, age):\n        self.name = name\n        self.age = age\n\n    @classmethod\n    def from_string(cls, text):\n        # cls — это сам класс Student\n        name, age = text.split(',')\n        return cls(name.strip(), int(age))\n\n    def __str__(self):\n        return f'{self.name}, {self.age} лет'\n\n\na = Student('Аня', 15)                    # обычный способ\nb = Student.from_string('Боря, 16')       # из строки\n\nprint(a)   # Аня, 15 лет\nprint(b)   # Боря, 16 лет",
+          "run": true
         },
         {
           "type": "note",
@@ -1501,6 +2314,82 @@
         {
           "type": "warn",
           "text": "Если статических методов в классе набралось много, а объекты никто не создаёт — скорее всего, класс не нужен вовсе. Такой набор функций логичнее держать просто в отдельном файле."
+        },
+        {
+          "type": "task",
+          "id": "oop-clsm-trace",
+          "title": "Что напечатает программа?",
+          "text": "Не запуская код, определите вывод — две строки, по одной на каждый `print` из примера.",
+          "example": "class Student:\n    count = 0\n\n    def __init__(self, name):\n        self.name = name\n        Student.count += 1\n\n    @classmethod\n    def total(cls):\n        return cls.count\n\n\nStudent('Аня')\nStudent('Боря')\nprint(Student.total())\nprint(Student.count)",
+          "starter": "# По строке на каждый print из примера\nprint()\nprint()",
+          "check": {
+            "mode": "stdout",
+            "cases": [
+              {
+                "stdin": "",
+                "expect": "2\n2"
+              }
+            ]
+          },
+          "hint": "`cls` внутри classmethod — это сам класс `Student`, поэтому `cls.count` и `Student.count` — одно и то же значение.",
+          "solution": "print(2)\nprint(2)",
+          "explain": "Оба объекта увеличили общий счётчик `Student.count`. `total()` — метод класса, ему не нужен конкретный объект, чтобы вернуть это значение."
+        },
+        {
+          "type": "task",
+          "id": "oop-clsm-from-string",
+          "title": "Создание объекта из строки",
+          "text": "Создайте класс `Product` с атрибутами `name` и `price` (задаются в `__init__`). Добавьте `@classmethod` `from_string(cls, text)`, которая принимает строку вида `\"Хлеб,45\"` (название и цена через запятую) и возвращает новый объект `Product`.",
+          "starter": "class Product:\n    ",
+          "check": {
+            "mode": "asserts",
+            "cases": [
+              {
+                "code": "p = Product.from_string('Хлеб,45')\nassert p.name == 'Хлеб' and p.price == 45, 'from_string() должен разобрать название и цену из строки'",
+                "note": "разбирает название и число из строки"
+              },
+              {
+                "code": "p = Product('Молоко', 80)\nassert p.name == 'Молоко' and p.price == 80, 'обычный способ создания через __init__ должен продолжать работать'",
+                "note": "обычное создание через __init__ работает"
+              },
+              {
+                "code": "p = Product.from_string('Сыр,150')\nassert isinstance(p, Product), 'from_string() должен возвращать именно объект Product'\nassert isinstance(p.price, int), 'цену нужно преобразовать в число, а не оставлять строкой'",
+                "hidden": true,
+                "note": "цена приводится к числу, а не остаётся строкой"
+              }
+            ]
+          },
+          "hint": "Внутри `from_string` разберите `text.split(',')`, приведите вторую часть к `int()` и верните `cls(name, price)`.",
+          "solution": "class Product:\n    def __init__(self, name, price):\n        self.name = name\n        self.price = price\n\n    @classmethod\n    def from_string(cls, text):\n        name, price = text.split(',')\n        return cls(name, int(price))",
+          "explain": "Скрытый тест проверяет, что `price` — именно `int`, а не строка `'45'`: пропущенное преобразование типа — самая частая недоработка в таких методах класса."
+        },
+        {
+          "type": "task",
+          "id": "oop-clsm-static",
+          "title": "Статический метод конвертации",
+          "text": "Создайте класс `Distance` со `@staticmethod` `km_to_miles(km)`, возвращающим значение в милях по формуле `km * 0.621371` — метод должен работать **без создания объекта**, то есть без `self`.",
+          "starter": "class Distance:\n    ",
+          "check": {
+            "mode": "asserts",
+            "cases": [
+              {
+                "code": "assert abs(Distance.km_to_miles(10) - 6.21371) < 1e-6, 'km_to_miles(10) должен вернуть примерно 6.21371'",
+                "note": "km_to_miles(10) даёт примерно 6.21371, вызван без объекта"
+              },
+              {
+                "code": "assert abs(Distance.km_to_miles(0) - 0) < 1e-9, 'km_to_miles(0) должен вернуть 0'",
+                "note": "km_to_miles(0) равен 0"
+              },
+              {
+                "code": "d = Distance()\nassert abs(d.km_to_miles(50) - 31.06855) < 1e-6, 'статический метод должен быть доступен и через объект, и давать тот же результат'",
+                "hidden": true,
+                "note": "доступен и через объект класса, с тем же результатом"
+              }
+            ]
+          },
+          "hint": "Пометьте метод декоратором `@staticmethod` и не добавляйте параметр `self` — только `km`.",
+          "solution": "class Distance:\n    @staticmethod\n    def km_to_miles(km):\n        return km * 0.621371",
+          "explain": "Первый же открытый кейс вызывает метод через класс — `Distance.km_to_miles(10)`: если оставить параметр `self`, вызов передаст 10 как `self`, а `km` останется незаполненным, и Python выдаст `TypeError`."
         }
       ]
     },
@@ -1519,7 +2408,8 @@
         {
           "type": "code",
           "title": "Свой класс исключения в одну строку",
-          "code": "class NotEnoughMoneyError(Exception):\n    pass                      # тело не нужно — всё есть у родителя\n\n\nclass BankAccount:\n    def __init__(self, balance=0):\n        self.balance = balance\n\n    def withdraw(self, amount):\n        if amount > self.balance:\n            raise NotEnoughMoneyError(f'На счету только {self.balance} руб.')\n        self.balance -= amount\n\n\naccount = BankAccount(500)\n\ntry:\n    account.withdraw(1000)\nexcept NotEnoughMoneyError as error:\n    print('Не вышло:', error)\n\n# Не вышло: На счету только 500 руб."
+          "code": "class NotEnoughMoneyError(Exception):\n    pass                      # тело не нужно — всё есть у родителя\n\n\nclass BankAccount:\n    def __init__(self, balance=0):\n        self.balance = balance\n\n    def withdraw(self, amount):\n        if amount > self.balance:\n            raise NotEnoughMoneyError(f'На счету только {self.balance} руб.')\n        self.balance -= amount\n\n\naccount = BankAccount(500)\n\ntry:\n    account.withdraw(1000)\nexcept NotEnoughMoneyError as error:\n    print('Не вышло:', error)\n\n# Не вышло: На счету только 500 руб.",
+          "run": true
         },
         {
           "type": "note",
@@ -1576,6 +2466,90 @@
         {
           "type": "warn",
           "text": "Не заводите свой класс исключения для каждой мелочи. Если встроенный `ValueError` точно описывает ситуацию и вызывающему коду не нужно отличать её от других — берите встроенный."
+        },
+        {
+          "type": "task",
+          "id": "oop-exc-basic",
+          "title": "Своё исключение InvalidAgeError",
+          "text": "Создайте класс исключения `InvalidAgeError`, наследующий `Exception`. Создайте функцию `set_age(age)`, которая вызывает `raise InvalidAgeError(...)` (любой текст), если `age` отрицательный, а иначе просто возвращает `age`.",
+          "starter": "class InvalidAgeError(Exception):\n    pass\n\n\ndef set_age(age):\n    ",
+          "check": {
+            "mode": "asserts",
+            "cases": [
+              {
+                "code": "assert set_age(15) == 15, 'для корректного возраста set_age должен просто вернуть его'",
+                "note": "корректный возраст возвращается как есть"
+              },
+              {
+                "code": "try:\n    set_age(-5)\nexcept InvalidAgeError:\n    pass\nelse:\n    assert False, 'отрицательный возраст должен вызывать InvalidAgeError'",
+                "note": "отрицательный возраст вызывает InvalidAgeError"
+              },
+              {
+                "code": "assert issubclass(InvalidAgeError, Exception), 'InvalidAgeError должен наследовать Exception'\ntry:\n    set_age(-1)\nexcept Exception:\n    pass\nelse:\n    assert False, 'InvalidAgeError должен перехватываться и как обычный Exception'",
+                "hidden": true,
+                "note": "InvalidAgeError наследует Exception и перехватывается как Exception"
+              }
+            ]
+          },
+          "hint": "`class InvalidAgeError(Exception): pass` — этого достаточно для собственного типа ошибки; внутри `set_age` проверьте `age < 0` и вызовите `raise InvalidAgeError(...)`.",
+          "solution": "class InvalidAgeError(Exception):\n    pass\n\n\ndef set_age(age):\n    if age < 0:\n        raise InvalidAgeError('Возраст не может быть отрицательным')\n    return age",
+          "explain": "Скрытый тест проверяет `issubclass(InvalidAgeError, Exception)` и то, что ошибку можно поймать через `except Exception` — свой тип ошибки остаётся полноценным исключением, просто более точным по смыслу."
+        },
+        {
+          "type": "task",
+          "id": "oop-exc-hierarchy",
+          "title": "Иерархия банковских ошибок",
+          "text": "Создайте класс `BankError(Exception)` — общий предок. Создайте `NotEnoughMoneyError(BankError)` и `AccountBlockedError(BankError)`. Создайте функцию `check(kind)`, которая при `kind == 'money'` вызывает `NotEnoughMoneyError(...)`, при `kind == 'blocked'` — `AccountBlockedError(...)`, иначе ничего не делает.",
+          "starter": "class BankError(Exception):\n    pass\n\n\n",
+          "check": {
+            "mode": "asserts",
+            "cases": [
+              {
+                "code": "try:\n    check('money')\nexcept NotEnoughMoneyError:\n    pass\nelse:\n    assert False, \"check('money') должен вызывать именно NotEnoughMoneyError\"",
+                "note": "check('money') вызывает NotEnoughMoneyError"
+              },
+              {
+                "code": "try:\n    check('blocked')\nexcept BankError:\n    pass\nelse:\n    assert False, 'AccountBlockedError должен перехватываться и как общий BankError'",
+                "note": "AccountBlockedError перехватывается как BankError"
+              },
+              {
+                "code": "assert issubclass(NotEnoughMoneyError, BankError) and issubclass(AccountBlockedError, BankError), 'оба исключения должны наследовать BankError'\ntry:\n    check('money')\nexcept AccountBlockedError:\n    assert False, 'NotEnoughMoneyError не должен перехватываться как AccountBlockedError — это разные ветви иерархии'\nexcept BankError:\n    pass",
+                "hidden": true,
+                "note": "исключения из разных веток иерархии не путаются друг с другом"
+              }
+            ]
+          },
+          "hint": "И `NotEnoughMoneyError`, и `AccountBlockedError` наследуются от `BankError`, а не друг от друга — тогда `except BankError` ловит оба, а `except AccountBlockedError` — только второе.",
+          "solution": "class BankError(Exception):\n    pass\n\n\nclass NotEnoughMoneyError(BankError):\n    pass\n\n\nclass AccountBlockedError(BankError):\n    pass\n\n\ndef check(kind):\n    if kind == 'money':\n        raise NotEnoughMoneyError('Недостаточно средств')\n    elif kind == 'blocked':\n        raise AccountBlockedError('Счёт заблокирован')",
+          "explain": "Скрытый тест проверяет, что оба исключения — именно наследники `BankError`, а не друг друга: перехват общего предка должен ловить любую банковскую ошибку, а точный тип — различать их."
+        },
+        {
+          "type": "task",
+          "id": "oop-exc-data",
+          "title": "Исключение с дополнительными данными",
+          "text": "Создайте класс исключения `NotEnoughMoneyError(Exception)`. Его `__init__` принимает `balance` и `requested`, сохраняет их в `self.balance` и `self.requested`, вычисляет `self.shortage = requested - balance` и передаёт родителю через `super().__init__(...)` сообщение вида `Не хватает 700 руб.`",
+          "starter": "class NotEnoughMoneyError(Exception):\n    ",
+          "check": {
+            "mode": "asserts",
+            "cases": [
+              {
+                "code": "err = NotEnoughMoneyError(500, 1200)\nassert err.shortage == 700, 'shortage должен равняться requested - balance'",
+                "note": "shortage считается верно"
+              },
+              {
+                "code": "err = NotEnoughMoneyError(500, 1200)\nassert str(err) == 'Не хватает 700 руб.', 'текст исключения должен идти через super().__init__(...)'",
+                "note": "текст исключения формируется через super().__init__"
+              },
+              {
+                "code": "try:\n    raise NotEnoughMoneyError(100, 250)\nexcept NotEnoughMoneyError as error:\n    assert error.balance == 100 and error.requested == 250, 'balance и requested должны сохраняться и быть доступны из перехваченного исключения'",
+                "hidden": true,
+                "note": "данные доступны из перехваченного исключения"
+              }
+            ]
+          },
+          "hint": "В `__init__` сначала посчитайте `self.shortage = requested - balance`, а последней строкой вызовите `super().__init__(f'Не хватает {self.shortage} руб.')`.",
+          "solution": "class NotEnoughMoneyError(Exception):\n    def __init__(self, balance, requested):\n        self.balance = balance\n        self.requested = requested\n        self.shortage = requested - balance\n        super().__init__(f'Не хватает {self.shortage} руб.')",
+          "explain": "Скрытый тест перехватывает исключение и читает его атрибуты (`balance`, `requested`) — это работает, только если `__init__` действительно сохранил их через `self`, а не только передал текст родителю."
         }
       ]
     }
