@@ -68,6 +68,15 @@ function emit(stream, text) {
   post({ type: 'out', id: currentId, stream: stream, text: text });
 }
 
+/* Итог запуска. currentId сбрасываем ДО отправки: всё, что программа
+   напечатала, уже ушло (stdout сбрасывается в _pa_exec), а вывод,
+   пришедший после итога, главный поток всё равно отнёс бы к чужому
+   запуску. */
+function finish(message) {
+  currentId = null;
+  post(message);
+}
+
 /* ── Обработка сообщений ──────────────────────────────── */
 
 self.onmessage = function (event) {
@@ -92,14 +101,14 @@ self.onmessage = function (event) {
       py.globals.set('_pa_stdin', msg.stdin || '');
       raw = py.runPython('_pa_run(_pa_code, _pa_stdin)');
       var res = JSON.parse(raw);
-      if (res.ok) post({ type: 'done', id: msg.id, ok: true });
-      else post({ type: 'error', id: msg.id, error: res.error });
+      if (res.ok) finish({ type: 'done', id: msg.id, ok: true });
+      else finish({ type: 'error', id: msg.id, error: res.error });
     } else {
       py.globals.set('_pa_spec', JSON.stringify(msg.check || {}));
       raw = py.runPython('_pa_check(_pa_code, _pa_spec)');
-      post({ type: 'checked', id: msg.id, report: JSON.parse(raw) });
+      finish({ type: 'checked', id: msg.id, report: JSON.parse(raw) });
     }
   }).catch(function (e) {
-    post({ type: 'fatal', id: msg.id, message: e.message });
-  }).then(function () { currentId = null; });
+    finish({ type: 'fatal', id: msg.id, message: e.message });
+  });
 };

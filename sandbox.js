@@ -232,8 +232,12 @@
         // До первой готовности отсчёт длиннее: движок ещё качается
         var deadline = self.booted ? limit : BOOT_TIMEOUT_MS;
         job.timer = setTimeout(function () {
+          var wasBooted = self.booted;
           self.restart();
-          resolve({ ok: false, timeout: !self.booted ? 'boot' : 'run' });
+          // Движок уже был в кеше — поднимаем новый воркер в фоне, чтобы
+          // следующий клик не ждал. После провала загрузки не пробуем: сети нет.
+          if (wasBooted) self.warmup();
+          resolve({ ok: false, timeout: wasBooted ? 'run' : 'boot' });
         }, deadline);
 
         // Как только пришёл ready — переключаем таймер на боевой
@@ -242,6 +246,7 @@
           if (job.timer) clearTimeout(job.timer);
           job.timer = setTimeout(function () {
             self.restart();
+            self.warmup();
             resolve({ ok: false, timeout: 'run' });
           }, limit);
           if (wrappedReady) wrappedReady();
