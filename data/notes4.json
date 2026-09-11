@@ -20,7 +20,8 @@
         {
           "type": "code",
           "title": "Программа останавливается ровно на проблемной строке",
-          "code": "print('Начало')\nprint(10 / 0)      # здесь всё оборвётся\nprint('Конец')     # эта строка НЕ выполнится\n\n# Вывод:\n# Начало\n# ZeroDivisionError: division by zero"
+          "code": "print('Начало')\nprint(10 / 0)      # здесь всё оборвётся\nprint('Конец')     # эта строка НЕ выполнится\n\n# Вывод:\n# Начало\n# ZeroDivisionError: division by zero",
+          "run": true
         },
         {
           "type": "note",
@@ -77,7 +78,8 @@
         {
           "type": "code",
           "title": "Исключение: программа успела поработать",
-          "code": "print('Эта строка напечатается')\n\nnumber = int('привет')\n\nprint('А эта — уже нет')\n\n# Вывод:\n# Эта строка напечатается\n# ValueError: invalid literal for int() with base 10: 'привет'"
+          "code": "print('Эта строка напечатается')\n\nnumber = int('привет')\n\nprint('А эта — уже нет')\n\n# Вывод:\n# Эта строка напечатается\n# ValueError: invalid literal for int() with base 10: 'привет'",
+          "run": true
         },
         {
           "type": "note",
@@ -94,6 +96,46 @@
         {
           "type": "warn",
           "text": "А вот `NameError` из-за опечатки в имени переменной — это уже ошибка программиста. Её не перехватывают, её исправляют."
+        },
+        {
+          "type": "task",
+          "id": "err-what-prints",
+          "title": "Что успеет напечатать программа",
+          "text": "Не запуская код, определите, что программа успеет напечатать до того, как исключение её остановит. Напечатайте эти строки — каждую на новой строке. Саму строку с сообщением об ошибке печатать не нужно.",
+          "example": "print('Старт')\nprint(5 + 3)\nprint(10 / 0)\nprint('Финиш')",
+          "starter": "# По строке на каждый print, который успеет выполниться\nprint()\nprint()",
+          "check": {
+            "mode": "stdout",
+            "cases": [
+              {
+                "stdin": "",
+                "expect": "Старт\n8"
+              }
+            ]
+          },
+          "hint": "Программа останавливается ровно на строке с ошибкой — все строки до неё успевают выполниться полностью, а строки после неё — нет.",
+          "solution": "print('Старт')\nprint(8)",
+          "explain": "5 + 3 печатается как 8, а вот 10 / 0 — деление на ноль, и Python останавливает программу именно на этой строке. print('Финиш') так и не выполнится."
+        },
+        {
+          "type": "task",
+          "id": "err-guess-exception",
+          "title": "Какое исключение здесь возникнет",
+          "text": "Программа ниже упадёт с ошибкой. Определите тип исключения (например, `ValueError` или `IndexError`) и напечатайте только его имя — одно слово.",
+          "example": "numbers = [10, 20, 30]\nindex = 5\nprint(numbers[index])",
+          "starter": "# Напечатайте одно слово — имя исключения\nprint()",
+          "check": {
+            "mode": "stdout",
+            "cases": [
+              {
+                "stdin": "",
+                "expect": "IndexError"
+              }
+            ]
+          },
+          "hint": "Индекс 5 — а в списке всего три элемента, с индексами 0, 1 и 2.",
+          "solution": "print('IndexError')",
+          "explain": "numbers[5] требует элемент с индексом 5, а такого в списке из трёх элементов нет. Python поднимает IndexError с текстом «list index out of range»."
         }
       ]
     },
@@ -162,7 +204,8 @@
         {
           "type": "code",
           "title": "Печатаем то, что было в момент падения",
-          "code": "def average(numbers):\n    print('пришло:', numbers)   # временная проверка\n    total = sum(numbers)\n    return total / len(numbers)\n\nprint(average([]))\n\n# пришло: []\n# Сразу видно: список пуст, значит len(numbers) равен нулю"
+          "code": "def average(numbers):\n    print('пришло:', numbers)   # временная проверка\n    total = sum(numbers)\n    return total / len(numbers)\n\nprint(average([]))\n\n# пришло: []\n# Сразу видно: список пуст, значит len(numbers) равен нулю",
+          "run": true
         },
         {
           "type": "heading",
@@ -253,7 +296,8 @@
         },
         {
           "type": "code",
-          "code": "values = ['10', '20', 'ой', '40']\n\nfor value in values:\n    print('обрабатываю:', value)     # временная проверка\n    number = int(value)\n    print(number * 2)\n\n# обрабатываю: 10\n# 20\n# обрабатываю: 20\n# 40\n# обрабатываю: ой        ← вот на каком элементе упало\n# ValueError: invalid literal for int() with base 10: 'ой'"
+          "code": "values = ['10', '20', 'ой', '40']\n\nfor value in values:\n    print('обрабатываю:', value)     # временная проверка\n    number = int(value)\n    print(number * 2)\n\n# обрабатываю: 10\n# 20\n# обрабатываю: 20\n# 40\n# обрабатываю: ой        ← вот на каком элементе упало\n# ValueError: invalid literal for int() with base 10: 'ой'",
+          "run": true
         },
         {
           "type": "warn",
@@ -262,6 +306,46 @@
         {
           "type": "text",
           "text": "Практика чтения трейсбэков и поиска ошибок разобрана также в разделе [Проверить и найти ошибку](#debug) курса «Как решать задачи»."
+        },
+        {
+          "type": "task",
+          "id": "tb-read-line",
+          "title": "Найдите строку с самой ошибкой",
+          "text": "Ниже приведён трейсбэк. Определите номер строки, на которой произошла сама ошибка (та строка, что стоит непосредственно над итоговым сообщением об ошибке), и напечатайте только этот номер.",
+          "example": "Traceback (most recent call last):\n  File \"main.py\", line 14, in <module>\n    print(process(data))\n  File \"main.py\", line 7, in process\n    return total / count\nZeroDivisionError: division by zero",
+          "starter": "# Напечатайте только номер строки\nprint()",
+          "check": {
+            "mode": "stdout",
+            "cases": [
+              {
+                "stdin": "",
+                "expect": "7"
+              }
+            ]
+          },
+          "hint": "Смотрите на самую нижнюю пару строк «File ... line N» перед типом ошибки — именно там случилось деление.",
+          "solution": "print(7)",
+          "explain": "Тип ошибки и её причина — в последней строке трейсбэка. А номер строки, где это произошло, — в последнем блоке «File ...» прямо над ней: line 7, in process. Строка 14 — это только место вызова, а не место самой ошибки."
+        },
+        {
+          "type": "task",
+          "id": "tb-func-name",
+          "title": "В какой функции упало",
+          "text": "Ниже приведён трейсбэк. Напечатайте имя функции, внутри которой произошла ошибка (то, что указано после `in` в самой нижней строке `File`).",
+          "example": "Traceback (most recent call last):\n  File \"main.py\", line 15, in <module>\n    print(build_report(orders))\n  File \"main.py\", line 11, in build_report\n    return summarize(orders)\n  File \"main.py\", line 6, in summarize\n    return orders[0]['total']\nKeyError: 'total'",
+          "starter": "# Напечатайте имя функции в кавычках\nprint()",
+          "check": {
+            "mode": "stdout",
+            "cases": [
+              {
+                "stdin": "",
+                "expect": "summarize"
+              }
+            ]
+          },
+          "hint": "Имя функции стоит сразу после слова `in` в той же строке `File`, что и номер строки с ошибкой — то есть в самом нижнем кадре.",
+          "solution": "print('summarize')",
+          "explain": "Кадры идут сверху вниз в порядке вызовов: module → build_report → summarize. Ошибка произошла в последнем вызове — значит, именно summarize и есть виновник."
         }
       ]
     },
@@ -280,7 +364,9 @@
         {
           "type": "code",
           "title": "Базовая форма",
-          "code": "try:\n    number = int(input('Введите число: '))\n    print('Квадрат:', number ** 2)\nexcept ValueError:\n    print('Это не число!')\n\nprint('Программа продолжает работу')   # выполнится в любом случае"
+          "code": "try:\n    number = int(input('Введите число: '))\n    print('Квадрат:', number ** 2)\nexcept ValueError:\n    print('Это не число!')\n\nprint('Программа продолжает работу')   # выполнится в любом случае",
+          "run": true,
+          "stdin": "7"
         },
         {
           "type": "table",
@@ -333,7 +419,8 @@
         {
           "type": "code",
           "title": "Конструкция as",
-          "code": "try:\n    number = int('привет')\nexcept ValueError as error:\n    print('Не получилось:', error)\n\n# Не получилось: invalid literal for int() with base 10: 'привет'"
+          "code": "try:\n    number = int('привет')\nexcept ValueError as error:\n    print('Не получилось:', error)\n\n# Не получилось: invalid literal for int() with base 10: 'привет'",
+          "run": true
         },
         {
           "type": "text",
@@ -342,6 +429,84 @@
         {
           "type": "warn",
           "text": "`except` без указания типа ошибки ловит **вообще всё**, включая ваши опечатки. Почему так делать нельзя — в разделе [Конкретные исключения](#except-types)."
+        },
+        {
+          "type": "task",
+          "id": "try-read",
+          "title": "Что напечатает программа",
+          "text": "Не запуская код, определите вывод и напечатайте его — по одной строке на каждый `print`, который успеет выполниться.",
+          "example": "try:\n    number = int('12')\n    print('Число:', number)\nexcept ValueError:\n    print('Не число')\n\ntry:\n    number = int('привет')\n    print('Число:', number)\nexcept ValueError:\n    print('Не число')",
+          "starter": "# По строке на каждый print, который успеет выполниться\nprint()\nprint()",
+          "check": {
+            "mode": "stdout",
+            "cases": [
+              {
+                "stdin": "",
+                "expect": "Число: 12\nНе число"
+              }
+            ]
+          },
+          "hint": "Первый int() отработает без ошибок. Второй бросит ValueError сразу же, и print внутри try так и не выполнится.",
+          "solution": "print('Число:', 12)\nprint('Не число')",
+          "explain": "В первом блоке ошибки нет — печатается «Число: 12». Во втором int('привет') падает раньше, чем управление доходит до соседнего print — поэтому печатается только «Не число»."
+        },
+        {
+          "type": "task",
+          "id": "try-div100",
+          "title": "Целочисленное деление 100 на n",
+          "text": "Программа читает целое число `n` и печатает результат `100 // n` — целочисленное деление. Если `n` равно нулю, вместо результата печатает `Деление на ноль запрещено`.",
+          "starter": "n = int(input())\n",
+          "check": {
+            "mode": "stdout",
+            "cases": [
+              {
+                "stdin": "4",
+                "expect": "25"
+              },
+              {
+                "stdin": "0",
+                "expect": "Деление на ноль запрещено"
+              },
+              {
+                "stdin": "3",
+                "expect": "33",
+                "hidden": true,
+                "note": "обычное деление с остатком"
+              }
+            ]
+          },
+          "hint": "В try оставьте только саму строку с делением, а except ловите по типу ZeroDivisionError.",
+          "solution": "n = int(input())\ntry:\n    print(100 // n)\nexcept ZeroDivisionError:\n    print('Деление на ноль запрещено')",
+          "explain": "ZeroDivisionError возникает ровно на строке с делением — значит, try должен охватывать именно её, а except — знать её тип по имени."
+        },
+        {
+          "type": "task",
+          "id": "try-parse",
+          "title": "Число плюс один",
+          "text": "Программа читает строку и пытается превратить её в целое число. Если получилось — печатает число, увеличенное на 1. Если не получилось — печатает `Введите число`.",
+          "starter": "text = input()\n",
+          "check": {
+            "mode": "stdout",
+            "cases": [
+              {
+                "stdin": "5",
+                "expect": "6"
+              },
+              {
+                "stdin": "привет",
+                "expect": "Введите число"
+              },
+              {
+                "stdin": "-3",
+                "expect": "-2",
+                "hidden": true,
+                "note": "отрицательное число — тоже корректное"
+              }
+            ]
+          },
+          "hint": "int() бросает ValueError, если строку не получается превратить в целое число, — ловите именно этот тип.",
+          "solution": "text = input()\ntry:\n    number = int(text)\n    print(number + 1)\nexcept ValueError:\n    print('Введите число')",
+          "explain": "Скрытый тест проверяет отрицательное число: int('-3') работает без ошибок, и наивное решение, которое пытается угадать «плохой» ввод по знаку минус, здесь ошибётся."
         }
       ]
     },
@@ -379,7 +544,9 @@
         {
           "type": "code",
           "title": "Каждому типу — свой ответ",
-          "code": "grades = {'Аня': [5, 4], 'Боря': []}\n\ntry:\n    name = input('Имя ученика: ')\n    marks = grades[name]\n    print('Средний балл:', sum(marks) / len(marks))\nexcept KeyError:\n    print('Такого ученика нет в списке')\nexcept ZeroDivisionError:\n    print('У ученика пока нет оценок')"
+          "code": "grades = {'Аня': [5, 4], 'Боря': []}\n\ntry:\n    name = input('Имя ученика: ')\n    marks = grades[name]\n    print('Средний балл:', sum(marks) / len(marks))\nexcept KeyError:\n    print('Такого ученика нет в списке')\nexcept ZeroDivisionError:\n    print('У ученика пока нет оценок')",
+          "run": true,
+          "stdin": "Боря"
         },
         {
           "type": "note",
@@ -442,6 +609,94 @@
         {
           "type": "warn",
           "text": "`NameError`, `SyntaxError` и `IndentationError` в этом списке отсутствуют намеренно: это ошибки в самом коде. Их не ловят — их чинят."
+        },
+        {
+          "type": "task",
+          "id": "exc-read",
+          "title": "Какой except сработает",
+          "text": "Не запуская код, определите, что он напечатает.",
+          "example": "values = {'a': 1, 'b': 0}\n\ntry:\n    key = 'b'\n    print(100 / values[key])\nexcept KeyError:\n    print('Нет такого ключа')\nexcept ZeroDivisionError:\n    print('Делить не на что')",
+          "starter": "# Напечатайте то, что выведет программа\nprint()",
+          "check": {
+            "mode": "stdout",
+            "cases": [
+              {
+                "stdin": "",
+                "expect": "Делить не на что"
+              }
+            ]
+          },
+          "hint": "Ключ 'b' в словаре есть — KeyError не возникнет. Смотрите, что происходит дальше, уже после получения значения.",
+          "solution": "print('Делить не на что')",
+          "explain": "values['b'] находится без проблем, KeyError не возникает. А вот 100 / 0 — уже ZeroDivisionError, и сработает второй except."
+        },
+        {
+          "type": "task",
+          "id": "exc-stock",
+          "title": "Остаток на складе",
+          "text": "Дан словарь `stock = {\"яблоки\": 10, \"груши\": 0}`. Программа читает название товара и печатает результат `100 // stock[товар]`. Если товара нет в словаре, печатает `Нет в наличии`. Если у товара нулевое количество, печатает `Товар закончился`.",
+          "starter": "stock = {'яблоки': 10, 'груши': 0}\nname = input()\n",
+          "check": {
+            "mode": "stdout",
+            "cases": [
+              {
+                "stdin": "яблоки",
+                "expect": "10"
+              },
+              {
+                "stdin": "бананы",
+                "expect": "Нет в наличии"
+              },
+              {
+                "stdin": "груши",
+                "expect": "Товар закончился",
+                "hidden": true,
+                "note": "товар есть в словаре, но количество равно нулю"
+              }
+            ]
+          },
+          "hint": "Понадобятся два except подряд: один на KeyError, другой на ZeroDivisionError — у каждого своё сообщение.",
+          "solution": "stock = {'яблоки': 10, 'груши': 0}\nname = input()\ntry:\n    print(100 // stock[name])\nexcept KeyError:\n    print('Нет в наличии')\nexcept ZeroDivisionError:\n    print('Товар закончился')",
+          "explain": "KeyError и ZeroDivisionError — разные проблемы с разными причинами. Если объединить их в один except с одним текстом, вы потеряете разницу между «нет товара» и «товар закончился»."
+        },
+        {
+          "type": "task",
+          "id": "exc-safe-calc",
+          "title": "Безопасное деление",
+          "text": "Напишите функцию `safe_calc(a, b)` — она возвращает `a / b`. Если аргументы делить нельзя (`b` равен нулю или один из аргументов не число), функция возвращает `None` вместо падения с ошибкой.",
+          "starter": "def safe_calc(a, b):\n    ",
+          "check": {
+            "mode": "function",
+            "entry": "safe_calc",
+            "cases": [
+              {
+                "args": [
+                  10,
+                  2
+                ],
+                "expect": 5
+              },
+              {
+                "args": [
+                  10,
+                  0
+                ],
+                "expect": null
+              },
+              {
+                "args": [
+                  10,
+                  "x"
+                ],
+                "expect": null,
+                "hidden": true,
+                "note": "нечисловой аргумент — тоже ошибка, но другого типа"
+              }
+            ]
+          },
+          "hint": "Деление на ноль и деление на нечисло — это два разных исключения: ZeroDivisionError и TypeError. Перечислите оба типа в одном except через запятую в скобках.",
+          "solution": "def safe_calc(a, b):\n    try:\n        return a / b\n    except (ZeroDivisionError, TypeError):\n        return None",
+          "explain": "Наивное решение часто ловит только ZeroDivisionError и падает с необработанным TypeError на нечисловом аргументе — скрытый тест это проверяет."
         }
       ]
     },
@@ -509,7 +764,8 @@
         {
           "type": "code",
           "title": "finally выполняется в любом случае",
-          "code": "def read_age(text):\n    try:\n        return int(text)\n    except ValueError:\n        return 0\n    finally:\n        print('Функция отработала')\n\nprint(read_age('20'))\n# Функция отработала\n# 20\n\nprint(read_age('ой'))\n# Функция отработала\n# 0"
+          "code": "def read_age(text):\n    try:\n        return int(text)\n    except ValueError:\n        return 0\n    finally:\n        print('Функция отработала')\n\nprint(read_age('20'))\n# Функция отработала\n# 20\n\nprint(read_age('ой'))\n# Функция отработала\n# 0",
+          "run": true
         },
         {
           "type": "note",
@@ -518,6 +774,84 @@
         {
           "type": "warn",
           "text": "На практике `else` и `finally` нужны нечасто. Большинство задач решается связкой `try` + один конкретный `except`. Не усложняйте конструкцию без необходимости."
+        },
+        {
+          "type": "task",
+          "id": "fin-read",
+          "title": "Порядок else и finally",
+          "text": "Не запуская код, определите вывод и напечатайте его.",
+          "example": "try:\n    number = int('8')\nexcept ValueError:\n    print('Ошибка')\nelse:\n    print('Успех:', number)\nfinally:\n    print('Конец')",
+          "starter": "# По строке на каждый print, который выполнится\nprint()\nprint()",
+          "check": {
+            "mode": "stdout",
+            "cases": [
+              {
+                "stdin": "",
+                "expect": "Успех: 8\nКонец"
+              }
+            ]
+          },
+          "hint": "Ошибки нет — значит, сработает else. А finally выполнится после него в любом случае.",
+          "solution": "print('Успех:', 8)\nprint('Конец')",
+          "explain": "int('8') отрабатывает без ошибок, поэтому except пропускается, а else выполняется. finally срабатывает после — вне зависимости от того, что было выше."
+        },
+        {
+          "type": "task",
+          "id": "fin-checkup",
+          "title": "Проверка возраста с итогом",
+          "text": "Программа читает строку и пытается превратить её в число. Если получилось — печатает `Возраст: N`, где N — введённое число. Если нет — печатает `Некорректный возраст`. В любом случае в последнюю очередь печатается `Проверка завершена`.",
+          "starter": "text = input()\n",
+          "check": {
+            "mode": "stdout",
+            "cases": [
+              {
+                "stdin": "25",
+                "expect": "Возраст: 25\nПроверка завершена"
+              },
+              {
+                "stdin": "ой",
+                "expect": "Некорректный возраст\nПроверка завершена"
+              },
+              {
+                "stdin": "0",
+                "expect": "Возраст: 0\nПроверка завершена",
+                "hidden": true,
+                "note": "ноль — тоже корректное число"
+              }
+            ]
+          },
+          "hint": "Печать «Проверка завершена» вынесите в finally — тогда она сработает и после успеха, и после ошибки.",
+          "solution": "text = input()\ntry:\n    age = int(text)\nexcept ValueError:\n    print('Некорректный возраст')\nelse:\n    print('Возраст:', age)\nfinally:\n    print('Проверка завершена')",
+          "explain": "Скрытый тест на нуле ловит частую ошибку: если проверять успех через `if age:` вместо try/except, ноль по ошибке сочтут неудачей — ведь `0` в логическом контексте равен False."
+        },
+        {
+          "type": "task",
+          "id": "fin-divide",
+          "title": "Деление с гарантированным Готово",
+          "text": "Программа читает два целых числа `a` и `b` — каждое со своей строки. Печатает результат `a / b`. Если `b` равен нулю, печатает `Деление на ноль`. Независимо от исхода в последнюю очередь печатает `Готово`.",
+          "starter": "a = int(input())\nb = int(input())\n",
+          "check": {
+            "mode": "stdout",
+            "cases": [
+              {
+                "stdin": "10\n2",
+                "expect": "5.0\nГотово"
+              },
+              {
+                "stdin": "10\n0",
+                "expect": "Деление на ноль\nГотово"
+              },
+              {
+                "stdin": "7\n2",
+                "expect": "3.5\nГотово",
+                "hidden": true,
+                "note": "дробный результат деления"
+              }
+            ]
+          },
+          "hint": "В try оставьте только само деление, а печать «Готово» — в finally, чтобы она срабатывала при любом исходе.",
+          "solution": "a = int(input())\nb = int(input())\ntry:\n    result = a / b\nexcept ZeroDivisionError:\n    print('Деление на ноль')\nelse:\n    print(result)\nfinally:\n    print('Готово')",
+          "explain": "else печатает результат только тогда, когда деление прошло без ошибок — так print(result) точно не окажется внутри try вперемешку с рискованной строкой."
         }
       ]
     },
@@ -536,7 +870,8 @@
         {
           "type": "code",
           "title": "Синтаксис",
-          "code": "def set_age(age):\n    if age < 0:\n        raise ValueError('Возраст не может быть отрицательным')\n    print('Возраст принят:', age)\n\nset_age(20)     # Возраст принят: 20\nset_age(-5)     # ValueError: Возраст не может быть отрицательным"
+          "code": "def set_age(age):\n    if age < 0:\n        raise ValueError('Возраст не может быть отрицательным')\n    print('Возраст принят:', age)\n\nset_age(20)     # Возраст принят: 20\nset_age(-5)     # ValueError: Возраст не может быть отрицательным",
+          "run": true
         },
         {
           "type": "heading",
@@ -598,6 +933,82 @@
         {
           "type": "warn",
           "text": "`raise` не заменяет `if` в обычной логике. Бросать исключение стоит тогда, когда продолжать работу **невозможно**, а не когда просто хочется сообщить пользователю о неудачном вводе."
+        },
+        {
+          "type": "task",
+          "id": "raise-read",
+          "title": "Своя ошибка и её перехват",
+          "text": "Не запуская код, определите вывод и напечатайте его.",
+          "example": "def check_age(age):\n    if age < 0:\n        raise ValueError('отрицательный возраст')\n    return age\n\ntry:\n    print(check_age(-5))\nexcept ValueError as error:\n    print('Поймали:', error)",
+          "starter": "# Напечатайте то, что выведет программа\nprint()",
+          "check": {
+            "mode": "stdout",
+            "cases": [
+              {
+                "stdin": "",
+                "expect": "Поймали: отрицательный возраст"
+              }
+            ]
+          },
+          "hint": "check_age бросает ValueError с текстом сообщения. try снаружи ловит его, а `as error` даёт доступ к этому тексту.",
+          "solution": "print('Поймали:', 'отрицательный возраст')",
+          "explain": "check_age(-5) поднимает ValueError раньше, чем print успевает получить от неё результат. Исключение улетает наружу и попадает в except, который печатает его текст."
+        },
+        {
+          "type": "task",
+          "id": "raise-score",
+          "title": "Оценка в допустимом диапазоне",
+          "text": "Напишите функцию `set_score(score)` — если `score` меньше 0 или больше 100, она бросает `ValueError` с сообщением `Оценка должна быть от 0 до 100`. Иначе возвращает `score` без изменений.",
+          "starter": "def set_score(score):\n    ",
+          "check": {
+            "mode": "asserts",
+            "cases": [
+              {
+                "code": "assert set_score(75) == 75, 'корректная оценка должна возвращаться без изменений'",
+                "note": "обычная оценка возвращается без изменений"
+              },
+              {
+                "code": "try:\n    set_score(150)\nexcept ValueError:\n    pass\nelse:\n    assert False, 'ожидался ValueError для оценки выше 100'",
+                "note": "оценка выше 100 — ValueError"
+              },
+              {
+                "code": "try:\n    set_score(-1)\nexcept ValueError:\n    pass\nelse:\n    assert False, 'ожидался ValueError для отрицательной оценки'",
+                "hidden": true,
+                "note": "отрицательная оценка — тоже ValueError"
+              }
+            ]
+          },
+          "hint": "Проверка диапазона — это if, а внутри него — raise ValueError(...) с текстом сообщения.",
+          "solution": "def set_score(score):\n    if score < 0 or score > 100:\n        raise ValueError('Оценка должна быть от 0 до 100')\n    return score",
+          "explain": "Хорошая функция не молчит про плохие данные — она поднимает исключение с понятным текстом, а решать, что делать дальше, будет тот, кто её вызвал."
+        },
+        {
+          "type": "task",
+          "id": "raise-withdraw",
+          "title": "Снятие со счёта",
+          "text": "Напишите функцию `withdraw(balance, amount)` — если `amount` больше `balance`, она бросает `ValueError` с сообщением `Недостаточно средств`. Иначе возвращает остаток `balance - amount`.",
+          "starter": "def withdraw(balance, amount):\n    ",
+          "check": {
+            "mode": "asserts",
+            "cases": [
+              {
+                "code": "assert withdraw(100, 30) == 70, 'остаток должен быть balance - amount'",
+                "note": "обычное снятие части суммы"
+              },
+              {
+                "code": "try:\n    withdraw(100, 150)\nexcept ValueError:\n    pass\nelse:\n    assert False, 'ожидался ValueError при нехватке средств'",
+                "note": "сумма больше остатка — ValueError"
+              },
+              {
+                "code": "assert withdraw(100, 100) == 0, 'снятие всей суммы должно давать остаток 0'",
+                "hidden": true,
+                "note": "снятие всей суммы — остаток равен нулю"
+              }
+            ]
+          },
+          "hint": "Сравните amount с balance ДО вычитания. Строгое сравнение `>` — то, что нужно; с `>=` снять всю сумму стало бы невозможно.",
+          "solution": "def withdraw(balance, amount):\n    if amount > balance:\n        raise ValueError('Недостаточно средств')\n    return balance - amount",
+          "explain": "Граничный случай — снятие всей суммы (amount == balance) — не должен бросать исключение: строгое `>` это учитывает, а нестрогое `>=` ошибочно запретило бы снять всё."
         }
       ]
     },
@@ -646,7 +1057,8 @@
         {
           "type": "code",
           "title": "Почему проверка заранее часто врёт",
-          "code": "text = '-42'\nprint(text.isdigit())   # False (!) — минус не цифра\nint(text)               # -42 — а преобразование прекрасно работает\n\ntext = ' 42 '\nprint(text.isdigit())   # False — пробелы не цифры\nint(text)               # 42 — и это тоже работает\n\ntext = '3.5'\nprint(text.isdigit())   # False\nint(text)               # ValueError — а вот тут действительно ошибка"
+          "code": "text = '-42'\nprint(text.isdigit())   # False (!) — минус не цифра\nint(text)               # -42 — а преобразование прекрасно работает\n\ntext = ' 42 '\nprint(text.isdigit())   # False — пробелы не цифры\nint(text)               # 42 — и это тоже работает\n\ntext = '3.5'\nprint(text.isdigit())   # False\nint(text)               # ValueError — а вот тут действительно ошибка",
+          "run": true
         },
         {
           "type": "note",
@@ -659,7 +1071,9 @@
         {
           "type": "code",
           "title": "Запрашиваем, пока не получим корректное значение",
-          "code": "while True:\n    text = input('Введите целое число: ')\n    try:\n        number = int(text)\n        break                     # получилось — выходим из цикла\n    except ValueError:\n        print('Это не целое число, попробуйте снова')\n\nprint('Спасибо! Ваше число:', number)"
+          "code": "while True:\n    text = input('Введите целое число: ')\n    try:\n        number = int(text)\n        break                     # получилось — выходим из цикла\n    except ValueError:\n        print('Это не целое число, попробуйте снова')\n\nprint('Спасибо! Ваше число:', number)",
+          "run": true,
+          "stdin": "ой\n8"
         },
         {
           "type": "text",
@@ -684,6 +1098,91 @@
         {
           "type": "warn",
           "text": "Никогда не оставляйте `except: pass` — это молчаливое проглатывание ошибки. Программа продолжит работу в непонятном состоянии, и найти причину сбоя будет почти невозможно."
+        },
+        {
+          "type": "task",
+          "id": "val-read",
+          "title": "isdigit против int",
+          "text": "Не запуская код, определите вывод и напечатайте его.",
+          "example": "text = '-7'\nprint(text.isdigit())\nprint(int(text))",
+          "starter": "# По строке на каждый print из примера\nprint()\nprint()",
+          "check": {
+            "mode": "stdout",
+            "cases": [
+              {
+                "stdin": "",
+                "expect": "False\n-7"
+              }
+            ]
+          },
+          "hint": "isdigit() проверяет, что все символы — цифры. Минус цифрой не считается, а вот int() спокойно понимает отрицательные числа.",
+          "solution": "print(False)\nprint(-7)",
+          "explain": "text.isdigit() возвращает False из-за минуса, хотя int(text) прекрасно превращает строку в число -7. Именно поэтому проверку через isdigit() легко сделать слишком строгой."
+        },
+        {
+          "type": "task",
+          "id": "val-retry",
+          "title": "Запрос числа с повтором",
+          "text": "Программа в цикле запрашивает целое число. Если ввод не удаётся превратить в число, печатает `Не число, попробуйте снова` и запрашивает ввод заново. Как только получилось — печатает `Принято: N` и завершает работу.",
+          "starter": "while True:\n    text = input()\n",
+          "check": {
+            "mode": "stdout",
+            "cases": [
+              {
+                "stdin": "25",
+                "expect": "Принято: 25"
+              },
+              {
+                "stdin": "ой\n25",
+                "expect": "Не число, попробуйте снова\nПринято: 25"
+              },
+              {
+                "stdin": "a\nb\n7",
+                "expect": "Не число, попробуйте снова\nНе число, попробуйте снова\nПринято: 7",
+                "hidden": true,
+                "note": "несколько неудачных попыток подряд"
+              }
+            ]
+          },
+          "hint": "Используйте while True с try/except внутри: при успехе сохраните число и break, при ValueError напечатайте сообщение и вернитесь к началу цикла через continue.",
+          "solution": "while True:\n    text = input()\n    try:\n        number = int(text)\n    except ValueError:\n        print('Не число, попробуйте снова')\n        continue\n    break\nprint('Принято:', number)",
+          "explain": "continue возвращает выполнение к началу while, минуя break и печать результата, — программа снова запрашивает ввод. break, наоборот, останавливает цикл, когда число наконец получено."
+        },
+        {
+          "type": "task",
+          "id": "val-safe-int",
+          "title": "Безопасное чтение числа",
+          "text": "Напишите функцию `safe_int(text)` — она возвращает `int(text)`, если это возможно, а если текст нельзя превратить в целое число — возвращает `None` вместо ошибки.",
+          "starter": "def safe_int(text):\n    ",
+          "check": {
+            "mode": "function",
+            "entry": "safe_int",
+            "cases": [
+              {
+                "args": [
+                  "42"
+                ],
+                "expect": 42
+              },
+              {
+                "args": [
+                  "-7"
+                ],
+                "expect": -7
+              },
+              {
+                "args": [
+                  "ой"
+                ],
+                "expect": null,
+                "hidden": true,
+                "note": "нечисловая строка — None"
+              }
+            ]
+          },
+          "hint": "Оберните int(text) в try/except ValueError и в except верните None.",
+          "solution": "def safe_int(text):\n    try:\n        return int(text)\n    except ValueError:\n        return None",
+          "explain": "Функция сама решает, что делать с плохими данными — здесь она молча возвращает None, а вызывающий код обязан проверить результат перед использованием."
         }
       ]
     }
