@@ -521,7 +521,7 @@ const ok = (name, cond, extra='') => { cond ? pass++ : fail++; console.log(`${co
   ok('заголовок и кнопка копирования на месте',
      runBlock !== null && runBlock.querySelector('.code-title-text') !== null && runBlock.querySelector('.code-copy') !== null);
   ok('редактор заполнен исходником',
-     runBlock !== null && runBlock.querySelector('.ed-input').value === runnable.getAttribute('data-code'));
+     runBlock !== null && runBlock.querySelector('.ed-input').value === runBlock.getAttribute('data-code'));
 
   console.log(`\nИТОГ: ${pass} пройдено, ${fail} провалено`);
   process.exit(fail ? 1 : 0);
