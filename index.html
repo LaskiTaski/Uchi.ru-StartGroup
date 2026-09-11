@@ -10,9 +10,11 @@
 </head>
 <body>
 
+<a class="skip-link" href="#content">К содержимому</a>
+
 <!-- Лайтбокс -->
-<div class="lightbox" id="lightbox">
-  <button class="lightbox-close">✕</button>
+<div class="lightbox" id="lightbox" role="dialog" aria-modal="true" aria-label="Скриншот">
+  <button class="lightbox-close" aria-label="Закрыть">✕</button>
   <img src="" alt="Скриншот">
 </div>
 
@@ -30,9 +32,11 @@
       <div class="search-box" id="search-box">
         <span class="search-icon">🔍</span>
         <input type="search" id="search-input" class="search-input"
+               role="combobox" aria-autocomplete="list" aria-haspopup="listbox"
+               aria-controls="search-results" aria-expanded="false"
                placeholder="Поиск по материалам" autocomplete="off" spellcheck="false">
         <kbd class="search-hint">/</kbd>
-        <div class="search-results" id="search-results"></div>
+        <div class="search-results" id="search-results" role="listbox"></div>
       </div>
       <div class="contacts">
         <a class="contact-badge support" href="https://t.me/UchiDomaSupport_U2035_bot" target="_blank" rel="noopener">
@@ -44,18 +48,18 @@
       </div>
     </div>
     <div class="nav-primary-wrap" id="groups-wrap">
-      <nav class="nav-primary" id="groups"></nav>
+      <nav class="nav-primary" id="groups" role="tablist"></nav>
     </div>
     <div class="tabs-wrap" id="tabs-wrap">
       <button class="tabs-arrow left" id="tabs-prev" type="button" aria-label="Прокрутить влево">‹</button>
-      <nav class="tabs" id="tabs"></nav>
+      <nav class="tabs" id="tabs" role="tablist"></nav>
       <button class="tabs-arrow right" id="tabs-next" type="button" aria-label="Прокрутить вправо">›</button>
     </div>
   </div>
 </header>
 
 <!-- Контент -->
-<main class="content" id="content"></main>
+<main class="content" id="content" role="tabpanel" tabindex="-1"></main>
 
 <!-- Подвал -->
 <footer class="footer">

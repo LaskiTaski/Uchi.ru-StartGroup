@@ -17,6 +17,14 @@
     scrollOffset: 14         // зазор под липкой шапкой при переходе по якорю
   };
 
+  // Уважаем системную настройку «меньше анимации» (этап 5): в jsdom
+  // matchMedia отсутствует, поэтому проверка через && обязательна
+  const REDUCED_MOTION = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+
+  function scrollBehavior() {
+    return REDUCED_MOTION ? 'auto' : 'smooth';
+  }
+
   const IFRAME_ALLOW = 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture';
   // Подписи курсов: ключ -> [текст, css-класс]
   const TAG_LABELS = {
@@ -236,6 +244,8 @@
       html += h('button', {
         class: 'group-tab' + (group.id === state.activeGroup ? ' active' : ''),
         'data-group': group.id,
+        role: 'tab',
+        'aria-selected': group.id === state.activeGroup ? 'true' : 'false',
         style: '--group-color: ' + group.color
       },
         h('span', { class: 'group-icon' }, esc(group.icon)) +
@@ -258,6 +268,8 @@
       html += h('button', {
         class: 'tab' + (meta.id === state.activeModule ? ' active' : ''),
         'data-mod': meta.id,
+        role: 'tab',
+        'aria-selected': meta.id === state.activeModule ? 'true' : 'false',
         style: '--mod-color: ' + meta.color
       },
         h('span', { class: 'tab-icon' }, esc(meta.icon)) + ' ' + esc(meta.label) +
@@ -312,7 +324,7 @@
   function scrollTabs(direction) {
     const tabs = byId('tabs');
     if (!tabs) return;
-    tabs.scrollBy({ left: direction * Math.max(160, tabs.clientWidth * 0.6), behavior: 'smooth' });
+    tabs.scrollBy({ left: direction * Math.max(160, tabs.clientWidth * 0.6), behavior: scrollBehavior() });
   }
 
   /* Активная вкладка выезжает в центр — соседи остаются видны */
@@ -330,7 +342,7 @@
     target = Math.max(0, Math.min(target, maxScroll));
 
     if (smooth && tabs.scrollTo) {
-      tabs.scrollTo({ left: target, behavior: 'smooth' });
+      tabs.scrollTo({ left: target, behavior: scrollBehavior() });
     } else {
       setScrollWithoutAnimation(tabs, target);
     }
@@ -453,7 +465,7 @@
     function jump() {
       const element = byId('ref-' + anchor);
       if (!element) return;
-      element.classList.add('open');
+      setLessonOpen(element, true);
 
       // Ниже порога шапка свернётся — сворачиваем до замера позиции
       const absoluteTop = element.getBoundingClientRect().top + window.pageYOffset;
@@ -462,7 +474,7 @@
       }
 
       const top = element.getBoundingClientRect().top + window.pageYOffset - headerOffset();
-      window.scrollTo({ top, behavior: 'smooth' });
+      window.scrollTo({ top, behavior: scrollBehavior() });
 
       element.classList.remove('flash');
       void element.offsetWidth;
@@ -506,7 +518,10 @@
       let items = '';
       (data.sections || []).forEach((section) => {
         if (!section.anchor) return;
-        items += h('button', { class: 'tab-menu-item', 'data-anchor': section.anchor },
+        items += h('button', {
+          class: 'tab-menu-item' + (sectionSolved(section) ? ' tmi-solved' : ''),
+          'data-anchor': section.anchor
+        },
           h('span', { class: 'tmi-num' }, esc(section.num)) +
           h('span', { class: 'tmi-title' }, esc(section.title))
         );
@@ -731,6 +746,8 @@
     const box = byId('search-results');
     search.results = results;
     search.cursor = -1;
+    // Новая порция результатов — активного пункта ещё нет
+    byId('search-input').removeAttribute('aria-activedescendant');
 
     if (!query || query.length < CONFIG.searchMinLength) {
       box.classList.remove('open');
@@ -746,7 +763,7 @@
       results.forEach((result, i) => {
         const meta = getModuleMeta(result.item.mod);
         html += h('button', {
-          class: 'sr-item', 'data-index': i, role: 'option',
+          class: 'sr-item', id: 'sr-opt-' + i, 'data-index': i, role: 'option',
           style: meta ? '--mod-color: ' + meta.color : null
         },
           h('span', { class: 'sr-icon' }, esc(result.item.icon)) +
@@ -768,7 +785,10 @@
     const box = byId('search-results');
     if (box) box.classList.remove('open');
     const input = byId('search-input');
-    if (input) input.setAttribute('aria-expanded', 'false');
+    if (input) {
+      input.setAttribute('aria-expanded', 'false');
+      input.removeAttribute('aria-activedescendant');
+    }
     search.results = [];
     search.cursor = -1;
   }
@@ -779,7 +799,14 @@
 
     const nodes = document.querySelectorAll('.sr-item');
     nodes.forEach((node, i) => node.classList.toggle('active', i === search.cursor));
-    if (nodes[search.cursor]) nodes[search.cursor].scrollIntoView({ block: 'nearest' });
+    const active = nodes[search.cursor];
+    if (active) active.scrollIntoView({ block: 'nearest' });
+
+    const input = byId('search-input');
+    if (input) {
+      if (active) input.setAttribute('aria-activedescendant', active.id);
+      else input.removeAttribute('aria-activedescendant');
+    }
   }
 
   function openSearchResult(index) {
@@ -839,12 +866,12 @@
 
       var lessonAnchor = lessonAnchorOf(data.id, lesson.num);
       lessonsHtml += hOpen('div', modAttrs(data.id, { class: 'lesson', id: 'ref-' + lessonAnchor })) +
-        '<div class="lesson-header">' +
+        '<button type="button" class="lesson-header" aria-expanded="false">' +
           '<span class="lesson-num">' + esc(lesson.num) + '</span>' +
           '<span class="lesson-title">' + esc(lesson.title) + '</span>' +
           '<span class="lesson-badges">' + badgesHtml + '</span>' +
           '<span class="chevron">▾</span>' +
-        '</div>' +
+        '</button>' +
         '<div class="lesson-body">' + bodyParts + '</div>' +
       '</div>';
     });
@@ -900,12 +927,12 @@
       });
 
       sectionsHtml += hOpen('div', modAttrs(data.id, { class: 'lesson' })) +
-        '<div class="lesson-header">' +
+        '<button type="button" class="lesson-header" aria-expanded="false">' +
           '<span class="lesson-num">' + esc(section.num) + '</span>' +
           '<span class="lesson-title">' + esc(section.title) + '</span>' +
           '<span class="lesson-badges">' + badgesHtml + '</span>' +
           '<span class="chevron">▾</span>' +
-        '</div>' +
+        '</button>' +
         '<div class="lesson-body">' + bodyParts + '</div>' +
       '</div>';
     });
@@ -982,12 +1009,12 @@
         : '';
 
       sectionsHtml += hOpen('div', modAttrs(data.id, { class: 'lesson ref-section', id: section.anchor ? 'ref-' + section.anchor : null })) +
-        '<div class="lesson-header">' +
+        '<button type="button" class="lesson-header" aria-expanded="false">' +
           '<span class="lesson-num">' + esc(section.num) + '</span>' +
           '<span class="lesson-title">' + esc(section.title) + '</span>' +
           chipBadge +
           '<span class="chevron">\u25be</span>' +
-        '</div>' +
+        '</button>' +
         '<div class="lesson-body">' + bodyParts + '</div>' +
       '</div>';
     });
@@ -1281,9 +1308,9 @@
   function renderScreenshotsGrid(screenshots) {
     var html = '<div class="screenshots-grid">';
     screenshots.forEach(function (s) {
-      html += '<div class="screenshot-card">' +
+      html += '<button type="button" class="screenshot-card">' +
         '<img src="' + esc(s.src) + '" alt="' + esc(s.caption) + '" loading="lazy">' +
-        '<div class="s-caption">' + esc(s.caption) + '</div></div>';
+        '<div class="s-caption">' + esc(s.caption) + '</div></button>';
     });
     return html + '</div>';
   }
@@ -1295,12 +1322,12 @@
 
   function renderAttestation(modId) {
     return hOpen('div', modAttrs(modId, { class: 'lesson attestation' })) +
-      '<div class="lesson-header">' +
+      '<button type="button" class="lesson-header" aria-expanded="false">' +
         '<span class="lesson-num">📝</span>' +
         '<span class="lesson-title">Промежуточная аттестация</span>' +
         '<span class="lesson-badges"><span class="badge-attest">⚠️ ГОТОВИМСЯ ⚠️</span></span>' +
         '<span class="chevron">▾</span>' +
-      '</div>' +
+      '</button>' +
       '<div class="lesson-body">' +
         '<p class="lesson-desc attest-desc">' +
           '⚠️ Повторите пройденный материал и закройте все долги для сдачи теста! ⚠️<br>' +
@@ -1310,6 +1337,16 @@
   }
 
   /* ── Делегирование событий ───────────────────────────── */
+
+  /* Аккордеон (этап 5): .lesson-header теперь кнопка, поэтому открытие
+     раскрывающегося блока держим в одном месте — и класс, и aria-expanded
+     синхронно, откуда бы ни пришло открытие (клик или переход по якорю) */
+  function setLessonOpen(lessonEl, open) {
+    if (!lessonEl) return;
+    lessonEl.classList.toggle('open', open);
+    const header = lessonEl.querySelector('.lesson-header');
+    if (header) header.setAttribute('aria-expanded', open ? 'true' : 'false');
+  }
 
   /* ── Поведение песочницы ─────────────────────────────── */
 
@@ -1639,10 +1676,10 @@
                           (el, e) => { e.preventDefault(); goToAnchor(el.getAttribute('data-anchor')); }],
     ['.group-tab',        (el) => { closeTabMenu(); switchGroup(el.getAttribute('data-group')); }],
     ['.tab',              (el) => onTabClick(el)],
-    ['.lesson-header',    (el) => el.parentElement.classList.toggle('open')],
+    ['.lesson-header',    (el) => setLessonOpen(el.parentElement, !el.parentElement.classList.contains('open'))],
     ['#cert-submit',      () => handleLogin()],
-    ['.screenshot-card',  (el) => openLightbox(el.querySelector('img').src)],
-    ['.lightbox',         () => byId('lightbox').classList.remove('active')]
+    ['.screenshot-card',  (el) => openLightbox(el.querySelector('img').src, el)],
+    ['.lightbox',         () => closeLightbox()]
   ];
 
   function toggleSolution(button) {
@@ -1657,14 +1694,28 @@
     if (modId === state.activeModule) return;
     switchModule(modId);
     scrollActiveTabIntoView(true);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    window.scrollTo({ top: 0, behavior: scrollBehavior() });
   }
 
-  function openLightbox(src) {
+  // Элемент, с которого открыт лайтбокс: закрытие возвращает фокус на него
+  let lightboxOpener = null;
+
+  function openLightbox(src, opener) {
     if (!src) return;
     const lightbox = byId('lightbox');
     lightbox.querySelector('img').src = src;
     lightbox.classList.add('active');
+    lightboxOpener = opener || null;
+    const closeBtn = lightbox.querySelector('.lightbox-close');
+    if (closeBtn) closeBtn.focus();
+  }
+
+  function closeLightbox() {
+    const lightbox = byId('lightbox');
+    if (!lightbox.classList.contains('active')) return;
+    lightbox.classList.remove('active');
+    if (lightboxOpener) lightboxOpener.focus();
+    lightboxOpener = null;
   }
 
   /* Черновик пишется по ходу набора: PA.store сам дебаунсит запись */
@@ -1688,8 +1739,14 @@
 
   document.addEventListener('keydown', function (e) {
     if (e.key === 'Escape') {
-      byId('lightbox').classList.remove('active');
+      closeLightbox();
       closeTabMenu();
+    }
+    // Ловушка фокуса в лайтбоксе: единственный фокусируемый элемент —
+    // кнопка закрытия, поэтому Tab/Shift+Tab просто возвращают фокус на неё
+    if (e.key === 'Tab' && byId('lightbox').classList.contains('active')) {
+      e.preventDefault();
+      byId('lightbox').querySelector('.lightbox-close').focus();
     }
     // «/» ставит курсор в поиск, как в GitHub
     if (e.key === '/' && !e.ctrlKey && !e.metaKey && !e.altKey) {
@@ -1700,6 +1757,33 @@
       byId('search-input').select();
     }
     if (e.key === 'Enter' && e.target.id === 'cert-input') handleLogin();
+
+    // Стрелки в ленте вкладок/групп: фокус на соседнюю кнопку и сразу
+    // активируем её — маршруты те же, что и у клика (onTabClick/switchGroup)
+    if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+      const isGroupTab = e.target.classList.contains('group-tab');
+      const isTab = e.target.classList.contains('tab');
+      if (isGroupTab || isTab) {
+        e.preventDefault();
+        const list = Array.from(document.querySelectorAll(isGroupTab ? '.group-tab' : '.tab'));
+        const idx = list.indexOf(e.target);
+        if (idx === -1) return;
+        const next = list[(idx + (e.key === 'ArrowRight' ? 1 : -1) + list.length) % list.length];
+        // Переключение перерисовывает ленту, поэтому фокус ставим уже
+        // на новую кнопку с тем же data-атрибутом — иначе он пропадёт
+        if (isGroupTab) {
+          const groupId = next.getAttribute('data-group');
+          switchGroup(groupId);
+          const fresh = document.querySelector('.group-tab[data-group="' + groupId + '"]');
+          if (fresh) fresh.focus();
+        } else {
+          const modId = next.getAttribute('data-mod');
+          onTabClick(next);
+          const fresh = document.querySelector('.tab[data-mod="' + modId + '"]');
+          if (fresh) fresh.focus();
+        }
+      }
+    }
   });
 
   /* ── Прокрутка ленты вкладок ─────────────────────────── */

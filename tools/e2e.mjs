@@ -275,6 +275,118 @@ const ok = (name, cond, extra='') => { cond ? pass++ : fail++; console.log(`${co
   const firstTitle = q('.sr-item .sr-title')?.textContent.toLowerCase() || '';
   ok('точное слово впереди', firstTitle.includes('цикл'), firstTitle || 'нет результатов');
 
+  console.log('\nДОСТУПНОСТЬ');
+
+  // Предыдущие блоки могли оставить открытым оглавление вкладки или
+  // результаты поиска — клик мимо всего закрывает оба поповера
+  d.body.dispatchEvent(new w.MouseEvent('click', {bubbles:true}));
+  await wait(100);
+
+  console.log('  Табы');
+  ok('#tabs — role="tablist"', q('#tabs').getAttribute('role') === 'tablist');
+  ok('#groups — role="tablist"', q('#groups').getAttribute('role') === 'tablist');
+  const activeGroupTab = q('.group-tab.active');
+  ok('активная группа — aria-selected="true"', !!activeGroupTab && activeGroupTab.getAttribute('aria-selected') === 'true');
+  const activeTab = q('.tab.active');
+  ok('активная вкладка — aria-selected="true"', !!activeTab && activeTab.getAttribute('aria-selected') === 'true');
+  const inactiveTabs = qa('.tab:not(.active)');
+  ok('неактивные вкладки — aria-selected="false"',
+     inactiveTabs.length > 0 && inactiveTabs.every(t => t.getAttribute('aria-selected') === 'false'),
+     inactiveTabs.length + ' шт');
+
+  console.log('  Аккордеон');
+  const firstHeader = q('.lesson-header');
+  ok('.lesson-header — BUTTON с aria-expanded', firstHeader.tagName === 'BUTTON' && firstHeader.hasAttribute('aria-expanded'));
+  const firstLesson = firstHeader.parentElement;
+  const wasOpen = firstLesson.classList.contains('open');
+  firstHeader.dispatchEvent(new w.MouseEvent('click', {bubbles:true}));
+  await wait(50);
+  ok('клик по .lesson-header раскрывает раздел',
+     firstLesson.classList.contains('open') === !wasOpen &&
+     firstHeader.getAttribute('aria-expanded') === String(!wasOpen));
+  firstHeader.dispatchEvent(new w.MouseEvent('click', {bubbles:true}));
+  await wait(50);
+  ok('повторный клик сворачивает раздел',
+     firstLesson.classList.contains('open') === wasOpen &&
+     firstHeader.getAttribute('aria-expanded') === String(wasOpen));
+
+  console.log('  Skip-link');
+  const skipLink = q('.skip-link');
+  ok('skip-link есть и ведёт на #content', skipLink !== null && skipLink.getAttribute('href') === '#content');
+  ok('#content — tabindex="-1"', q('#content').getAttribute('tabindex') === '-1');
+
+  console.log('  Поиск: комбобокс');
+  ok('#search-input — role="combobox"', inp.getAttribute('role') === 'combobox');
+  inp.value = 'функция'; inp.dispatchEvent(new w.Event('input', {bubbles:true}));
+  await wait(500);
+  inp.dispatchEvent(new w.KeyboardEvent('keydown', {key:'ArrowDown', bubbles:true}));
+  const activeOption = q('.sr-item.active');
+  ok('aria-activedescendant указывает на активный пункт',
+     activeOption !== null && inp.getAttribute('aria-activedescendant') === activeOption.id,
+     inp.getAttribute('aria-activedescendant') + ' / ' + (activeOption && activeOption.id));
+  d.body.dispatchEvent(new w.MouseEvent('click', {bubbles:true}));   // закрываем результаты поиска
+  await wait(100);
+
+  console.log('  Лайтбокс');
+  q('[data-group="video"]').dispatchEvent(new w.MouseEvent('click', {bubbles:true}));
+  await wait(400);
+  q('.tab[data-mod="1"]').dispatchEvent(new w.MouseEvent('click', {bubbles:true}));
+  await wait(400);
+
+  // Скриншоты лежат внутри свёрнутых уроков — раскрываем по очереди,
+  // пока не найдём карточку (номер урока со скриншотами не хотим хардкодить)
+  let card = q('.screenshot-card');
+  for (const header of qa('.lesson-header')) {
+    if (card) break;
+    header.dispatchEvent(new w.MouseEvent('click', {bubbles:true}));
+    await wait(30);
+    card = q('.screenshot-card');
+  }
+  ok('карточка скриншота — BUTTON', card !== null && card.tagName === 'BUTTON');
+
+  card.dispatchEvent(new w.MouseEvent('click', {bubbles:true}));
+  await wait(100);
+  ok('клик по карточке открывает лайтбокс', q('#lightbox').classList.contains('active'));
+  ok('фокус переходит на кнопку закрытия', d.activeElement === q('.lightbox-close'));
+
+  d.dispatchEvent(new w.KeyboardEvent('keydown', {key:'Escape', bubbles:true}));
+  await wait(100);
+  ok('Escape закрывает лайтбокс', !q('#lightbox').classList.contains('active'));
+  ok('фокус возвращается на карточку', d.activeElement === card);
+
+  console.log('  Галочки в оглавлении вкладки');
+  q('[data-group="ref"]').dispatchEvent(new w.MouseEvent('click', {bubbles:true}));
+  await wait(300);
+  q('.tab[data-mod="6"]').dispatchEvent(new w.MouseEvent('click', {bubbles:true}));
+  await wait(400);
+
+  const notesData = JSON.parse(fs.readFileSync(P + 'data/notes.json', 'utf8'));
+  const numbersSection = (notesData.sections || []).find(s => s.anchor === 'numbers');
+  const taskIds = ((numbersSection && numbersSection.blocks) || [])
+    .filter(b => b.type === 'task' && b.check && b.id)
+    .map(b => b.id);
+  ok('в разделе «numbers» есть задания с проверкой', taskIds.length > 0, taskIds.join(','));
+  taskIds.forEach(id => w.PA.store.markTask(id, 'solved'));
+
+  d.body.dispatchEvent(new w.MouseEvent('click', {bubbles:true}));   // закрыть возможное старое меню
+  await wait(100);
+  q('.tab-caret[data-menu="6"]').dispatchEvent(new w.MouseEvent('click', {bubbles:true}));
+  await wait(300);
+
+  const menuItems = qa('.tab-menu-item');
+  const numbersItem = menuItems.find(i => i.dataset.anchor === 'numbers');
+  const otherItem = menuItems.find(i => i.dataset.anchor && i.dataset.anchor !== 'numbers');
+  ok('решённый раздел помечен галочкой (tmi-solved)', !!numbersItem && numbersItem.classList.contains('tmi-solved'));
+  ok('нерешённый раздел галочки не получает', !!otherItem && !otherItem.classList.contains('tmi-solved'));
+
+  numbersItem.dispatchEvent(new w.MouseEvent('click', {bubbles:true}));
+  await wait(700);
+  const numbersLesson = d.getElementById('ref-numbers');
+  ok('переход по оглавлению раскрывает раздел', !!numbersLesson && numbersLesson.classList.contains('open'));
+  const numbersHeader = numbersLesson && numbersLesson.querySelector('.lesson-header');
+  ok('aria-expanded синхронизирован после перехода по якорю',
+     !!numbersHeader && numbersHeader.getAttribute('aria-expanded') === 'true');
+
   console.log(`\nИТОГ: ${pass} пройдено, ${fail} провалено`);
   process.exit(fail ? 1 : 0);
 })();

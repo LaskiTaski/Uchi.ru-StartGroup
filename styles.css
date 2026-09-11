@@ -44,6 +44,35 @@ body::before {
   z-index: 9999;
 }
 
+/* ── Доступность (этап 5) ──────────────────────────────── */
+
+/* Skip-link: первый элемент body, визуально скрыт (не display:none —
+   тогда его не найдёт скринридер), при фокусе выезжает поверх шапки */
+.skip-link {
+  position: absolute; top: 0; left: -9999px; z-index: 1000;
+  padding: 10px 16px; border-radius: 0 0 8px 0;
+  background: #F59E0B; color: #0B0E16;
+  font-family: var(--font); font-size: 13px; font-weight: 700;
+  text-decoration: none;
+}
+.skip-link:focus { left: 0; }
+
+/* Видимый фокус только для клавиатуры — обычный клик мышью вид не меняет */
+a:focus-visible, button:focus-visible, input:focus-visible,
+textarea:focus-visible, select:focus-visible, [tabindex]:focus-visible {
+  outline: 2px solid #7DD3FC; outline-offset: 2px;
+}
+
+/* Системная настройка «меньше анимации» — гасим переходы и анимации разом */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
 /* ── Header ────────────────────────────────────────────── */
 .header {
   background: linear-gradient(180deg, rgba(255,255,255,0.03) 0%, transparent 100%);
@@ -375,6 +404,8 @@ body::before {
 .lesson.attestation.open { border-color: rgba(251,191,36,0.3); background: rgba(251,191,36,0.06); }
 
 .lesson-header {
+  /* Сброс стилей кнопки (этап 5: .lesson-header стал <button> ради клавиатуры) */
+  width: 100%; border: 0; background: none; font: inherit; color: inherit; text-align: left;
   padding: 14px 18px; cursor: pointer; display: flex;
   align-items: center; gap: 12px; user-select: none; transition: background 0.15s;
 }
@@ -455,6 +486,9 @@ body::before {
 }
 
 .screenshot-card {
+  /* Сброс стилей кнопки (этап 5: .screenshot-card стал <button>) —
+     рамку, флекс-колонку и курсор ниже переопределяем обратно */
+  width: 100%; padding: 0; border: 0; background: none; font: inherit; color: inherit; text-align: left;
   border-radius: 8px; overflow: hidden; cursor: pointer;
   border: 1px solid rgba(255,255,255,0.06);
   display: flex; flex-direction: column;
@@ -1111,6 +1145,9 @@ code, pre, .ic { font-variant-ligatures: none; font-feature-settings: "liga" 0, 
 /* Галочка на плитке решённого раздела */
 .qn-chip.qn-solved { border-color: rgba(52,211,153,0.35); }
 .qn-chip.qn-solved .qn-code::after { content: ' ✓'; color: #34D399; }
+
+/* Та же галочка — в оглавлении вкладки (этап 4, незакрытый пункт) */
+.tab-menu-item.tmi-solved .tmi-title::after { content: ' ✓'; color: #34D399; }
 
 /* ── Responsive ────────────────────────────────────────── */
 @media (max-width: 640px) {
