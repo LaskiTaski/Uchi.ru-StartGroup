@@ -531,8 +531,36 @@
 
   /* ── Поиск ───────────────────────────────────────────── */
 
+  /* Нормализация ДЛИНУ СОХРАНЯЕТ: только регистр и ё→е, без схлопывания
+     пробелов. Позиции символов в normalize(text) обязаны совпадать
+     с позициями в исходном text — на этом держится точная подсветка
+     (highlight режет сырой текст по позиции, найденной в normalize). */
   function normalize(text) {
-    return String(text).toLowerCase().replace(/ё/g, 'е').replace(/\s+/g, ' ');
+    return String(text).toLowerCase().replace(/ё/g, 'е');
+  }
+
+  /* Русские окончания для грубого стемминга — от длинных к коротким,
+     чтобы «ами» не срезалось как «и» раньше времени */
+  const STEM_ENDINGS = [
+    'ами', 'ями', 'ов', 'ев', 'ах', 'ях', 'ой', 'ей', 'ый', 'ий',
+    'ая', 'яя', 'ое', 'ее', 'ые', 'ие', 'ом', 'ем', 'ам', 'ям',
+    'у', 'ю', 'а', 'я', 'ы', 'и', 'е', 'о', 'ь'
+  ];
+
+  /**
+   * Грубый стемминг запроса: отсекаем ОДНО окончание у русского слова,
+   * чтобы «циклы» находило «цикл», а «функций» — «функция». Работает
+   * только для слов из кириллицы от 5 букв и не даёт основе стать короче
+   * 3 букв — иначе слишком много случайных совпадений («то» из «этого»).
+   */
+  function stem(word) {
+    if (word.length < 5 || !/^[а-я]+$/.test(word)) return word;
+    for (const ending of STEM_ENDINGS) {
+      if (word.endsWith(ending) && word.length - ending.length >= 3) {
+        return word.slice(0, word.length - ending.length);
+      }
+    }
+    return word;
   }
 
   const search = {
@@ -568,6 +596,16 @@
     return search.loading;
   }
 
+  /* Убирает markdown-разметку и схлопывает пробелы — та же логика,
+     что clean() в tools/build_search_index.py. Нужна только запасному
+     индексу: предсобранный из data/search-index.json уже почищен. */
+  function cleanText(text) {
+    return String(text)
+      .replace(/\[([^\]]+)\]\(#[A-Za-z0-9_-]+\)/g, '$1')
+      .replace(/`/g, '').replace(/\*\*/g, '')
+      .replace(/\s+/g, ' ').trim();
+  }
+
   function buildSearchIndex() {
     const index = [];
 
@@ -588,7 +626,7 @@
         if (lesson.attestation) return;
         index.push({
           mod: meta.id, anchor: lessonAnchorOf(meta.id, lesson.num), icon: lesson.num,
-          title: lesson.title, chip: '', module: meta.label, body: lesson.desc || ''
+          title: lesson.title, chip: '', module: meta.label, body: cleanText(lesson.desc || '')
         });
       });
     });
@@ -600,29 +638,37 @@
     const parts = [section.desc || ''];
     (section.blocks || []).forEach((block) => {
       parts.push(block.text || '', block.title || '', block.code || '');
+      parts.push((block.head || []).join(' '));            // заголовки таблиц
       (block.rows || []).forEach((row) => parts.push(row.join(' ')));
       (block.items || []).forEach((item) => parts.push(item));
       if (block.good) parts.push(block.good.title || '', block.good.code || '');
       if (block.bad) parts.push(block.bad.title || '', block.bad.code || '');
+      parts.push(block.hint || '', block.explain || '');    // подсказка и разбор задания
     });
-    return parts.join(' ');
+    return cleanText(parts.join(' '));
   }
 
-  /* Заголовок весит больше текста — иначе точное совпадение тонет */
+  /* Заголовок весит больше текста — иначе точное совпадение тонет.
+     Каждое слово запроса ищем по ОСНОВЕ (после стемминга) подстрокой,
+     как раньше, — так «циклы» находит «цикл». А если находится ещё
+     и полное слово запроса — добавляем бонус, чтобы точное совпадение
+     поднималось над совпадением только по основе. */
   function runSearch(query) {
     const normalized = normalize(query);
     if (normalized.length < CONFIG.searchMinLength) return [];
 
-    const words = normalized.split(' ').filter(Boolean);
+    const words = normalized.split(/\s+/).filter(Boolean);
+    const stems = words.map(stem);
     const found = [];
 
     search.index.forEach((item) => {
       let score = 0;
       let allMatched = true;
 
-      words.forEach((word) => {
-        const inTitle = item.titleNorm.indexOf(word);
-        const inBody = item.bodyNorm.indexOf(word);
+      words.forEach((word, i) => {
+        const needle = stems[i];
+        const inTitle = item.titleNorm.indexOf(needle);
+        const inBody = item.bodyNorm.indexOf(needle);
 
         if (inTitle === 0) score += 100;
         else if (inTitle > 0) score += 60;
@@ -630,9 +676,15 @@
         else allMatched = false;
 
         if (inBody >= 0) score += 2;
+
+        // Бонус за точное слово целиком, не только за основу
+        if (item.titleNorm.indexOf(word) >= 0 || item.bodyNorm.indexOf(word) >= 0) score += 20;
       });
 
-      if (allMatched) found.push({ item, score, first: words[0] });
+      // firstFull — исходное (нестемленное) первое слово запроса: если оно
+      // само по себе целиком нашлось в тексте, подсветка предпочтёт его
+      // основе, чтобы «кавычки» подсвечивалось целиком, а не «кавычк»
+      if (allMatched) found.push({ item, score, first: stems[0], firstFull: words[0] });
     });
 
     found.sort((a, b) => b.score - a.score);
@@ -644,19 +696,35 @@
     const body = item.body || '';
     if (position < 0) return body.slice(0, 90).trim();
 
+    // item.bodyNorm получен из item.body нормализацией, сохраняющей длину,
+    // так что позиция совпадает 1-в-1 — срезаем сырой текст без повторного
+    // схлопывания пробелов (тело уже подготовлено: build_search_index.py
+    // или cleanText() для запасного индекса)
     const start = Math.max(0, position - 40);
-    const chunk = body.slice(start, start + 120).replace(/\s+/g, ' ').trim();
+    const chunk = body.slice(start, start + 120).trim();
     return (start > 0 ? '…' : '') + chunk + '…';
   }
 
-  function highlight(text, word) {
-    const safe = esc(text);
-    if (!word) return safe;
-    const position = normalize(safe).indexOf(word);
-    if (position < 0) return safe;
-    return safe.slice(0, position) +
-      h('mark', null, safe.slice(position, position + word.length)) +
-      safe.slice(position + word.length);
+  function highlight(text, word, fullWord) {
+    if (!word) return esc(text);
+    // Позицию ищем в normalize(text) — сыром тексте, не экранированном,
+    // поэтому индексы совпадают с text и разрезание не попадёт внутрь
+    // HTML-сущности вроде &amp;. Экранируем уже отдельные куски.
+    const normalized = normalize(text);
+    let matchWord = word, position = normalized.indexOf(word);
+
+    // Если в тексте нашлось целиком исходное слово запроса (не основа) —
+    // подсвечиваем его целиком: «кавычки» лучше «кавычк» + «и» без подсветки
+    if (fullWord && fullWord !== word) {
+      const fullPosition = normalized.indexOf(fullWord);
+      if (fullPosition >= 0) { position = fullPosition; matchWord = fullWord; }
+    }
+
+    if (position < 0) return esc(text);
+    const before = text.slice(0, position);
+    const match = text.slice(position, position + matchWord.length);
+    const after = text.slice(position + matchWord.length);
+    return esc(before) + h('mark', null, esc(match)) + esc(after);
   }
 
   function renderSearchResults(results, query) {
@@ -683,8 +751,8 @@
         },
           h('span', { class: 'sr-icon' }, esc(result.item.icon)) +
           h('span', { class: 'sr-text' },
-            h('span', { class: 'sr-title' }, highlight(result.item.title, result.first)) +
-            h('span', { class: 'sr-snippet' }, highlight(makeSnippet(result.item, result.first), result.first))
+            h('span', { class: 'sr-title' }, highlight(result.item.title, result.first, result.firstFull)) +
+            h('span', { class: 'sr-snippet' }, highlight(makeSnippet(result.item, result.first), result.first, result.firstFull))
           ) +
           h('span', { class: 'sr-module' }, esc(result.item.module))
         );

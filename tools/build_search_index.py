@@ -24,9 +24,11 @@ ROOT = Path(__file__).resolve().parent.parent
 DATA = ROOT / 'data'
 OUTPUT = DATA / 'search-index.json'
 
-# Сколько символов текста раздела класть в индекс: хватает для сниппета,
-# но не тащит в браузер весь справочник
-BODY_LIMIT = 600
+# Сколько символов текста раздела класть в индекс. Раньше хватало только
+# на сниппет (600), но всё, что не влезло, не участвовало в поиске вообще —
+# подняли лимит, чтобы находились и подсказки/разборы заданий в конце
+# длинных разделов, а размер индекса всё равно остаётся некритичным
+BODY_LIMIT = 2000
 
 
 def clean(text: str) -> str:
@@ -43,6 +45,7 @@ def section_text(section: dict) -> str:
         parts.append(block.get('text', ''))
         parts.append(block.get('title', ''))
         parts.append(block.get('code', ''))
+        parts.append(' '.join(block.get('head', [])))   # заголовки таблиц
         for row in block.get('rows', []):
             parts.append(' '.join(row))
         parts.extend(block.get('items', []))
@@ -50,6 +53,9 @@ def section_text(section: dict) -> str:
             if block.get(side):
                 parts.append(block[side].get('title', ''))
                 parts.append(block[side].get('code', ''))
+        # подсказка и разбор задания — их тоже ищут по ключевым словам
+        parts.append(block.get('hint', ''))
+        parts.append(block.get('explain', ''))
 
     return clean(' '.join(p for p in parts if p))[:BODY_LIMIT]
 

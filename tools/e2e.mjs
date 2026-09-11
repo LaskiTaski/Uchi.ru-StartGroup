@@ -9,9 +9,22 @@ const dom = new JSDOM(fs.readFileSync(P + 'index.html', 'utf8'),
 const w = dom.window, d = w.document;
 ['scrollBy','scrollTo','scrollIntoView'].forEach(m => w.Element.prototype[m] = function(){});
 w.scrollTo = () => {};
+// Синтетическая запись для проверки подсветки: слово в кавычках и амперсанд
+// в заголовке — раньше некорректное экранирование резало <mark> не там
+// (см. tools/e2e.mjs → «ПОИСК: СТЕММИНГ И ПОДСВЕТКА»)
+const SEARCH_INDEX_FILE = 'data/search-index.json';
+const SYNTHETIC_ENTRY = {
+  mod: 6, anchor: 'numbers', icon: '🧪',
+  title: 'Амперсанд & кавычки "тест" подсветки', chip: '', module: 'Тест',
+  body: 'служебная запись: амперсанд & и кавычки "тест" в теле'
+};
 let fetched = [];
 w.fetch = (f) => { fetched.push(f); return Promise.resolve({
-  ok: true, json: () => Promise.resolve(JSON.parse(fs.readFileSync(P + f, 'utf8'))) }); };
+  ok: true, json: () => {
+    const data = JSON.parse(fs.readFileSync(P + f, 'utf8'));
+    if (f === SEARCH_INDEX_FILE) data.push(SYNTHETIC_ENTRY);
+    return Promise.resolve(data);
+  } }); };
 
 /* Настоящий Pyodide в jsdom не поднять — подменяем исполнитель заглушкой.
    Питоновскую часть проверяет tools/validate.py на эталонных решениях,
@@ -222,6 +235,45 @@ const ok = (name, cond, extra='') => { cond ? pass++ : fail++; console.log(`${co
   const dump = JSON.parse(w.localStorage.getItem('pa_progress_v1'));
   ok('решённое задание в localStorage', dump.tasks[taskId].status === 'solved');
   ok('версия схемы записана', dump.version === 1);
+
+  console.log('\nПОИСК: СТЕММИНГ И ПОДСВЕТКА');
+  // «циклы» должно находить «цикл» через грубый стемминг запроса
+  inp.value = 'циклы'; inp.dispatchEvent(new w.Event('input', {bubbles:true}));
+  await wait(500);
+  let titles = qa('.sr-title').map(t => t.textContent.toLowerCase());
+  ok('стемминг: «циклы» находит «цикл»', titles.some(t => t.includes('цикл')), titles.join(' | '));
+
+  // «функций» должно находить раздел из справочника «Функции»
+  inp.value = 'функций'; inp.dispatchEvent(new w.Event('input', {bubbles:true}));
+  await wait(500);
+  let modules = qa('.sr-item .sr-module').map(m => m.textContent);
+  ok('стемминг: «функций» находит модуль «Функции»', modules.includes('Функции'), modules.join(' | '));
+
+  // Синтетическая запись с амперсандом и кавычками в заголовке — раньше
+  // highlight() резал экранированную строку не по тем позициям
+  inp.value = 'кавычки'; inp.dispatchEvent(new w.Event('input', {bubbles:true}));
+  await wait(500);
+  const items = qa('.sr-item');
+  const testItem = items.find(it => it.querySelector('.sr-module')?.textContent === 'Тест');
+  ok('синтетическая запись найдена', testItem !== undefined,
+     items.map(it => it.querySelector('.sr-module')?.textContent).join(' | '));
+
+  // Битая сущность — это либо двойное экранирование (&amp;amp;), либо '&',
+  // за которым сразу без ';' идёт открывающий тег (&am<mark> — старый баг
+  // резал экранированную строку не по тем позициям и рвал сущность)
+  const broken = /&amp;(amp|lt|gt|quot|#0?39);|&[a-zA-Z#0-9]*</;
+  const titleHtml = testItem ? testItem.querySelector('.sr-title').innerHTML : '';
+  const snippetHtml = testItem ? testItem.querySelector('.sr-snippet').innerHTML : '';
+  ok('амперсанд экранирован ровно один раз', titleHtml.includes('&amp;'), titleHtml);
+  ok('слово подсвечено целиком', titleHtml.includes('<mark>кавычки</mark>'), titleHtml);
+  ok('в заголовке нет разорванных сущностей', titleHtml !== '' && !broken.test(titleHtml), titleHtml);
+  ok('в сниппете нет разорванных сущностей', snippetHtml !== '' && !broken.test(snippetHtml), snippetHtml);
+
+  // Точное совпадение слова должно ранжироваться выше совпадения по основе
+  inp.value = 'цикл'; inp.dispatchEvent(new w.Event('input', {bubbles:true}));
+  await wait(500);
+  const firstTitle = q('.sr-item .sr-title')?.textContent.toLowerCase() || '';
+  ok('точное слово впереди', firstTitle.includes('цикл'), firstTitle || 'нет результатов');
 
   console.log(`\nИТОГ: ${pass} пройдено, ${fail} провалено`);
   process.exit(fail ? 1 : 0);
