@@ -294,12 +294,17 @@
       this.autoGrow(root, input);
     },
 
+    /* Высота — числом строк через rows, а не замером scrollHeight:
+       редактор отрисовывается внутри свёрнутого урока (display: none),
+       где замер даёт 0, и он навсегда оставался высотой в одну строку
+       с обрезанным кодом. rows считается от того же шрифта и line-height,
+       что и слой подсветки, поэтому слои совпадают без раскладки. */
     autoGrow: function (root, input) {
-      input.style.height = 'auto';
-      var height = Math.max(input.scrollHeight, 24);
-      input.style.height = height + 'px';
+      var lines = input.value.split('\n').length;
+      input.rows = Math.max(lines, 1);
+      input.style.height = '';
       var view = root.querySelector('.ed-view');
-      if (view) view.style.height = height + 'px';
+      if (view) view.style.height = '';
     },
 
     scrolled: function (root) {
