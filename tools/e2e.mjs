@@ -387,6 +387,47 @@ const ok = (name, cond, extra='') => { cond ? pass++ : fail++; console.log(`${co
   ok('aria-expanded синхронизирован после перехода по якорю',
      !!numbersHeader && numbersHeader.getAttribute('aria-expanded') === 'true');
 
+  console.log('\nHEAD, ВИДЕО И ПОДСКАЗКА');
+
+  const metaDesc = q('meta[name="description"]');
+  ok('meta description есть и не пустое', !!metaDesc && metaDesc.getAttribute('content').trim().length > 0);
+  const iconLink = q('link[rel="icon"]');
+  ok('фавикон — inline SVG data-URI',
+     !!iconLink && (iconLink.getAttribute('href') || '').startsWith('data:image/svg+xml'));
+  ok('meta og:title есть', q('meta[property="og:title"]') !== null);
+
+  // Видео должно грузиться с youtube-nocookie.com — без сторонних cookie до клика
+  q('[data-group="video"]').dispatchEvent(new w.MouseEvent('click', {bubbles:true}));
+  await wait(400);
+  q('.tab[data-mod="1"]').dispatchEvent(new w.MouseEvent('click', {bubbles:true}));
+  await wait(400);
+  const iframes = qa('iframe');
+  ok('в DOM есть хотя бы один iframe видео', iframes.length > 0, iframes.length + ' шт');
+  ok('все iframe — с youtube-nocookie.com/embed/',
+     iframes.length > 0 && iframes.every(f => (f.getAttribute('src') || '').includes('youtube-nocookie.com/embed/')),
+     iframes.map(f => f.getAttribute('src')).join(' | '));
+  ok('ни один iframe не ведёт на www.youtube.com/embed/',
+     !iframes.some(f => (f.getAttribute('src') || '').includes('www.youtube.com/embed/')));
+
+  // Честная подсказка песочницы: упоминает интернет/сеть и pip
+  q('[data-group="ref"]').dispatchEvent(new w.MouseEvent('click', {bubbles:true}));
+  await wait(300);
+  q('.tab[data-mod="6"]').dispatchEvent(new w.MouseEvent('click', {bubbles:true}));
+  await wait(400);
+  const hintEl = q('.sb-hint');
+  const hintTitle = hintEl ? hintEl.getAttribute('title') || '' : '';
+  ok('подсказка песочницы упоминает pip', hintEl !== null && hintTitle.includes('pip'), hintTitle);
+  ok('подсказка песочницы упоминает интернет/сеть',
+     hintEl !== null && /интернет|сеть/.test(hintTitle), hintTitle);
+
+  // Адаптив и печать — проверяем сами правила в файле стилей
+  const cssText = fs.readFileSync(P + 'styles.css', 'utf8');
+  ok('есть медиа-блок max-width: 1024px', /@media \(max-width:\s*1024px\)/.test(cssText));
+  ok('есть медиа-блок max-width: 820px', /@media \(max-width:\s*820px\)/.test(cssText));
+  ok('есть блок @media print', /@media print/.test(cssText));
+  ok('в print-блоке .lesson-body раскрывается (display: block)',
+     /\.lesson-body\s*\{\s*display:\s*block/.test(cssText));
+
   console.log(`\nИТОГ: ${pass} пройдено, ${fail} провалено`);
   process.exit(fail ? 1 : 0);
 })();

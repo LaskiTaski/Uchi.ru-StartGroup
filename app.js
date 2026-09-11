@@ -1161,8 +1161,10 @@
 
   /* ── Песочница ───────────────────────────────────────── */
 
-  var SANDBOX_HINT = 'Python работает прямо в браузере. Нет доступа в сеть ' +
-    'и к файлам проекта, файлы живут только до перезагрузки страницы.';
+  var SANDBOX_HINT = 'Python выполняется прямо в браузере (Pyodide). ' +
+    'Нет доступа в интернет — requests и подобные библиотеки не сработают. ' +
+    'Файлы создаются в виртуальной файловой системе и живут только до перезагрузки страницы. ' +
+    'pip install работает только для пакетов, собранных под Pyodide.';
 
   function renderSandbox(opts) {
     var editorHtml =
@@ -1289,7 +1291,8 @@
     var html = '<div class="video-grid">';
     videos.forEach(function (v) {
       html += '<div class="video-card">' +
-        '<iframe src="https://www.youtube.com/embed/' + esc(v.id) + '" title="' + esc(v.title) + '" ' +
+        /* youtube-nocookie.com — сторонние cookie не ставятся, пока по видео не кликнули */
+        '<iframe src="https://www.youtube-nocookie.com/embed/' + esc(v.id) + '" title="' + esc(v.title) + '" ' +
         'allow="' + IFRAME_ALLOW + '" allowfullscreen loading="lazy"></iframe>' +
         '<div class="v-title">' + esc(v.title) + '</div></div>';
     });
