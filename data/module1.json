@@ -142,7 +142,7 @@
       "title": "Операторы continue и break",
       "desc": "Управление циклами: continue, break, else в циклах.",
       "videos": [
-        { "id": "Myh7OdxoYsA&list=PLQAt0m1f9OHvv2wxPGSCWjgy1qER_FvB6&index=24", "title": "Инструкции break, continue, else" }
+        { "id": "Myh7OdxoYsA", "title": "Инструкции break, continue, else" }
       ],
       "links": [
         { "url": "https://metanit.com/python/tutorial/2.7.php?ysclid=mn05bsiigx355510593", "title": "Циклы - MetaNit" },

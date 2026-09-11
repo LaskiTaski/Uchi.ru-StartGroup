@@ -1,0 +1,15 @@
+{
+  "name": "python-academy",
+  "private": true,
+  "description": "Учебная платформа Python Academy: видеомодули, справочники, курсы и песочница с автопроверкой заданий",
+  "scripts": {
+    "validate": "python tools/validate.py",
+    "index": "python tools/build_search_index.py",
+    "index:check": "python tools/build_search_index.py --check",
+    "e2e": "node tools/e2e.mjs",
+    "test": "npm run validate && npm run index:check && npm run e2e"
+  },
+  "devDependencies": {
+    "jsdom": "^29.1.1"
+  }
+}

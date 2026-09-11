@@ -17,12 +17,25 @@
     scrollOffset: 14         // зазор под липкой шапкой при переходе по якорю
   };
 
+  // Уважаем системную настройку «меньше анимации» (этап 5): в jsdom
+  // matchMedia отсутствует, поэтому проверка через && обязательна
+  const REDUCED_MOTION = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+
+  function scrollBehavior() {
+    return REDUCED_MOTION ? 'auto' : 'smooth';
+  }
+
   const IFRAME_ALLOW = 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture';
+  // Подписи курсов: ключ -> [текст, css-класс]
   const TAG_LABELS = {
-    practice: '🛠️ практика', project: '🎯 проект', theory: '📘 теория',
-    test: '📝 тест', exam: '🎓 экзамен'
+    free:     ['Бесплатно', 'tag-free'],       paid:   ['Платный', 'tag-paid'],
+    easy:     ['Легко', 'tag-easy'],           medium: ['Нормально', 'tag-medium'],
+    hard:     ['Сложно', 'tag-hard'],          heavy:  ['Тяжело', 'tag-heavy'],
+    useful:   ['Полезно', 'tag-useful'],       super:  ['Очень полезно', 'tag-super'],
+    start:    ['Для старта', 'tag-start'],
+    optional: ['Необязательно', 'tag-optional'], unknown: ['Неизвестно', 'tag-unknown']
   };
-  const REMEMBER_KEY = 'pa_auth';
+  const REMEMBER_KEY = 'pa_m5_unlocked';
   const SECRET_PASSWORD = 'NwrBJQF92k&=';
 
   /* ── Состояние ───────────────────────────────────────── */
@@ -43,13 +56,9 @@
       .replace(/"/g, '&quot;').replace(/'/g, '&#039;');
   }
 
-  /**
-   * Сборка элемента. Атрибуты экранируются всегда — забыть esc() нельзя.
-   * Содержимое считается готовой разметкой, текст экранируйте сами.
-   *   h('div', { class: 'lesson', 'data-mod': 3 }, '<span>...</span>')
-   */
-  function h(tag, attrs, inner) {
-    let out = '<' + tag;
+  /* Общая сборка строки атрибутов для h() и hOpen() — один цикл на двоих */
+  function attrsHtml(attrs) {
+    let out = '';
     if (attrs) {
       for (const key in attrs) {
         const value = attrs[key];
@@ -58,9 +67,25 @@
         out += ' ' + key + '="' + esc(value) + '"';
       }
     }
-    out += '>';
+    return out;
+  }
+
+  /**
+   * Сборка элемента. Атрибуты экранируются всегда — забыть esc() нельзя.
+   * Содержимое считается готовой разметкой, текст экранируйте сами.
+   *   h('div', { class: 'lesson', 'data-mod': 3 }, '<span>...</span>')
+   * Когда нужен только открывающий тег (дальше разметка собирается
+   * конкатенацией строк) — используйте hOpen() с теми же правилами атрибутов.
+   */
+  function h(tag, attrs, inner) {
+    let out = '<' + tag + attrsHtml(attrs) + '>';
     if (inner !== undefined && inner !== null) out += inner;
     return out + '</' + tag + '>';
+  }
+
+  /* Только открывающий тег — замена h(tag, attrs).replace('</tag>', '') */
+  function hOpen(tag, attrs) {
+    return '<' + tag + attrsHtml(attrs) + '>';
   }
 
   /* Атрибуты, задающие цвет модуля: раньше на это уходило 48 правил в CSS */
@@ -85,6 +110,67 @@
   }
 
   const byId = (id) => document.getElementById(id);
+
+  /* ── Состояние блоков переживает перерисовку (этап 0.2) ─
+     loadModule заменяет весь innerHTML, поэтому введённый
+     учеником код обязан жить вне разметки. Реестром служит
+     PA.store: он же дублирует данные в localStorage, так что
+     код переживает и переключение вкладки, и перезагрузку.   */
+
+  const hasPA = typeof window.PA !== 'undefined';
+
+  function blockKeyOf(ctx, index, block) {
+    if (block && block.id) return 'id:' + block.id;
+    return (ctx && ctx.anchor ? ctx.anchor : 'x') + ':' + index;
+  }
+
+  function draftOf(key) {
+    if (!hasPA || !key) return null;
+    const saved = window.PA.store.get('drafts', key, null);
+    if (typeof saved === 'string') return { code: saved, stdin: '' };
+    return saved;
+  }
+
+  function saveDraft(key, patch) {
+    if (!hasPA || !key) return;
+    const prev = draftOf(key) || {};
+    window.PA.store.set('drafts', key, Object.assign({}, prev, patch));
+  }
+
+  /* Снять состояние со всех живых редакторов перед перерисовкой */
+  function captureEditors() {
+    if (!hasPA) return;
+    document.querySelectorAll('.sandbox[data-block-key]').forEach((box) => {
+      const key = box.getAttribute('data-block-key');
+      const editor = box.querySelector('.pa-editor');
+      const stdin = box.querySelector('.sb-stdin-input');
+      if (!editor) return;
+      const code = window.PA.editor.value(editor);
+      // Нетронутый пример хранить незачем: он и так есть в JSON
+      if (code === box.getAttribute('data-start') && !(stdin && stdin.value)) {
+        window.PA.store.set('drafts', key, null);
+        return;
+      }
+      saveDraft(key, { code: code, stdin: stdin ? stdin.value : '' });
+    });
+    window.PA.store.flush();
+  }
+
+  /** Единственная точка замены содержимого страницы. */
+  function setContent(html) {
+    captureEditors();
+    const content = byId('content');
+    content.innerHTML = html;
+    hydrate(content);
+  }
+
+  /* Достроить то, что нельзя выразить строкой разметки */
+  function hydrate(root) {
+    if (!hasPA) return;
+    root.querySelectorAll('.pa-editor').forEach((editor) => {
+      window.PA.editor.sync(editor);
+    });
+  }
 
   /* ── Конфигурация из манифеста ───────────────────────── */
 
@@ -158,6 +244,8 @@
       html += h('button', {
         class: 'group-tab' + (group.id === state.activeGroup ? ' active' : ''),
         'data-group': group.id,
+        role: 'tab',
+        'aria-selected': group.id === state.activeGroup ? 'true' : 'false',
         style: '--group-color: ' + group.color
       },
         h('span', { class: 'group-icon' }, esc(group.icon)) +
@@ -180,6 +268,8 @@
       html += h('button', {
         class: 'tab' + (meta.id === state.activeModule ? ' active' : ''),
         'data-mod': meta.id,
+        role: 'tab',
+        'aria-selected': meta.id === state.activeModule ? 'true' : 'false',
         style: '--mod-color: ' + meta.color
       },
         h('span', { class: 'tab-icon' }, esc(meta.icon)) + ' ' + esc(meta.label) +
@@ -200,7 +290,10 @@
 
   function switchGroup(groupId) {
     if (groupId === state.activeGroup) return;
-    const target = state.lastModuleInGroup[groupId] || modulesOfGroup(groupId)[0].id;
+    // У пустой группы (валидатор их допускает, с предупреждением) переключаться некуда
+    const first = modulesOfGroup(groupId)[0];
+    if (!state.lastModuleInGroup[groupId] && !first) return;
+    const target = state.lastModuleInGroup[groupId] || first.id;
     switchModule(target);
   }
 
@@ -231,7 +324,7 @@
   function scrollTabs(direction) {
     const tabs = byId('tabs');
     if (!tabs) return;
-    tabs.scrollBy({ left: direction * Math.max(160, tabs.clientWidth * 0.6), behavior: 'smooth' });
+    tabs.scrollBy({ left: direction * Math.max(160, tabs.clientWidth * 0.6), behavior: scrollBehavior() });
   }
 
   /* Активная вкладка выезжает в центр — соседи остаются видны */
@@ -249,7 +342,7 @@
     target = Math.max(0, Math.min(target, maxScroll));
 
     if (smooth && tabs.scrollTo) {
-      tabs.scrollTo({ left: target, behavior: 'smooth' });
+      tabs.scrollTo({ left: target, behavior: scrollBehavior() });
     } else {
       setScrollWithoutAnimation(tabs, target);
     }
@@ -284,28 +377,26 @@
    * после отрисовки. Именно это убрало ожидание рендера опросом.
    */
   function loadModule(modId) {
-    const content = byId('content');
-
-    if (getModuleMeta(modId) && getModuleMeta(modId).protected && !state.authToken) {
-      content.innerHTML = renderLoginForm();
+    const meta = getModuleMeta(modId);
+    if (meta && meta.protected && !state.authToken) {
+      setContent(renderLoginForm());
       return Promise.resolve();
     }
 
     if (loaded.has(modId)) {
-      content.innerHTML = renderModule(loaded.get(modId));
+      setContent(renderModule(loaded.get(modId)));
       return Promise.resolve(loaded.get(modId));
     }
 
-    content.innerHTML = h('div', { class: 'empty-state' }, 'Загрузка…');
+    setContent(h('div', { class: 'empty-state' }, 'Загрузка…'));
 
     return fetchModuleCached(modId).then((data) => {
-      if (state.activeModule === modId) content.innerHTML = renderModule(data);
+      if (state.activeModule === modId) setContent(renderModule(data));
       return data;
     }).catch(() => {
-      const meta = getModuleMeta(modId);
-      content.innerHTML = h('div', { class: 'empty-state' },
+      setContent(h('div', { class: 'empty-state' },
         '⚠️ Не удалось загрузить модуль. Проверьте, что файл ' +
-        esc(meta ? meta.file : '') + ' на месте.');
+        esc(meta ? meta.file : '') + ' на месте.'));
     });
   }
 
@@ -335,7 +426,7 @@
     if (!input) return;
 
     if (input.value.trim() !== SECRET_PASSWORD) {
-      byId('content').innerHTML = renderLoginForm('Неверный пароль. Попробуйте ещё раз.');
+      setContent(renderLoginForm('Неверный пароль. Попробуйте ещё раз.'));
       return;
     }
 
@@ -374,7 +465,7 @@
     function jump() {
       const element = byId('ref-' + anchor);
       if (!element) return;
-      element.classList.add('open');
+      setLessonOpen(element, true);
 
       // Ниже порога шапка свернётся — сворачиваем до замера позиции
       const absoluteTop = element.getBoundingClientRect().top + window.pageYOffset;
@@ -383,7 +474,7 @@
       }
 
       const top = element.getBoundingClientRect().top + window.pageYOffset - headerOffset();
-      window.scrollTo({ top, behavior: 'smooth' });
+      window.scrollTo({ top, behavior: scrollBehavior() });
 
       element.classList.remove('flash');
       void element.offsetWidth;
@@ -427,7 +518,10 @@
       let items = '';
       (data.sections || []).forEach((section) => {
         if (!section.anchor) return;
-        items += h('button', { class: 'tab-menu-item', 'data-anchor': section.anchor },
+        items += h('button', {
+          class: 'tab-menu-item' + (sectionSolved(section) ? ' tmi-solved' : ''),
+          'data-anchor': section.anchor
+        },
           h('span', { class: 'tmi-num' }, esc(section.num)) +
           h('span', { class: 'tmi-title' }, esc(section.title))
         );
@@ -452,8 +546,36 @@
 
   /* ── Поиск ───────────────────────────────────────────── */
 
+  /* Нормализация ДЛИНУ СОХРАНЯЕТ: только регистр и ё→е, без схлопывания
+     пробелов. Позиции символов в normalize(text) обязаны совпадать
+     с позициями в исходном text — на этом держится точная подсветка
+     (highlight режет сырой текст по позиции, найденной в normalize). */
   function normalize(text) {
-    return String(text).toLowerCase().replace(/ё/g, 'е').replace(/\s+/g, ' ');
+    return String(text).toLowerCase().replace(/ё/g, 'е');
+  }
+
+  /* Русские окончания для грубого стемминга — от длинных к коротким,
+     чтобы «ами» не срезалось как «и» раньше времени */
+  const STEM_ENDINGS = [
+    'ами', 'ями', 'ов', 'ев', 'ах', 'ях', 'ой', 'ей', 'ый', 'ий',
+    'ая', 'яя', 'ое', 'ее', 'ые', 'ие', 'ом', 'ем', 'ам', 'ям',
+    'у', 'ю', 'а', 'я', 'ы', 'и', 'е', 'о', 'ь'
+  ];
+
+  /**
+   * Грубый стемминг запроса: отсекаем ОДНО окончание у русского слова,
+   * чтобы «циклы» находило «цикл», а «функций» — «функция». Работает
+   * только для слов из кириллицы от 5 букв и не даёт основе стать короче
+   * 3 букв — иначе слишком много случайных совпадений («то» из «этого»).
+   */
+  function stem(word) {
+    if (word.length < 5 || !/^[а-я]+$/.test(word)) return word;
+    for (const ending of STEM_ENDINGS) {
+      if (word.endsWith(ending) && word.length - ending.length >= 3) {
+        return word.slice(0, word.length - ending.length);
+      }
+    }
+    return word;
   }
 
   const search = {
@@ -489,6 +611,16 @@
     return search.loading;
   }
 
+  /* Убирает markdown-разметку и схлопывает пробелы — та же логика,
+     что clean() в tools/build_search_index.py. Нужна только запасному
+     индексу: предсобранный из data/search-index.json уже почищен. */
+  function cleanText(text) {
+    return String(text)
+      .replace(/\[([^\]]+)\]\(#[A-Za-z0-9_-]+\)/g, '$1')
+      .replace(/`/g, '').replace(/\*\*/g, '')
+      .replace(/\s+/g, ' ').trim();
+  }
+
   function buildSearchIndex() {
     const index = [];
 
@@ -509,7 +641,7 @@
         if (lesson.attestation) return;
         index.push({
           mod: meta.id, anchor: lessonAnchorOf(meta.id, lesson.num), icon: lesson.num,
-          title: lesson.title, chip: '', module: meta.label, body: lesson.desc || ''
+          title: lesson.title, chip: '', module: meta.label, body: cleanText(lesson.desc || '')
         });
       });
     });
@@ -521,29 +653,37 @@
     const parts = [section.desc || ''];
     (section.blocks || []).forEach((block) => {
       parts.push(block.text || '', block.title || '', block.code || '');
+      parts.push((block.head || []).join(' '));            // заголовки таблиц
       (block.rows || []).forEach((row) => parts.push(row.join(' ')));
       (block.items || []).forEach((item) => parts.push(item));
       if (block.good) parts.push(block.good.title || '', block.good.code || '');
       if (block.bad) parts.push(block.bad.title || '', block.bad.code || '');
+      parts.push(block.hint || '', block.explain || '');    // подсказка и разбор задания
     });
-    return parts.join(' ');
+    return cleanText(parts.join(' '));
   }
 
-  /* Заголовок весит больше текста — иначе точное совпадение тонет */
+  /* Заголовок весит больше текста — иначе точное совпадение тонет.
+     Каждое слово запроса ищем по ОСНОВЕ (после стемминга) подстрокой,
+     как раньше, — так «циклы» находит «цикл». А если находится ещё
+     и полное слово запроса — добавляем бонус, чтобы точное совпадение
+     поднималось над совпадением только по основе. */
   function runSearch(query) {
     const normalized = normalize(query);
     if (normalized.length < CONFIG.searchMinLength) return [];
 
-    const words = normalized.split(' ').filter(Boolean);
+    const words = normalized.split(/\s+/).filter(Boolean);
+    const stems = words.map(stem);
     const found = [];
 
     search.index.forEach((item) => {
       let score = 0;
       let allMatched = true;
 
-      words.forEach((word) => {
-        const inTitle = item.titleNorm.indexOf(word);
-        const inBody = item.bodyNorm.indexOf(word);
+      words.forEach((word, i) => {
+        const needle = stems[i];
+        const inTitle = item.titleNorm.indexOf(needle);
+        const inBody = item.bodyNorm.indexOf(needle);
 
         if (inTitle === 0) score += 100;
         else if (inTitle > 0) score += 60;
@@ -551,9 +691,15 @@
         else allMatched = false;
 
         if (inBody >= 0) score += 2;
+
+        // Бонус за точное слово целиком, не только за основу
+        if (item.titleNorm.indexOf(word) >= 0 || item.bodyNorm.indexOf(word) >= 0) score += 20;
       });
 
-      if (allMatched) found.push({ item, score, first: words[0] });
+      // firstFull — исходное (нестемленное) первое слово запроса: если оно
+      // само по себе целиком нашлось в тексте, подсветка предпочтёт его
+      // основе, чтобы «кавычки» подсвечивалось целиком, а не «кавычк»
+      if (allMatched) found.push({ item, score, first: stems[0], firstFull: words[0] });
     });
 
     found.sort((a, b) => b.score - a.score);
@@ -565,25 +711,43 @@
     const body = item.body || '';
     if (position < 0) return body.slice(0, 90).trim();
 
+    // item.bodyNorm получен из item.body нормализацией, сохраняющей длину,
+    // так что позиция совпадает 1-в-1 — срезаем сырой текст без повторного
+    // схлопывания пробелов (тело уже подготовлено: build_search_index.py
+    // или cleanText() для запасного индекса)
     const start = Math.max(0, position - 40);
-    const chunk = body.slice(start, start + 120).replace(/\s+/g, ' ').trim();
+    const chunk = body.slice(start, start + 120).trim();
     return (start > 0 ? '…' : '') + chunk + '…';
   }
 
-  function highlight(text, word) {
-    const safe = esc(text);
-    if (!word) return safe;
-    const position = normalize(safe).indexOf(word);
-    if (position < 0) return safe;
-    return safe.slice(0, position) +
-      h('mark', null, safe.slice(position, position + word.length)) +
-      safe.slice(position + word.length);
+  function highlight(text, word, fullWord) {
+    if (!word) return esc(text);
+    // Позицию ищем в normalize(text) — сыром тексте, не экранированном,
+    // поэтому индексы совпадают с text и разрезание не попадёт внутрь
+    // HTML-сущности вроде &amp;. Экранируем уже отдельные куски.
+    const normalized = normalize(text);
+    let matchWord = word, position = normalized.indexOf(word);
+
+    // Если в тексте нашлось целиком исходное слово запроса (не основа) —
+    // подсвечиваем его целиком: «кавычки» лучше «кавычк» + «и» без подсветки
+    if (fullWord && fullWord !== word) {
+      const fullPosition = normalized.indexOf(fullWord);
+      if (fullPosition >= 0) { position = fullPosition; matchWord = fullWord; }
+    }
+
+    if (position < 0) return esc(text);
+    const before = text.slice(0, position);
+    const match = text.slice(position, position + matchWord.length);
+    const after = text.slice(position + matchWord.length);
+    return esc(before) + h('mark', null, esc(match)) + esc(after);
   }
 
   function renderSearchResults(results, query) {
     const box = byId('search-results');
     search.results = results;
     search.cursor = -1;
+    // Новая порция результатов — активного пункта ещё нет
+    byId('search-input').removeAttribute('aria-activedescendant');
 
     if (!query || query.length < CONFIG.searchMinLength) {
       box.classList.remove('open');
@@ -599,13 +763,13 @@
       results.forEach((result, i) => {
         const meta = getModuleMeta(result.item.mod);
         html += h('button', {
-          class: 'sr-item', 'data-index': i, role: 'option',
+          class: 'sr-item', id: 'sr-opt-' + i, 'data-index': i, role: 'option',
           style: meta ? '--mod-color: ' + meta.color : null
         },
           h('span', { class: 'sr-icon' }, esc(result.item.icon)) +
           h('span', { class: 'sr-text' },
-            h('span', { class: 'sr-title' }, highlight(result.item.title, result.first)) +
-            h('span', { class: 'sr-snippet' }, highlight(makeSnippet(result.item, result.first), result.first))
+            h('span', { class: 'sr-title' }, highlight(result.item.title, result.first, result.firstFull)) +
+            h('span', { class: 'sr-snippet' }, highlight(makeSnippet(result.item, result.first), result.first, result.firstFull))
           ) +
           h('span', { class: 'sr-module' }, esc(result.item.module))
         );
@@ -621,7 +785,10 @@
     const box = byId('search-results');
     if (box) box.classList.remove('open');
     const input = byId('search-input');
-    if (input) input.setAttribute('aria-expanded', 'false');
+    if (input) {
+      input.setAttribute('aria-expanded', 'false');
+      input.removeAttribute('aria-activedescendant');
+    }
     search.results = [];
     search.cursor = -1;
   }
@@ -632,7 +799,14 @@
 
     const nodes = document.querySelectorAll('.sr-item');
     nodes.forEach((node, i) => node.classList.toggle('active', i === search.cursor));
-    if (nodes[search.cursor]) nodes[search.cursor].scrollIntoView({ block: 'nearest' });
+    const active = nodes[search.cursor];
+    if (active) active.scrollIntoView({ block: 'nearest' });
+
+    const input = byId('search-input');
+    if (input) {
+      if (active) input.setAttribute('aria-activedescendant', active.id);
+      else input.removeAttribute('aria-activedescendant');
+    }
   }
 
   function openSearchResult(index) {
@@ -691,13 +865,13 @@
       }
 
       var lessonAnchor = lessonAnchorOf(data.id, lesson.num);
-      lessonsHtml += h('div', modAttrs(data.id, { class: 'lesson', id: 'ref-' + lessonAnchor })).replace('</div>', '') +
-        '<div class="lesson-header">' +
+      lessonsHtml += hOpen('div', modAttrs(data.id, { class: 'lesson', id: 'ref-' + lessonAnchor })) +
+        '<button type="button" class="lesson-header" aria-expanded="false">' +
           '<span class="lesson-num">' + esc(lesson.num) + '</span>' +
           '<span class="lesson-title">' + esc(lesson.title) + '</span>' +
           '<span class="lesson-badges">' + badgesHtml + '</span>' +
           '<span class="chevron">▾</span>' +
-        '</div>' +
+        '</button>' +
         '<div class="lesson-body">' + bodyParts + '</div>' +
       '</div>';
     });
@@ -752,13 +926,13 @@
         badgesHtml += '<span class="badge-has">' + esc(b) + '</span>';
       });
 
-      sectionsHtml += h('div', modAttrs(5, { class: 'lesson' })).replace('</div>', '') +
-        '<div class="lesson-header">' +
+      sectionsHtml += hOpen('div', modAttrs(data.id, { class: 'lesson' })) +
+        '<button type="button" class="lesson-header" aria-expanded="false">' +
           '<span class="lesson-num">' + esc(section.num) + '</span>' +
           '<span class="lesson-title">' + esc(section.title) + '</span>' +
           '<span class="lesson-badges">' + badgesHtml + '</span>' +
           '<span class="chevron">▾</span>' +
-        '</div>' +
+        '</button>' +
         '<div class="lesson-body">' + bodyParts + '</div>' +
       '</div>';
     });
@@ -775,13 +949,14 @@
     var chips = '';
     (data.sections || []).forEach(function (sec) {
       if (!sec.anchor || !sec.chip) return;
-      chips += '<button class="qn-chip" data-anchor="' + esc(sec.anchor) + '">' +
+      chips += '<button class="qn-chip' + (sectionSolved(sec) ? ' qn-solved' : '') +
+        '" data-anchor="' + esc(sec.anchor) + '">' +
         '<span class="qn-code">' + esc(sec.chip) + '</span>' +
         (sec.chipNote ? '<span class="qn-note">' + esc(sec.chipNote) + '</span>' : '') +
         '</button>';
     });
     if (chips) {
-      navHtml = h('div', modAttrs(data.id, { class: 'quick-nav' })).replace('</div>', '') +
+      navHtml = hOpen('div', modAttrs(data.id, { class: 'quick-nav' })) +
         '<div class="qn-title">Быстрый переход</div>' +
         '<div class="qn-grid">' + chips + '</div></div>';
     }
@@ -795,7 +970,7 @@
           '<div class="about-label">' + esc(m.label) + '</div>' +
           '<div class="about-value">' + inlineFmt(m.value) + '</div></div>';
       });
-      aboutHtml = h('div', modAttrs(data.id, { class: 'course-about' })).replace('</div>', '') +
+      aboutHtml = hOpen('div', modAttrs(data.id, { class: 'course-about' })) +
         (data.about.text ? '<p class="about-text">' + inlineFmt(data.about.text) + '</p>' : '') +
         (metaHtml ? '<div class="about-grid">' + metaHtml + '</div>' : '') +
       '</div>';
@@ -813,7 +988,7 @@
             (st.note ? '<span class="rm-note">' + esc(st.note) + '</span>' : '') +
           '</span></button>';
       });
-      roadHtml = h('div', modAttrs(data.id, { class: 'roadmap' })).replace('</div>', '') +
+      roadHtml = hOpen('div', modAttrs(data.id, { class: 'roadmap' })) +
         '<div class="qn-title">Программа курса</div>' +
         '<div class="rm-track">' + steps + '</div></div>';
     }
@@ -824,8 +999,8 @@
       if (section.desc) {
         bodyParts += '<p class="lesson-desc">' + inlineFmt(section.desc) + '</p>';
       }
-      (section.blocks || []).forEach(function (block) {
-        bodyParts += renderNoteBlock(block);
+      (section.blocks || []).forEach(function (block, index) {
+        bodyParts += renderNoteBlock(block, { anchor: section.anchor }, index);
       });
 
       var idAttr = section.anchor ? ' id="ref-' + esc(section.anchor) + '"' : '';
@@ -833,28 +1008,41 @@
         ? '<span class="lesson-badges"><span class="sec-chip">' + esc(section.chip) + '</span></span>'
         : '';
 
-      sectionsHtml += h('div', modAttrs(data.id, { class: 'lesson ref-section', id: section.anchor ? 'ref-' + section.anchor : null })).replace('</div>', '') +
-        '<div class="lesson-header">' +
+      sectionsHtml += hOpen('div', modAttrs(data.id, { class: 'lesson ref-section', id: section.anchor ? 'ref-' + section.anchor : null })) +
+        '<button type="button" class="lesson-header" aria-expanded="false">' +
           '<span class="lesson-num">' + esc(section.num) + '</span>' +
           '<span class="lesson-title">' + esc(section.title) + '</span>' +
           chipBadge +
           '<span class="chevron">\u25be</span>' +
-        '</div>' +
+        '</button>' +
         '<div class="lesson-body">' + bodyParts + '</div>' +
       '</div>';
     });
 
-    return headerHtml + aboutHtml + roadHtml + navHtml + sectionsHtml;
+    return headerHtml + renderProgressBar(data) + aboutHtml + roadHtml + navHtml + sectionsHtml;
   }
 
-  function renderNoteBlock(block) {
+  /* Раздел считается пройденным, когда решены все его задания */
+  function sectionSolved(section) {
+    var tasks = (section.blocks || []).filter(function (b) {
+      return b.type === 'task' && b.check && b.id;
+    });
+    if (!tasks.length || !hasPA) return false;
+    return tasks.every(function (b) { return window.PA.store.isSolved(b.id); });
+  }
+
+  function renderNoteBlock(block, ctx, index) {
     switch (block.type) {
       case 'text':
         return '<p class="note-text">' + inlineFmt(block.text) + '</p>';
       case 'heading':
         return '<div class="section-divider"></div><div class="section-label">' + esc(block.text) + '</div>';
       case 'code':
-        return renderCodeBlock(block.title, block.code, block.lang);
+        return renderCodeBlock(block.title, block.code, block.lang, {
+          run: block.run === true,
+          stdin: block.stdin,
+          key: blockKeyOf(ctx, index, block)
+        });
       case 'table':
         return renderNoteTable(block);
       case 'compare':
@@ -867,7 +1055,7 @@
       case 'bad':
         return renderCompareCard('bad', block);
       case 'task':
-        return renderTaskBlock(block);
+        return renderTaskBlock(block, ctx, index);
       case 'checklist':
         var items = '';
         (block.items || []).forEach(function (it) {
@@ -885,22 +1073,43 @@
     }
   }
 
-  /* Практическое задание: условие, подсказка и разбор под спойлером */
-  function renderTaskBlock(block) {
-    var html = '<div class="task">' +
+  /* Практическое задание: условие, песочница с автопроверкой,
+     подсказка и разбор под спойлером */
+  function renderTaskBlock(block, ctx, index) {
+    var key = blockKeyOf(ctx, index, block);
+    var solved = hasPA && block.id && window.PA.store.isSolved(block.id);
+
+    var html = '<div class="task' + (solved ? ' task-solved' : '') + '"' +
+        (block.id ? ' data-task-id="' + esc(block.id) + '"' : '') + '>' +
       '<div class="task-head"><span class="task-badge">Задание</span>' +
-      (block.title ? '<span class="task-title">' + esc(block.title) + '</span>' : '') + '</div>' +
+      (block.title ? '<span class="task-title">' + esc(block.title) + '</span>' : '') +
+      '<span class="task-state">' + (solved ? '✅ решено' : '') + '</span></div>' +
       '<div class="task-text">' + inlineFmt(block.text) + '</div>';
 
     if (block.example) {
       html += renderCodeBlock('Пример работы', block.example);
     }
+
+    // Задание с автопроверкой получает редактор, без неё — прежний вид
+    if (block.check && canRun()) {
+      var draft = draftOf(key);
+      html += renderSandbox({
+        key: key,
+        start: block.starter || '',
+        code: draft && draft.code !== undefined ? draft.code : (block.starter || ''),
+        stdin: draft && draft.stdin ? draft.stdin : (block.check.stdin || ''),
+        showStdin: block.check.mode === 'stdout' || !!block.check.stdin,
+        check: block.check,
+        taskId: block.id || null
+      });
+    }
+
     if (block.hint) {
       html += '<div class="callout callout-note">💡 <span>' + inlineFmt(block.hint) + '</span></div>';
     }
     if (block.solution) {
       html += '<div class="solution">' +
-        '<button class="solution-toggle" type="button">Показать разбор</button>' +
+        '<button class="solution-toggle" type="button" aria-expanded="false">Показать разбор</button>' +
         '<div class="solution-body">' + renderCodeBlock(null, block.solution) +
         (block.explain ? '<p class="note-text">' + inlineFmt(block.explain) + '</p>' : '') +
         '</div></div>';
@@ -908,12 +1117,96 @@
     return html + '</div>';
   }
 
-  function renderCodeBlock(title, code, lang) {
-    // Подсвечиваем только Python: команды терминала показываем как есть
-    var body = (lang && lang !== 'python') ? esc(code) : highlightPy(code);
-    var titleHtml = title ? h('div', { class: 'code-title' }, esc(title)) : '';
-    return h('div', { class: 'code-block' + (lang ? ' lang-' + lang : '') },
-      titleHtml + h('pre', null, h('code', null, body)));
+  /**
+   * Блок кода. opts.run === true добавляет песочницу.
+   * Оригинал кода кладём в data-code: копировать нужно исходник,
+   * а не textContent подсвеченного <pre> — иначе на длинных
+   * примерах ловим расхождение по пробелам.
+   */
+  function renderCodeBlock(title, code, lang, opts) {
+    opts = opts || {};
+    var isPython = !lang || lang === 'python';
+    var body = isPython ? highlightPy(code) : esc(code);
+    var copyBtn = '<button class="code-copy" type="button" ' +
+      'aria-label="Копировать код">Копировать</button>';
+
+    var head = title
+      ? '<div class="code-title"><span class="code-title-text">' + esc(title) + '</span>' + copyBtn + '</div>'
+      : '<div class="code-actions">' + copyBtn + '</div>';
+
+    var view = hOpen('div', {
+      class: 'code-block' + (lang ? ' lang-' + lang : '') + (title ? '' : ' no-title'),
+      'data-code': code
+    }) + head + '<pre><code>' + body + '</code></pre></div>';
+
+    // Терминальным командам кнопка запуска не нужна — исполнять нечем
+    if (!opts.run || !isPython || !canRun()) return view;
+
+    var draft = draftOf(opts.key);
+    return view + renderSandbox({
+      key: opts.key,
+      start: code,
+      code: draft && draft.code !== undefined ? draft.code : code,
+      stdin: draft && draft.stdin ? draft.stdin : (opts.stdin || ''),
+      showStdin: /\binput\s*\(/.test(code) || !!opts.stdin,
+      check: null,
+      taskId: null,
+      standalone: true
+    });
+  }
+
+  function canRun() {
+    return hasPA && window.PA.sandbox.available();
+  }
+
+  /* ── Песочница ───────────────────────────────────────── */
+
+  var SANDBOX_HINT = 'Python выполняется прямо в браузере (Pyodide). ' +
+    'Нет доступа в интернет — requests и подобные библиотеки не сработают. ' +
+    'Файлы создаются в виртуальной файловой системе и живут только до перезагрузки страницы. ' +
+    'pip install работает только для пакетов, собранных под Pyodide.';
+
+  function renderSandbox(opts) {
+    var editorHtml =
+      '<div class="pa-editor">' +
+        '<div class="ed-gutter"><span>1</span></div>' +
+        '<div class="ed-area">' +
+          '<pre class="ed-view" aria-hidden="true"><code>' + highlightPy(opts.code) + '</code></pre>' +
+          '<textarea class="ed-input" spellcheck="false" autocapitalize="off" ' +
+            'autocomplete="off" wrap="off" aria-label="Код программы">' +
+            esc(opts.code) + '</textarea>' +
+        '</div>' +
+      '</div>';
+
+    var stdinHtml =
+      '<div class="sb-stdin' + (opts.showStdin ? '' : ' hidden') + '">' +
+        '<label class="sb-label">Ввод <span>— по строке на каждый <code class="ic">input()</code></span></label>' +
+        '<textarea class="sb-stdin-input" spellcheck="false" rows="2" ' +
+          'aria-label="Данные для ввода">' + esc(opts.stdin || '') + '</textarea>' +
+      '</div>';
+
+    var buttons =
+      '<button class="sb-btn sb-run" type="button">▶ Запустить</button>' +
+      (opts.check ? '<button class="sb-btn sb-check" type="button">Проверить</button>' : '') +
+      '<button class="sb-btn sb-ghost sb-reset" type="button">Сбросить</button>' +
+      (opts.showStdin ? '' : '<button class="sb-btn sb-ghost sb-stdin-toggle" type="button">Нужен ввод</button>');
+
+    return hOpen('div', {
+      class: 'sandbox' + (opts.standalone ? ' sandbox-standalone' : ''),
+      'data-block-key': opts.key || null,
+      'data-start': opts.start || '',
+      'data-task-id': opts.taskId || null,
+      'data-check': opts.check ? JSON.stringify(opts.check) : null
+    }) +
+      editorHtml +
+      stdinHtml +
+      '<div class="sb-bar">' + buttons +
+        '<span class="sb-status" role="status"></span>' +
+        '<span class="sb-hint" title="' + esc(SANDBOX_HINT) + '">?</span>' +
+      '</div>' +
+      '<div class="sb-output hidden"><div class="sb-out-label">Вывод</div><pre class="sb-out-body"></pre></div>' +
+      '<div class="sb-report hidden"></div>' +
+    '</div>';
   }
 
   function renderCompareCard(kind, item) {
@@ -978,8 +1271,8 @@
 
   /* ── Компоненты-рендеры ──────────────────────────────── */
   function renderModuleHeader(modId, icon, title, meta) {
-    return h('div', modAttrs(modId, { class: 'module-header' })).replace('</div>', '') +
-      '<span class="icon">' + icon + '</span>' +
+    return hOpen('div', modAttrs(modId, { class: 'module-header' })) +
+      '<span class="icon">' + esc(icon) + '</span>' +
       '<div><div class="title">' + esc(title) + '</div>' +
       '<div class="meta">' + esc(meta) + '</div></div></div>';
   }
@@ -998,7 +1291,8 @@
     var html = '<div class="video-grid">';
     videos.forEach(function (v) {
       html += '<div class="video-card">' +
-        '<iframe src="https://www.youtube.com/embed/' + esc(v.id) + '" title="' + esc(v.title) + '" ' +
+        /* youtube-nocookie.com — сторонние cookie не ставятся, пока по видео не кликнули */
+        '<iframe src="https://www.youtube-nocookie.com/embed/' + esc(v.id) + '" title="' + esc(v.title) + '" ' +
         'allow="' + IFRAME_ALLOW + '" allowfullscreen loading="lazy"></iframe>' +
         '<div class="v-title">' + esc(v.title) + '</div></div>';
     });
@@ -1017,9 +1311,9 @@
   function renderScreenshotsGrid(screenshots) {
     var html = '<div class="screenshots-grid">';
     screenshots.forEach(function (s) {
-      html += '<div class="screenshot-card">' +
+      html += '<button type="button" class="screenshot-card">' +
         '<img src="' + esc(s.src) + '" alt="' + esc(s.caption) + '" loading="lazy">' +
-        '<div class="s-caption">' + esc(s.caption) + '</div></div>';
+        '<div class="s-caption">' + esc(s.caption) + '</div></button>';
     });
     return html + '</div>';
   }
@@ -1030,13 +1324,13 @@
   }
 
   function renderAttestation(modId) {
-    return h('div', modAttrs(modId, { class: 'lesson attestation' })).replace('</div>', '') +
-      '<div class="lesson-header">' +
+    return hOpen('div', modAttrs(modId, { class: 'lesson attestation' })) +
+      '<button type="button" class="lesson-header" aria-expanded="false">' +
         '<span class="lesson-num">📝</span>' +
         '<span class="lesson-title">Промежуточная аттестация</span>' +
         '<span class="lesson-badges"><span class="badge-attest">⚠️ ГОТОВИМСЯ ⚠️</span></span>' +
         '<span class="chevron">▾</span>' +
-      '</div>' +
+      '</button>' +
       '<div class="lesson-body">' +
         '<p class="lesson-desc attest-desc">' +
           '⚠️ Повторите пройденный материал и закройте все долги для сдачи теста! ⚠️<br>' +
@@ -1047,11 +1341,337 @@
 
   /* ── Делегирование событий ───────────────────────────── */
 
+  /* Аккордеон (этап 5): .lesson-header теперь кнопка, поэтому открытие
+     раскрывающегося блока держим в одном месте — и класс, и aria-expanded
+     синхронно, откуда бы ни пришло открытие (клик или переход по якорю) */
+  function setLessonOpen(lessonEl, open) {
+    if (!lessonEl) return;
+    lessonEl.classList.toggle('open', open);
+    const header = lessonEl.querySelector('.lesson-header');
+    if (header) header.setAttribute('aria-expanded', open ? 'true' : 'false');
+  }
+
+  /* ── Поведение песочницы ─────────────────────────────── */
+
+  function sbStatus(sb, text, kind) {
+    var el = sb.querySelector('.sb-status');
+    if (!el) return;
+    el.textContent = text || '';
+    el.className = 'sb-status' + (kind ? ' sb-' + kind : '');
+  }
+
+  function sbOutput(sb, text, append) {
+    var box = sb.querySelector('.sb-output');
+    var body = sb.querySelector('.sb-out-body');
+    if (!box || !body) return;
+    if (append) body.textContent += text;
+    else body.textContent = text;
+    box.classList.toggle('hidden', body.textContent === '');
+  }
+
+  function sbBusy(sb, busy) {
+    sb.querySelectorAll('.sb-btn').forEach(function (b) { b.disabled = busy; });
+    sb.classList.toggle('running', busy);
+  }
+
+  /* Человеческие формулировки вместо трейсбека */
+  function describeError(err) {
+    if (!err) return 'Что-то пошло не так.';
+    if (err.kind === 'PA_NO_INPUT') {
+      return 'Программа ждёт ввода, но поле «Ввод» пустое (или строк не хватило).';
+    }
+    if (err.kind === 'PA_NO_ENTRY') {
+      return 'Не нашли функцию «' + err.message + '». Проверьте имя — оно должно совпадать буква в букву.';
+    }
+    var where = err.line ? ' (строка ' + err.line + ')' : '';
+    if (err.kind === 'SyntaxError' || err.kind === 'IndentationError' || err.kind === 'TabError') {
+      return 'Python не смог разобрать код' + where + ': ' + err.message;
+    }
+    return err.kind + where + ': ' + err.message;
+  }
+
+  function runSandbox(sb, mode) {
+    if (!canRun()) return;
+    var editor = sb.querySelector('.pa-editor');
+    var stdinEl = sb.querySelector('.sb-stdin-input');
+    var code = window.PA.editor.value(editor);
+    var stdin = stdinEl ? stdinEl.value : '';
+    var check = mode === 'check' ? JSON.parse(sb.getAttribute('data-check') || 'null') : null;
+
+    if (window.PA.sandbox.busy()) {
+      sbStatus(sb, 'Другой запуск ещё не закончился', 'warn');
+      return;
+    }
+
+    sbBusy(sb, true);
+    sbOutput(sb, '');
+    var report = sb.querySelector('.sb-report');
+    if (report) { report.classList.add('hidden'); report.innerHTML = ''; }
+    sbStatus(sb, window.PA.sandbox.booted
+      ? 'Выполняем…'
+      : 'Готовим Python, ~10 МБ, только в первый раз…', 'wait');
+
+    window.PA.sandbox.send({
+      code: code,
+      stdin: stdin,
+      check: check,
+      onReady: function () { sbStatus(sb, 'Выполняем…', 'wait'); },
+      onOut: function (stream, text) { sbOutput(sb, text, true); }
+    }).then(function (result) {
+      sbBusy(sb, false);
+
+      if (result.timeout === 'boot') {
+        sbStatus(sb, 'Не удалось загрузить Python. Проверьте соединение и попробуйте ещё раз.', 'bad');
+        return;
+      }
+      if (result.timeout === 'run') {
+        sbStatus(sb, 'Программа выполнялась слишком долго. Возможно, цикл не заканчивается.', 'bad');
+        return;
+      }
+      if (result.fatal) { sbStatus(sb, result.fatal, 'bad'); return; }
+
+      if (mode === 'check') { showReport(sb, result.report); return; }
+
+      if (result.ok) {
+        sbStatus(sb, 'Готово', 'good');
+      } else {
+        sbStatus(sb, describeError(result.error), 'bad');
+      }
+    });
+  }
+
+  /* Результат проверки: открытые кейсы показываем целиком,
+     у скрытых — только пояснение, чтобы не выдать ответ */
+  function showReport(sb, report) {
+    var box = sb.querySelector('.sb-report');
+    if (!box || !report) return;
+
+    if (report.output) sbOutput(sb, report.output);
+
+    if (report.fatal) {
+      box.className = 'sb-report bad';
+      box.innerHTML = '<div class="rp-line rp-fail">' + esc(describeError(report.fatal)) + '</div>';
+      sbStatus(sb, 'Проверка не запустилась', 'bad');
+      markTask(sb, false);
+      return;
+    }
+
+    var results = report.results || [];
+    var failed = results.filter(function (r) { return !r.ok; }).length;
+    var rows = '';
+
+    results.forEach(function (item) {
+      var kase = item.case || {};
+      var hidden = kase.hidden === true;
+      var label;
+
+      if (hidden) {
+        label = 'скрытый тест' + (kase.note ? ': ' + kase.note : '');
+      } else if (item.label) {
+        label = item.label + (kase.expect !== undefined && item.ok ? ' → ' + item.got : '');
+      } else if (kase.stdin !== undefined && kase.stdin !== '') {
+        label = 'ввод: ' + String(kase.stdin).replace(/\n/g, ' ⏎ ');
+      } else {
+        label = kase.note || 'запуск без ввода';
+      }
+
+      rows += '<div class="rp-line ' + (item.ok ? 'rp-ok' : 'rp-fail') + '">' +
+        (item.ok ? '✅ ' : '❌ ') + esc(label) + '</div>';
+
+      if (!item.ok) {
+        var detail = '';
+        if (item.error) {
+          detail = describeError(item.error);
+        } else if (kase.expect !== undefined) {
+          detail = 'ожидалось ' + shortValue(kase.expect) + ', получено ' + shortValue(item.got);
+        } else if (item.got) {
+          detail = item.got;
+        }
+        if (detail) rows += '<div class="rp-detail">' + esc(detail) + '</div>';
+      }
+    });
+
+    box.className = 'sb-report ' + (failed ? 'bad' : 'good');
+    box.innerHTML = rows;
+    box.classList.remove('hidden');
+
+    // Формулировка при провале не приговор, а счёт по ходу дела
+    sbStatus(sb, failed
+      ? 'Пока не проходит ' + failed + ' из ' + results.length
+      : 'Все проверки пройдены', failed ? 'bad' : 'good');
+
+    markTask(sb, failed === 0 && results.length > 0);
+  }
+
+  function shortValue(value) {
+    var text = typeof value === 'string' ? value : JSON.stringify(value);
+    if (text === undefined) text = String(value);
+    text = text.replace(/\n/g, '⏎');
+    return text.length > 120 ? text.slice(0, 117) + '…' : text;
+  }
+
+  /* ── Прогресс ученика (этап 4) ───────────────────────── */
+
+  function markTask(sb, solved) {
+    var taskId = sb.getAttribute('data-task-id');
+    if (!taskId || !hasPA) return;
+    window.PA.store.markTask(taskId, solved ? 'solved' : 'tried');
+
+    var task = sb.closest('.task');
+    if (task) {
+      task.classList.toggle('task-solved', window.PA.store.isSolved(taskId));
+      var state = task.querySelector('.task-state');
+      if (state) state.textContent = window.PA.store.isSolved(taskId) ? '✅ решено' : '';
+    }
+    refreshProgress();
+  }
+
+  /* Сколько заданий с автопроверкой в модуле и сколько решено */
+  function progressOf(data) {
+    var total = 0, solved = 0, first = null;
+    (data.sections || []).forEach(function (section) {
+      (section.blocks || []).forEach(function (block) {
+        if (block.type !== 'task' || !block.check || !block.id) return;
+        total++;
+        if (hasPA && window.PA.store.isSolved(block.id)) solved++;
+        else if (!first) first = { anchor: section.anchor, id: block.id };
+      });
+    });
+    return { total: total, solved: solved, first: first };
+  }
+
+  function renderProgressBar(data) {
+    var p = progressOf(data);
+    if (!p.total) return '';
+    var percent = Math.round(p.solved / p.total * 100);
+    return hOpen('div', modAttrs(data.id, { class: 'progress-bar' })) +
+      '<div class="pb-track"><div class="pb-fill" style="width:' + percent + '%"></div></div>' +
+      '<div class="pb-text">Решено ' + p.solved + ' из ' + p.total + '</div>' +
+      (p.first
+        ? '<button class="pb-continue" type="button" data-anchor="' + esc(p.first.anchor) + '">Продолжить</button>'
+        : '<span class="pb-done">Все задания модуля решены</span>') +
+      '<button class="pb-io" type="button" data-io="export" title="Скачать прогресс файлом">⭳</button>' +
+      '<button class="pb-io" type="button" data-io="import" title="Загрузить прогресс из файла">⭱</button>' +
+    '</div>';
+  }
+
+  /* Перерисовать только индикаторы, не трогая введённый код */
+  function refreshProgress() {
+    var data = loaded.get(state.activeModule);
+    if (!data) return;
+    var bar = document.querySelector('.progress-bar');
+    if (bar) {
+      var wrap = document.createElement('div');
+      wrap.innerHTML = renderProgressBar(data);
+      if (wrap.firstChild) bar.replaceWith(wrap.firstChild);
+    }
+    markSolvedChips(data);
+  }
+
+  /* Галочки на плитках «Быстрого перехода» */
+  function markSolvedChips(data) {
+    (data.sections || []).forEach(function (section) {
+      var tasks = (section.blocks || []).filter(function (b) {
+        return b.type === 'task' && b.check && b.id;
+      });
+      if (!tasks.length) return;
+      var done = tasks.every(function (b) { return hasPA && window.PA.store.isSolved(b.id); });
+      document.querySelectorAll('.qn-chip[data-anchor="' + section.anchor + '"]')
+        .forEach(function (chip) { chip.classList.toggle('qn-solved', done); });
+    });
+  }
+
+  function exportProgress() {
+    var blob = new Blob([window.PA.store.export()], { type: 'application/json' });
+    var link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = 'python-academy-progress.json';
+    link.click();
+    setTimeout(function () { URL.revokeObjectURL(link.href); }, 1000);
+  }
+
+  function importProgress() {
+    var picker = document.createElement('input');
+    picker.type = 'file';
+    picker.accept = 'application/json,.json';
+    picker.addEventListener('change', function () {
+      var file = picker.files && picker.files[0];
+      if (!file) return;
+      file.text().then(function (text) {
+        try {
+          window.PA.store.import(text);
+          loadModule(state.activeModule);
+        } catch (e) {
+          alert('Не удалось прочитать файл прогресса: ' + e.message);
+        }
+      });
+    });
+    picker.click();
+  }
+
+  /* ── Копирование кода ────────────────────────────────── */
+
+  function copyCode(button) {
+    var block = button.closest('.code-block');
+    var source = block ? block.getAttribute('data-code') : null;
+    if (source === null) return;
+
+    var done = function () {
+      var was = button.textContent;
+      button.textContent = 'Скопировано';
+      button.classList.add('copied');
+      setTimeout(function () {
+        button.textContent = was;
+        button.classList.remove('copied');
+      }, 1500);
+    };
+
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(source).then(done, function () { fallbackCopy(source, done); });
+    } else {
+      fallbackCopy(source, done);
+    }
+  }
+
+  function fallbackCopy(text, done) {
+    var area = document.createElement('textarea');
+    area.value = text;
+    area.style.position = 'fixed';
+    area.style.opacity = '0';
+    document.body.appendChild(area);
+    area.select();
+    try { document.execCommand('copy'); done(); } catch (e) { /* нечем — молчим */ }
+    area.remove();
+  }
+
+  function resetSandbox(sb) {
+    var editor = sb.querySelector('.pa-editor');
+    window.PA.editor.setValue(editor, sb.getAttribute('data-start') || '');
+    var key = sb.getAttribute('data-block-key');
+    if (key) window.PA.store.set('drafts', key, null);
+    sbStatus(sb, '');
+    sbOutput(sb, '');
+    var report = sb.querySelector('.sb-report');
+    if (report) { report.classList.add('hidden'); report.innerHTML = ''; }
+  }
+
   /* ── События: таблица маршрутов вместо цепочки if ─────
      Добавить интерактивный элемент = добавить строку сюда. */
 
   const CLICK_ROUTES = [
     ['.sr-item',          (el) => openSearchResult(parseInt(el.getAttribute('data-index'), 10))],
+    ['.code-copy',        (el) => copyCode(el)],
+    ['.sb-run',           (el) => runSandbox(el.closest('.sandbox'), 'run')],
+    ['.sb-check',         (el) => runSandbox(el.closest('.sandbox'), 'check')],
+    ['.sb-reset',         (el) => resetSandbox(el.closest('.sandbox'))],
+    ['.sb-stdin-toggle',  (el) => {
+      const sb = el.closest('.sandbox');
+      sb.querySelector('.sb-stdin').classList.remove('hidden');
+      el.remove();
+      sb.querySelector('.sb-stdin-input').focus();
+    }],
+    ['.pb-continue',      (el) => goToAnchor(el.getAttribute('data-anchor'))],
+    ['.pb-io',            (el) => el.getAttribute('data-io') === 'export' ? exportProgress() : importProgress()],
     ['.solution-toggle',  (el) => toggleSolution(el)],
     ['.tab-caret',        (el, e) => { e.stopPropagation(); toggleTabMenu(el); }],
     ['.tab-menu-item',    (el) => goToAnchor(el.getAttribute('data-anchor'))],
@@ -1059,16 +1679,17 @@
                           (el, e) => { e.preventDefault(); goToAnchor(el.getAttribute('data-anchor')); }],
     ['.group-tab',        (el) => { closeTabMenu(); switchGroup(el.getAttribute('data-group')); }],
     ['.tab',              (el) => onTabClick(el)],
-    ['.lesson-header',    (el) => el.parentElement.classList.toggle('open')],
+    ['.lesson-header',    (el) => setLessonOpen(el.parentElement, !el.parentElement.classList.contains('open'))],
     ['#cert-submit',      () => handleLogin()],
-    ['.screenshot-card',  (el) => openLightbox(el.querySelector('img').src)],
-    ['.lightbox',         () => byId('lightbox').classList.remove('active')]
+    ['.screenshot-card',  (el) => openLightbox(el.querySelector('img').src, el)],
+    ['.lightbox',         () => closeLightbox()]
   ];
 
   function toggleSolution(button) {
     const solution = button.parentElement;
-    solution.classList.toggle('open');
-    button.textContent = solution.classList.contains('open') ? 'Скрыть разбор' : 'Показать разбор';
+    const open = solution.classList.toggle('open');
+    button.textContent = open ? 'Скрыть разбор' : 'Показать разбор';
+    button.setAttribute('aria-expanded', open ? 'true' : 'false');
   }
 
   function onTabClick(tab) {
@@ -1076,15 +1697,38 @@
     if (modId === state.activeModule) return;
     switchModule(modId);
     scrollActiveTabIntoView(true);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    window.scrollTo({ top: 0, behavior: scrollBehavior() });
   }
 
-  function openLightbox(src) {
+  // Элемент, с которого открыт лайтбокс: закрытие возвращает фокус на него
+  let lightboxOpener = null;
+
+  function openLightbox(src, opener) {
     if (!src) return;
     const lightbox = byId('lightbox');
     lightbox.querySelector('img').src = src;
     lightbox.classList.add('active');
+    lightboxOpener = opener || null;
+    const closeBtn = lightbox.querySelector('.lightbox-close');
+    if (closeBtn) closeBtn.focus();
   }
+
+  function closeLightbox() {
+    const lightbox = byId('lightbox');
+    if (!lightbox.classList.contains('active')) return;
+    lightbox.classList.remove('active');
+    if (lightboxOpener) lightboxOpener.focus();
+    lightboxOpener = null;
+  }
+
+  /* Черновик пишется по ходу набора: PA.store сам дебаунсит запись */
+  document.addEventListener('input', function (e) {
+    const sb = e.target.closest && e.target.closest('.sandbox[data-block-key]');
+    if (!sb) return;
+    const key = sb.getAttribute('data-block-key');
+    if (e.target.classList.contains('ed-input')) saveDraft(key, { code: e.target.value });
+    if (e.target.classList.contains('sb-stdin-input')) saveDraft(key, { stdin: e.target.value });
+  });
 
   document.addEventListener('click', function (e) {
     for (const [selector, handler] of CLICK_ROUTES) {
@@ -1098,8 +1742,14 @@
 
   document.addEventListener('keydown', function (e) {
     if (e.key === 'Escape') {
-      byId('lightbox').classList.remove('active');
+      closeLightbox();
       closeTabMenu();
+    }
+    // Ловушка фокуса в лайтбоксе: единственный фокусируемый элемент —
+    // кнопка закрытия, поэтому Tab/Shift+Tab просто возвращают фокус на неё
+    if (e.key === 'Tab' && byId('lightbox').classList.contains('active')) {
+      e.preventDefault();
+      byId('lightbox').querySelector('.lightbox-close').focus();
     }
     // «/» ставит курсор в поиск, как в GitHub
     if (e.key === '/' && !e.ctrlKey && !e.metaKey && !e.altKey) {
@@ -1110,6 +1760,33 @@
       byId('search-input').select();
     }
     if (e.key === 'Enter' && e.target.id === 'cert-input') handleLogin();
+
+    // Стрелки в ленте вкладок/групп: фокус на соседнюю кнопку и сразу
+    // активируем её — маршруты те же, что и у клика (onTabClick/switchGroup)
+    if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+      const isGroupTab = e.target.classList.contains('group-tab');
+      const isTab = e.target.classList.contains('tab');
+      if (isGroupTab || isTab) {
+        e.preventDefault();
+        const list = Array.from(document.querySelectorAll(isGroupTab ? '.group-tab' : '.tab'));
+        const idx = list.indexOf(e.target);
+        if (idx === -1) return;
+        const next = list[(idx + (e.key === 'ArrowRight' ? 1 : -1) + list.length) % list.length];
+        // Переключение перерисовывает ленту, поэтому фокус ставим уже
+        // на новую кнопку с тем же data-атрибутом — иначе он пропадёт
+        if (isGroupTab) {
+          const groupId = next.getAttribute('data-group');
+          switchGroup(groupId);
+          const fresh = document.querySelector('.group-tab[data-group="' + groupId + '"]');
+          if (fresh) fresh.focus();
+        } else {
+          const modId = next.getAttribute('data-mod');
+          onTabClick(next);
+          const fresh = document.querySelector('.tab[data-mod="' + modId + '"]');
+          if (fresh) fresh.focus();
+        }
+      }
+    }
   });
 
   /* ── Прокрутка ленты вкладок ─────────────────────────── */
@@ -1237,6 +1914,18 @@
 
   /* ── Запуск: сначала манифест, потом всё остальное ───── */
 
+  // Подсветка в проекте одна: редактор пользуется той же функцией
+  if (hasPA) window.PA.setHighlighter(highlightPy);
+
+  // На file:// воркер не регистрируется (нет http-источника), а ошибку
+  // регистрации ученику показывать незачем — без офлайн-кеша страница
+  // и так работает как обычно, просто без сети не откроется.
+  function registerOffline() {
+    if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) {
+      navigator.serviceWorker.register('./sw.js').catch(function () {});
+    }
+  }
+
   fetch('data/manifest.json')
     .then((response) => response.json())
     .then((manifest) => {
@@ -1261,6 +1950,7 @@
         fitTabs();
         scrollActiveTabIntoView(false);
         if (startAnchor) goToAnchor(startAnchor, false);
+        registerOffline();
       });
     })
     .catch(function (error) {
