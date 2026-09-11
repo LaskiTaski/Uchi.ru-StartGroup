@@ -1012,7 +1012,17 @@ code, pre, .ic { font-variant-ligatures: none; font-feature-settings: "liga" 0, 
   margin: 0; padding: 14px 16px; border: 0;
   font-family: var(--mono); font-size: 12.5px; line-height: 1.7;
   white-space: pre; overflow-wrap: normal; tab-size: 4;
+  /* Оба слоя обязаны совпадать по метрикам: textarea сбрасывает
+     font-variant через UA-стиль, задаём явно, как у code/pre */
+  font-variant-ligatures: none; font-feature-settings: "liga" 0, "calt" 0;
+  letter-spacing: 0; word-spacing: 0;
 }
+
+/* UA-стиль `code { font-family: monospace }` перебивал шрифт слоя
+   подсветки: textarea печатала в JetBrains Mono, а подсветка рисовалась
+   системным моноширинным — ширины глифов расходились, и курсор
+   «уезжал» от текста тем сильнее, чем длиннее строка */
+.ed-view code { font: inherit; color: inherit; }
 
 .ed-view {
   position: absolute; inset: 0; overflow: hidden;
