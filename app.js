@@ -48,13 +48,9 @@
       .replace(/"/g, '&quot;').replace(/'/g, '&#039;');
   }
 
-  /**
-   * Сборка элемента. Атрибуты экранируются всегда — забыть esc() нельзя.
-   * Содержимое считается готовой разметкой, текст экранируйте сами.
-   *   h('div', { class: 'lesson', 'data-mod': 3 }, '<span>...</span>')
-   */
-  function h(tag, attrs, inner) {
-    let out = '<' + tag;
+  /* Общая сборка строки атрибутов для h() и hOpen() — один цикл на двоих */
+  function attrsHtml(attrs) {
+    let out = '';
     if (attrs) {
       for (const key in attrs) {
         const value = attrs[key];
@@ -63,9 +59,25 @@
         out += ' ' + key + '="' + esc(value) + '"';
       }
     }
-    out += '>';
+    return out;
+  }
+
+  /**
+   * Сборка элемента. Атрибуты экранируются всегда — забыть esc() нельзя.
+   * Содержимое считается готовой разметкой, текст экранируйте сами.
+   *   h('div', { class: 'lesson', 'data-mod': 3 }, '<span>...</span>')
+   * Когда нужен только открывающий тег (дальше разметка собирается
+   * конкатенацией строк) — используйте hOpen() с теми же правилами атрибутов.
+   */
+  function h(tag, attrs, inner) {
+    let out = '<' + tag + attrsHtml(attrs) + '>';
     if (inner !== undefined && inner !== null) out += inner;
     return out + '</' + tag + '>';
+  }
+
+  /* Только открывающий тег — замена h(tag, attrs).replace('</tag>', '') */
+  function hOpen(tag, attrs) {
+    return '<' + tag + attrsHtml(attrs) + '>';
   }
 
   /* Атрибуты, задающие цвет модуля: раньше на это уходило 48 правил в CSS */
@@ -266,7 +278,10 @@
 
   function switchGroup(groupId) {
     if (groupId === state.activeGroup) return;
-    const target = state.lastModuleInGroup[groupId] || modulesOfGroup(groupId)[0].id;
+    // У пустой группы (валидатор их допускает, с предупреждением) переключаться некуда
+    const first = modulesOfGroup(groupId)[0];
+    if (!state.lastModuleInGroup[groupId] && !first) return;
+    const target = state.lastModuleInGroup[groupId] || first.id;
     switchModule(target);
   }
 
@@ -350,7 +365,8 @@
    * после отрисовки. Именно это убрало ожидание рендера опросом.
    */
   function loadModule(modId) {
-    if (getModuleMeta(modId) && getModuleMeta(modId).protected && !state.authToken) {
+    const meta = getModuleMeta(modId);
+    if (meta && meta.protected && !state.authToken) {
       setContent(renderLoginForm());
       return Promise.resolve();
     }
@@ -366,7 +382,6 @@
       if (state.activeModule === modId) setContent(renderModule(data));
       return data;
     }).catch(() => {
-      const meta = getModuleMeta(modId);
       setContent(h('div', { class: 'empty-state' },
         '⚠️ Не удалось загрузить модуль. Проверьте, что файл ' +
         esc(meta ? meta.file : '') + ' на месте.'));
@@ -755,7 +770,7 @@
       }
 
       var lessonAnchor = lessonAnchorOf(data.id, lesson.num);
-      lessonsHtml += h('div', modAttrs(data.id, { class: 'lesson', id: 'ref-' + lessonAnchor })).replace('</div>', '') +
+      lessonsHtml += hOpen('div', modAttrs(data.id, { class: 'lesson', id: 'ref-' + lessonAnchor })) +
         '<div class="lesson-header">' +
           '<span class="lesson-num">' + esc(lesson.num) + '</span>' +
           '<span class="lesson-title">' + esc(lesson.title) + '</span>' +
@@ -816,7 +831,7 @@
         badgesHtml += '<span class="badge-has">' + esc(b) + '</span>';
       });
 
-      sectionsHtml += h('div', modAttrs(5, { class: 'lesson' })).replace('</div>', '') +
+      sectionsHtml += hOpen('div', modAttrs(data.id, { class: 'lesson' })) +
         '<div class="lesson-header">' +
           '<span class="lesson-num">' + esc(section.num) + '</span>' +
           '<span class="lesson-title">' + esc(section.title) + '</span>' +
@@ -846,7 +861,7 @@
         '</button>';
     });
     if (chips) {
-      navHtml = h('div', modAttrs(data.id, { class: 'quick-nav' })).replace('</div>', '') +
+      navHtml = hOpen('div', modAttrs(data.id, { class: 'quick-nav' })) +
         '<div class="qn-title">Быстрый переход</div>' +
         '<div class="qn-grid">' + chips + '</div></div>';
     }
@@ -860,7 +875,7 @@
           '<div class="about-label">' + esc(m.label) + '</div>' +
           '<div class="about-value">' + inlineFmt(m.value) + '</div></div>';
       });
-      aboutHtml = h('div', modAttrs(data.id, { class: 'course-about' })).replace('</div>', '') +
+      aboutHtml = hOpen('div', modAttrs(data.id, { class: 'course-about' })) +
         (data.about.text ? '<p class="about-text">' + inlineFmt(data.about.text) + '</p>' : '') +
         (metaHtml ? '<div class="about-grid">' + metaHtml + '</div>' : '') +
       '</div>';
@@ -878,7 +893,7 @@
             (st.note ? '<span class="rm-note">' + esc(st.note) + '</span>' : '') +
           '</span></button>';
       });
-      roadHtml = h('div', modAttrs(data.id, { class: 'roadmap' })).replace('</div>', '') +
+      roadHtml = hOpen('div', modAttrs(data.id, { class: 'roadmap' })) +
         '<div class="qn-title">Программа курса</div>' +
         '<div class="rm-track">' + steps + '</div></div>';
     }
@@ -898,7 +913,7 @@
         ? '<span class="lesson-badges"><span class="sec-chip">' + esc(section.chip) + '</span></span>'
         : '';
 
-      sectionsHtml += h('div', modAttrs(data.id, { class: 'lesson ref-section', id: section.anchor ? 'ref-' + section.anchor : null })).replace('</div>', '') +
+      sectionsHtml += hOpen('div', modAttrs(data.id, { class: 'lesson ref-section', id: section.anchor ? 'ref-' + section.anchor : null })) +
         '<div class="lesson-header">' +
           '<span class="lesson-num">' + esc(section.num) + '</span>' +
           '<span class="lesson-title">' + esc(section.title) + '</span>' +
@@ -1024,10 +1039,10 @@
       ? '<div class="code-title"><span class="code-title-text">' + esc(title) + '</span>' + copyBtn + '</div>'
       : '<div class="code-actions">' + copyBtn + '</div>';
 
-    var view = h('div', {
+    var view = hOpen('div', {
       class: 'code-block' + (lang ? ' lang-' + lang : '') + (title ? '' : ' no-title'),
       'data-code': code
-    }).replace('</div>', '') + head + '<pre><code>' + body + '</code></pre></div>';
+    }) + head + '<pre><code>' + body + '</code></pre></div>';
 
     // Терминальным командам кнопка запуска не нужна — исполнять нечем
     if (!opts.run || !isPython || !canRun()) return view;
@@ -1079,13 +1094,13 @@
       '<button class="sb-btn sb-ghost sb-reset" type="button">Сбросить</button>' +
       (opts.showStdin ? '' : '<button class="sb-btn sb-ghost sb-stdin-toggle" type="button">Нужен ввод</button>');
 
-    return h('div', {
+    return hOpen('div', {
       class: 'sandbox' + (opts.standalone ? ' sandbox-standalone' : ''),
       'data-block-key': opts.key || null,
       'data-start': opts.start || '',
       'data-task-id': opts.taskId || null,
       'data-check': opts.check ? JSON.stringify(opts.check) : null
-    }).replace('</div>', '') +
+    }) +
       editorHtml +
       stdinHtml +
       '<div class="sb-bar">' + buttons +
@@ -1159,8 +1174,8 @@
 
   /* ── Компоненты-рендеры ──────────────────────────────── */
   function renderModuleHeader(modId, icon, title, meta) {
-    return h('div', modAttrs(modId, { class: 'module-header' })).replace('</div>', '') +
-      '<span class="icon">' + icon + '</span>' +
+    return hOpen('div', modAttrs(modId, { class: 'module-header' })) +
+      '<span class="icon">' + esc(icon) + '</span>' +
       '<div><div class="title">' + esc(title) + '</div>' +
       '<div class="meta">' + esc(meta) + '</div></div></div>';
   }
@@ -1211,7 +1226,7 @@
   }
 
   function renderAttestation(modId) {
-    return h('div', modAttrs(modId, { class: 'lesson attestation' })).replace('</div>', '') +
+    return hOpen('div', modAttrs(modId, { class: 'lesson attestation' })) +
       '<div class="lesson-header">' +
         '<span class="lesson-num">📝</span>' +
         '<span class="lesson-title">Промежуточная аттестация</span>' +
@@ -1421,7 +1436,7 @@
     var p = progressOf(data);
     if (!p.total) return '';
     var percent = Math.round(p.solved / p.total * 100);
-    return h('div', modAttrs(data.id, { class: 'progress-bar' })).replace('</div>', '') +
+    return hOpen('div', modAttrs(data.id, { class: 'progress-bar' })) +
       '<div class="pb-track"><div class="pb-fill" style="width:' + percent + '%"></div></div>' +
       '<div class="pb-text">Решено ' + p.solved + ' из ' + p.total + '</div>' +
       (p.first
