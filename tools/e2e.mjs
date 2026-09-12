@@ -414,18 +414,39 @@ const ok = (name, cond, extra='') => { cond ? pass++ : fail++; console.log(`${co
      !!iconLink && (iconLink.getAttribute('href') || '').startsWith('data:image/svg+xml'));
   ok('meta og:title есть', q('meta[property="og:title"]') !== null);
 
-  // Видео должно грузиться с youtube-nocookie.com — без сторонних cookie до клика
+  // Плеер появляется только по клику: до этого страница не делает
+  // ни одного запроса к YouTube, даже из свёрнутых уроков
   q('[data-group="video"]').dispatchEvent(new w.MouseEvent('click', {bubbles:true}));
   await wait(400);
   q('.tab[data-mod="1"]').dispatchEvent(new w.MouseEvent('click', {bubbles:true}));
   await wait(400);
-  const iframes = qa('iframe');
-  ok('в DOM есть хотя бы один iframe видео', iframes.length > 0, iframes.length + ' шт');
-  ok('все iframe — с youtube-nocookie.com/embed/',
-     iframes.length > 0 && iframes.every(f => (f.getAttribute('src') || '').includes('youtube-nocookie.com/embed/')),
-     iframes.map(f => f.getAttribute('src')).join(' | '));
-  ok('ни один iframe не ведёт на www.youtube.com/embed/',
-     !iframes.some(f => (f.getAttribute('src') || '').includes('www.youtube.com/embed/')));
+  const facades = qa('.video-facade');
+  ok('до клика ни одного iframe нет', qa('iframe').length === 0, qa('iframe').length + ' шт');
+  ok('вместо плееров — фасады', facades.length > 0, facades.length + ' шт');
+  ok('у каждого фасада id ролика и ленивое превью с i.ytimg.com',
+     facades.every(f => {
+       const id = f.getAttribute('data-video-id') || '';
+       const img = f.querySelector('img.video-thumb');
+       return /^[\w-]{11}$/.test(id) && img &&
+         img.getAttribute('loading') === 'lazy' &&
+         (img.getAttribute('src') || '').includes('i.ytimg.com/vi/' + id + '/');
+     }),
+     facades.map(f => f.getAttribute('data-video-id')).join(' | '));
+
+  const firstId = facades[0].getAttribute('data-video-id');
+  const firstCard = facades[0].closest('.video-card');
+  facades[0].dispatchEvent(new w.MouseEvent('click', {bubbles:true}));
+  await wait(100);
+  const player = firstCard.querySelector('iframe');
+  ok('клик подставляет плеер youtube-nocookie с автозапуском',
+     player !== null &&
+     player.getAttribute('src') === 'https://www.youtube-nocookie.com/embed/' + firstId + '?autoplay=1',
+     player ? player.getAttribute('src') : 'нет iframe');
+  ok('фасад заменён, а не продублирован',
+     firstCard.querySelector('.video-facade') === null && qa('iframe').length === 1,
+     qa('iframe').length + ' iframe');
+  ok('ни один плеер не ведёт на www.youtube.com/embed/',
+     !qa('iframe').some(f => (f.getAttribute('src') || '').includes('www.youtube.com/embed/')));
 
   // Честная подсказка песочницы: упоминает интернет/сеть и pip
   q('[data-group="ref"]').dispatchEvent(new w.MouseEvent('click', {bubbles:true}));
@@ -476,7 +497,7 @@ const ok = (name, cond, extra='') => { cond ? pass++ : fail++; console.log(`${co
   const readBox = q('.sandbox[data-task-id="num-read"]');
   const sumBox = q('.sandbox[data-task-id="num-sum"]');
   ok('у задания без input() поле «Ввод» скрыто', readBox.querySelector('.sb-stdin').classList.contains('hidden'));
-  ok('…но его можно открыть кнопкой', readBox.querySelector('.sb-stdin-toggle') !== null);
+  ok('кнопки «Нужен ввод» нет', readBox.querySelector('.sb-stdin-toggle') === null);
   ok('у задания с input() поле открыто и заполнено первым кейсом',
      !sumBox.querySelector('.sb-stdin').classList.contains('hidden') &&
      sumBox.querySelector('.sb-stdin-input').value === '3\n4',
@@ -522,6 +543,71 @@ const ok = (name, cond, extra='') => { cond ? pass++ : fail++; console.log(`${co
      runBlock !== null && runBlock.querySelector('.code-title-text') !== null && runBlock.querySelector('.code-copy') !== null);
   ok('редактор заполнен исходником',
      runBlock !== null && runBlock.querySelector('.ed-input').value === runBlock.getAttribute('data-code'));
+
+  console.log('\nЗАДАНИЯ БЕЗ КОДА');
+  q('[data-group="my"]').dispatchEvent(new w.MouseEvent('click', {bubbles:true}));
+  await wait(500);
+  const paper = q('.task[data-task-id="plan-understand"]');
+  ok('задание без автопроверки помечено «без кода»',
+     paper !== null && paper.querySelector('.task-kind') !== null);
+  ok('у него нет песочницы, но есть отметка',
+     paper !== null && paper.querySelector('.sandbox') === null &&
+     paper.querySelector('.task-done') !== null);
+  ok('в прогрессе курса все пять заданий', /Решено 0 из 5/.test(q('.pb-text').textContent),
+     q('.pb-text').textContent);
+
+  const doneBtn = paper.querySelector('.task-done');
+  doneBtn.dispatchEvent(new w.MouseEvent('click', {bubbles:true}));
+  await wait(100);
+  ok('отметка ставится', w.PA.store.isSolved('plan-understand') === true &&
+     doneBtn.getAttribute('aria-pressed') === 'true');
+  ok('карточка помечена решённой', paper.classList.contains('task-solved'));
+  ok('полоса прогресса пересчиталась', /Решено 1 из 5/.test(q('.pb-text').textContent),
+     q('.pb-text').textContent);
+
+  q('.task[data-task-id="plan-understand"] .task-done')
+    .dispatchEvent(new w.MouseEvent('click', {bubbles:true}));
+  await wait(100);
+  ok('отметку можно снять — случайный клик не навсегда',
+     w.PA.store.isSolved('plan-understand') === false &&
+     /Решено 0 из 5/.test(q('.pb-text').textContent), q('.pb-text').textContent);
+
+  console.log('\nВОЗВРАТ НА СТРАНИЦУ');
+  q('[data-group="ref"]').dispatchEvent(new w.MouseEvent('click', {bubbles:true}));
+  await wait(300);
+  q('.tab[data-mod="8"]').dispatchEvent(new w.MouseEvent('click', {bubbles:true}));
+  await wait(600);
+  const readSection = q('.ref-section[id^="ref-"]');
+  readSection.querySelector('.lesson-header').dispatchEvent(new w.MouseEvent('click', {bubbles:true}));
+  await wait(150);
+  const openAnchor = readSection.id.slice(4);
+  w.PA.store.flush();
+  const place = w.PA.store.get('ui', 'place', null);
+  ok('место запомнено: модуль и раскрытый раздел',
+     !!place && place.mod === 8 && place.open.includes(openAnchor), JSON.stringify(place));
+
+  // Настоящая перезагрузка: новое окно, тот же localStorage
+  const dom2 = new JSDOM(fs.readFileSync(P + 'index.html', 'utf8'),
+    { runScripts: 'outside-only', pretendToBeVisual: true, url: 'http://localhost/' });
+  const w2 = dom2.window, d2 = w2.document;
+  ['scrollBy','scrollTo','scrollIntoView'].forEach(m => w2.Element.prototype[m] = function(){});
+  w2.scrollTo = () => {};
+  w2.fetch = (f) => Promise.resolve({
+    ok: true, json: () => Promise.resolve(JSON.parse(fs.readFileSync(P + f, 'utf8'))) });
+  w2.Worker = FakeWorker;
+  w2.localStorage.setItem('pa_progress_v1', w.localStorage.getItem('pa_progress_v1'));
+  w2.eval(fs.readFileSync(P + 'sandbox.js', 'utf8'));
+  w2.eval(fs.readFileSync(P + 'app.js', 'utf8'));
+  await wait(900);
+  ok('после перезагрузки открыт тот же модуль',
+     d2.querySelector('.tab.active') && d2.querySelector('.tab.active').dataset.mod === '8',
+     d2.querySelector('.tab.active') ? d2.querySelector('.tab.active').dataset.mod : 'нет вкладки');
+  ok('активна та же группа',
+     d2.querySelector('.group-tab.active') &&
+     d2.querySelector('.group-tab.active').dataset.group === 'ref');
+  ok('раскрытый раздел остался раскрытым',
+     !!d2.getElementById('ref-' + openAnchor) &&
+     d2.getElementById('ref-' + openAnchor).classList.contains('open'));
 
   console.log(`\nИТОГ: ${pass} пройдено, ${fail} провалено`);
   process.exit(fail ? 1 : 0);
