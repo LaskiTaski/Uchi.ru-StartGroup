@@ -1215,11 +1215,13 @@
           'aria-label="Данные для ввода">' + esc(opts.stdin || '') + '</textarea>' +
       '</div>';
 
+    // Кнопки «Нужен ввод» больше нет: поле «Ввод» и так раскрывается само —
+    // либо сразу (input() в коде или ввод в кейсах), либо при первом же
+    // input() по ходу выполнения (см. askInput/revealStdin)
     var buttons =
       '<button class="sb-btn sb-run" type="button">▶ Запустить</button>' +
       (opts.check ? '<button class="sb-btn sb-check" type="button">Проверить</button>' : '') +
-      '<button class="sb-btn sb-ghost sb-reset" type="button">Сбросить</button>' +
-      (opts.showStdin ? '' : '<button class="sb-btn sb-ghost sb-stdin-toggle" type="button">Нужен ввод</button>');
+      '<button class="sb-btn sb-ghost sb-reset" type="button">Сбросить</button>';
 
     return hOpen('div', {
       class: 'sandbox' + (opts.standalone ? ' sandbox-standalone' : ''),
@@ -1321,10 +1323,16 @@
   function renderVideoGrid(videos) {
     var html = '<div class="video-grid">';
     videos.forEach(function (v) {
+      // Фасад вместо iframe: сам плеер (и запрос к YouTube) появляется
+      // только по клику — иначе все ролики, включая те, что лежат
+      // в свёрнутых уроках, начинают грузиться уже при открытии страницы
       html += '<div class="video-card">' +
-        /* youtube-nocookie.com — сторонние cookie не ставятся, пока по видео не кликнули */
-        '<iframe src="https://www.youtube-nocookie.com/embed/' + esc(v.id) + '" title="' + esc(v.title) + '" ' +
-        'allow="' + IFRAME_ALLOW + '" allowfullscreen loading="lazy"></iframe>' +
+        '<button type="button" class="video-facade" data-video-id="' + esc(v.id) + '" ' +
+          'data-video-title="' + esc(v.title) + '" aria-label="Смотреть: ' + esc(v.title) + '">' +
+          '<img class="video-thumb" src="https://i.ytimg.com/vi/' + esc(v.id) + '/hqdefault.jpg" ' +
+            'alt="" loading="lazy">' +
+          '<span class="video-play" aria-hidden="true">▶</span>' +
+        '</button>' +
         '<div class="v-title">' + esc(v.title) + '</div></div>';
     });
     return html + '</div>';
@@ -1457,8 +1465,6 @@
   function revealStdin(sb) {
     var field = sb.querySelector('.sb-stdin');
     if (field) field.classList.remove('hidden');
-    var toggle = sb.querySelector('.sb-stdin-toggle');
-    if (toggle) toggle.remove();
   }
 
   function sbBusy(sb, busy) {
@@ -1766,11 +1772,6 @@
     ['.sb-run',           (el) => runSandbox(el.closest('.sandbox'), 'run')],
     ['.sb-check',         (el) => runSandbox(el.closest('.sandbox'), 'check')],
     ['.sb-reset',         (el) => resetSandbox(el.closest('.sandbox'))],
-    ['.sb-stdin-toggle',  (el) => {
-      const sb = el.closest('.sandbox');
-      revealStdin(sb);
-      sb.querySelector('.sb-stdin-input').focus();
-    }],
     ['.pb-continue',      (el) => goToAnchor(el.getAttribute('data-anchor'))],
     ['.pb-io',            (el) => el.getAttribute('data-io') === 'export' ? exportProgress() : importProgress()],
     ['.solution-toggle',  (el) => toggleSolution(el)],
@@ -1783,8 +1784,26 @@
     ['.lesson-header',    (el) => setLessonOpen(el.parentElement, !el.parentElement.classList.contains('open'))],
     ['#cert-submit',      () => handleLogin()],
     ['.screenshot-card',  (el) => openLightbox(el.querySelector('img').src, el)],
-    ['.lightbox',         () => closeLightbox()]
+    ['.lightbox',         () => closeLightbox()],
+    ['.video-facade',     (el) => openVideo(el)]
   ];
+
+  /* Плеер вставляем вместо фасада только по клику — до этого момента
+     страница не делает ни одного запроса к YouTube (см. renderVideoGrid) */
+  function openVideo(button) {
+    const id = button.getAttribute('data-video-id');
+    const title = button.getAttribute('data-video-title') || '';
+    const wrap = document.createElement('div');
+    wrap.innerHTML = h('iframe', {
+      src: 'https://www.youtube-nocookie.com/embed/' + id + '?autoplay=1',
+      title: title,
+      allow: IFRAME_ALLOW,
+      allowfullscreen: true
+    });
+    const iframe = wrap.firstChild;
+    button.replaceWith(iframe);
+    iframe.focus();
+  }
 
   function toggleSolution(button) {
     const solution = button.parentElement;

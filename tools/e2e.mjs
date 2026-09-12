@@ -414,18 +414,39 @@ const ok = (name, cond, extra='') => { cond ? pass++ : fail++; console.log(`${co
      !!iconLink && (iconLink.getAttribute('href') || '').startsWith('data:image/svg+xml'));
   ok('meta og:title есть', q('meta[property="og:title"]') !== null);
 
-  // Видео должно грузиться с youtube-nocookie.com — без сторонних cookie до клика
+  // Плеер появляется только по клику: до этого страница не делает
+  // ни одного запроса к YouTube, даже из свёрнутых уроков
   q('[data-group="video"]').dispatchEvent(new w.MouseEvent('click', {bubbles:true}));
   await wait(400);
   q('.tab[data-mod="1"]').dispatchEvent(new w.MouseEvent('click', {bubbles:true}));
   await wait(400);
-  const iframes = qa('iframe');
-  ok('в DOM есть хотя бы один iframe видео', iframes.length > 0, iframes.length + ' шт');
-  ok('все iframe — с youtube-nocookie.com/embed/',
-     iframes.length > 0 && iframes.every(f => (f.getAttribute('src') || '').includes('youtube-nocookie.com/embed/')),
-     iframes.map(f => f.getAttribute('src')).join(' | '));
-  ok('ни один iframe не ведёт на www.youtube.com/embed/',
-     !iframes.some(f => (f.getAttribute('src') || '').includes('www.youtube.com/embed/')));
+  const facades = qa('.video-facade');
+  ok('до клика ни одного iframe нет', qa('iframe').length === 0, qa('iframe').length + ' шт');
+  ok('вместо плееров — фасады', facades.length > 0, facades.length + ' шт');
+  ok('у каждого фасада id ролика и ленивое превью с i.ytimg.com',
+     facades.every(f => {
+       const id = f.getAttribute('data-video-id') || '';
+       const img = f.querySelector('img.video-thumb');
+       return /^[\w-]{11}$/.test(id) && img &&
+         img.getAttribute('loading') === 'lazy' &&
+         (img.getAttribute('src') || '').includes('i.ytimg.com/vi/' + id + '/');
+     }),
+     facades.map(f => f.getAttribute('data-video-id')).join(' | '));
+
+  const firstId = facades[0].getAttribute('data-video-id');
+  const firstCard = facades[0].closest('.video-card');
+  facades[0].dispatchEvent(new w.MouseEvent('click', {bubbles:true}));
+  await wait(100);
+  const player = firstCard.querySelector('iframe');
+  ok('клик подставляет плеер youtube-nocookie с автозапуском',
+     player !== null &&
+     player.getAttribute('src') === 'https://www.youtube-nocookie.com/embed/' + firstId + '?autoplay=1',
+     player ? player.getAttribute('src') : 'нет iframe');
+  ok('фасад заменён, а не продублирован',
+     firstCard.querySelector('.video-facade') === null && qa('iframe').length === 1,
+     qa('iframe').length + ' iframe');
+  ok('ни один плеер не ведёт на www.youtube.com/embed/',
+     !qa('iframe').some(f => (f.getAttribute('src') || '').includes('www.youtube.com/embed/')));
 
   // Честная подсказка песочницы: упоминает интернет/сеть и pip
   q('[data-group="ref"]').dispatchEvent(new w.MouseEvent('click', {bubbles:true}));
@@ -476,7 +497,7 @@ const ok = (name, cond, extra='') => { cond ? pass++ : fail++; console.log(`${co
   const readBox = q('.sandbox[data-task-id="num-read"]');
   const sumBox = q('.sandbox[data-task-id="num-sum"]');
   ok('у задания без input() поле «Ввод» скрыто', readBox.querySelector('.sb-stdin').classList.contains('hidden'));
-  ok('…но его можно открыть кнопкой', readBox.querySelector('.sb-stdin-toggle') !== null);
+  ok('кнопки «Нужен ввод» нет', readBox.querySelector('.sb-stdin-toggle') === null);
   ok('у задания с input() поле открыто и заполнено первым кейсом',
      !sumBox.querySelector('.sb-stdin').classList.contains('hidden') &&
      sumBox.querySelector('.sb-stdin-input').value === '3\n4',
