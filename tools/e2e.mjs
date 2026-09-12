@@ -544,6 +544,71 @@ const ok = (name, cond, extra='') => { cond ? pass++ : fail++; console.log(`${co
   ok('редактор заполнен исходником',
      runBlock !== null && runBlock.querySelector('.ed-input').value === runBlock.getAttribute('data-code'));
 
+  console.log('\nЗАДАНИЯ БЕЗ КОДА');
+  q('[data-group="my"]').dispatchEvent(new w.MouseEvent('click', {bubbles:true}));
+  await wait(500);
+  const paper = q('.task[data-task-id="plan-understand"]');
+  ok('задание без автопроверки помечено «без кода»',
+     paper !== null && paper.querySelector('.task-kind') !== null);
+  ok('у него нет песочницы, но есть отметка',
+     paper !== null && paper.querySelector('.sandbox') === null &&
+     paper.querySelector('.task-done') !== null);
+  ok('в прогрессе курса все пять заданий', /Решено 0 из 5/.test(q('.pb-text').textContent),
+     q('.pb-text').textContent);
+
+  const doneBtn = paper.querySelector('.task-done');
+  doneBtn.dispatchEvent(new w.MouseEvent('click', {bubbles:true}));
+  await wait(100);
+  ok('отметка ставится', w.PA.store.isSolved('plan-understand') === true &&
+     doneBtn.getAttribute('aria-pressed') === 'true');
+  ok('карточка помечена решённой', paper.classList.contains('task-solved'));
+  ok('полоса прогресса пересчиталась', /Решено 1 из 5/.test(q('.pb-text').textContent),
+     q('.pb-text').textContent);
+
+  q('.task[data-task-id="plan-understand"] .task-done')
+    .dispatchEvent(new w.MouseEvent('click', {bubbles:true}));
+  await wait(100);
+  ok('отметку можно снять — случайный клик не навсегда',
+     w.PA.store.isSolved('plan-understand') === false &&
+     /Решено 0 из 5/.test(q('.pb-text').textContent), q('.pb-text').textContent);
+
+  console.log('\nВОЗВРАТ НА СТРАНИЦУ');
+  q('[data-group="ref"]').dispatchEvent(new w.MouseEvent('click', {bubbles:true}));
+  await wait(300);
+  q('.tab[data-mod="8"]').dispatchEvent(new w.MouseEvent('click', {bubbles:true}));
+  await wait(600);
+  const readSection = q('.ref-section[id^="ref-"]');
+  readSection.querySelector('.lesson-header').dispatchEvent(new w.MouseEvent('click', {bubbles:true}));
+  await wait(150);
+  const openAnchor = readSection.id.slice(4);
+  w.PA.store.flush();
+  const place = w.PA.store.get('ui', 'place', null);
+  ok('место запомнено: модуль и раскрытый раздел',
+     !!place && place.mod === 8 && place.open.includes(openAnchor), JSON.stringify(place));
+
+  // Настоящая перезагрузка: новое окно, тот же localStorage
+  const dom2 = new JSDOM(fs.readFileSync(P + 'index.html', 'utf8'),
+    { runScripts: 'outside-only', pretendToBeVisual: true, url: 'http://localhost/' });
+  const w2 = dom2.window, d2 = w2.document;
+  ['scrollBy','scrollTo','scrollIntoView'].forEach(m => w2.Element.prototype[m] = function(){});
+  w2.scrollTo = () => {};
+  w2.fetch = (f) => Promise.resolve({
+    ok: true, json: () => Promise.resolve(JSON.parse(fs.readFileSync(P + f, 'utf8'))) });
+  w2.Worker = FakeWorker;
+  w2.localStorage.setItem('pa_progress_v1', w.localStorage.getItem('pa_progress_v1'));
+  w2.eval(fs.readFileSync(P + 'sandbox.js', 'utf8'));
+  w2.eval(fs.readFileSync(P + 'app.js', 'utf8'));
+  await wait(900);
+  ok('после перезагрузки открыт тот же модуль',
+     d2.querySelector('.tab.active') && d2.querySelector('.tab.active').dataset.mod === '8',
+     d2.querySelector('.tab.active') ? d2.querySelector('.tab.active').dataset.mod : 'нет вкладки');
+  ok('активна та же группа',
+     d2.querySelector('.group-tab.active') &&
+     d2.querySelector('.group-tab.active').dataset.group === 'ref');
+  ok('раскрытый раздел остался раскрытым',
+     !!d2.getElementById('ref-' + openAnchor) &&
+     d2.getElementById('ref-' + openAnchor).classList.contains('open'));
+
   console.log(`\nИТОГ: ${pass} пройдено, ${fail} провалено`);
   process.exit(fail ? 1 : 0);
 })();

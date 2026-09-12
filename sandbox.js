@@ -29,7 +29,9 @@
   var FLUSH_DELAY = 1000;
 
   var store = {
-    data: { version: 1, tasks: {}, sections: {}, drafts: {} },
+    // ui — где ученик остановился (модуль и раскрытые разделы);
+    // в экспорт/импорт прогресса не идёт: чужое «место» бессмысленно
+    data: { version: 1, tasks: {}, sections: {}, drafts: {}, ui: {} },
     timer: null,
 
     load: function () {
@@ -42,7 +44,8 @@
               version: 1,
               tasks: parsed.tasks || {},
               sections: parsed.sections || {},
-              drafts: parsed.drafts || {}
+              drafts: parsed.drafts || {},
+              ui: parsed.ui || {}
             };
           }
         }
@@ -105,7 +108,7 @@
     },
 
     clear: function () {
-      this.data = { version: 1, tasks: {}, sections: {}, drafts: {} };
+      this.data = { version: 1, tasks: {}, sections: {}, drafts: {}, ui: {} };
       this.flush();
     },
 

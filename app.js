@@ -171,6 +171,35 @@
     root.querySelectorAll('.pa-editor').forEach((editor) => {
       window.PA.editor.sync(editor);
     });
+    restorePlace();
+  }
+
+  /* ── Где ученик остановился (этап 5) ─────────────────────
+     Возврат на сайт не должен стоить четырёх кликов: помним
+     модуль и раскрытые в нём разделы. Хранится отдельно от
+     прогресса, в экспорт не идёт. */
+
+  let restoringPlace = false;
+
+  function savePlace() {
+    if (!hasPA || restoringPlace || !state.activeModule) return;
+    const open = [];
+    document.querySelectorAll('.lesson.open[id^="ref-"]').forEach((el) => {
+      open.push(el.id.slice(4));
+    });
+    window.PA.store.set('ui', 'place', { mod: state.activeModule, open: open });
+  }
+
+  function savedPlace() {
+    return hasPA ? window.PA.store.get('ui', 'place', null) : null;
+  }
+
+  function restorePlace() {
+    const place = savedPlace();
+    if (!place || place.mod !== state.activeModule || !place.open) return;
+    restoringPlace = true;
+    place.open.forEach((anchor) => setLessonOpen(byId('ref-' + anchor), true));
+    restoringPlace = false;
   }
 
   /* ── Конфигурация из манифеста ───────────────────────── */
@@ -370,7 +399,11 @@
     renderNav();
     if (tabs) setScrollWithoutAnimation(tabs, savedScroll);
 
-    return loadModule(modId);
+    // Запоминаем уже после отрисовки: до неё в DOM ещё прошлый модуль
+    return loadModule(modId).then(function (data) {
+      savePlace();
+      return data;
+    });
   }
 
   /**
@@ -1026,7 +1059,7 @@
   /* Раздел считается пройденным, когда решены все его задания */
   function sectionSolved(section) {
     var tasks = (section.blocks || []).filter(function (b) {
-      return b.type === 'task' && b.check && b.id;
+      return b.type === 'task' && b.id;
     });
     if (!tasks.length || !hasPA) return false;
     return tasks.every(function (b) { return window.PA.store.isSolved(b.id); });
@@ -1080,9 +1113,14 @@
     var key = blockKeyOf(ctx, index, block);
     var solved = hasPA && block.id && window.PA.store.isSolved(block.id);
 
+    // Задание без check делается в голове или на бумаге — проверить его
+    // нечем, поэтому ученик отмечает его сам, а не остаётся без отметки
+    var manual = !block.check && !!block.id;
+
     var html = '<div class="task' + (solved ? ' task-solved' : '') + '"' +
         (block.id ? ' data-task-id="' + esc(block.id) + '"' : '') + '>' +
       '<div class="task-head"><span class="task-badge">Задание</span>' +
+      (manual ? '<span class="task-kind">без кода</span>' : '') +
       (block.title ? '<span class="task-title">' + esc(block.title) + '</span>' : '') +
       '<span class="task-state">' + (solved ? '✅ решено' : '') + '</span></div>' +
       '<div class="task-text">' + inlineFmt(block.text) + '</div>';
@@ -1110,6 +1148,12 @@
         check: block.check,
         taskId: block.id || null
       });
+    }
+
+    if (manual && hasPA) {
+      html += '<button class="task-done" type="button" aria-pressed="' +
+        (solved ? 'true' : 'false') + '">' +
+        (solved ? '✓ Выполнено' : 'Отметить выполненным') + '</button>';
     }
 
     if (block.hint) {
@@ -1388,6 +1432,7 @@
     lessonEl.classList.toggle('open', open);
     const header = lessonEl.querySelector('.lesson-header');
     if (header) header.setAttribute('aria-expanded', open ? 'true' : 'false');
+    savePlace();
   }
 
   /* ── Поведение песочницы ─────────────────────────────── */
@@ -1612,6 +1657,25 @@
     return text.length > 120 ? text.slice(0, 117) + '…' : text;
   }
 
+  /* Отметку у задания без кода ставит и снимает сам ученик: случайное
+     нажатие не должно остаться навсегда, поэтому снятие тоже разрешено */
+  function toggleManualTask(button) {
+    var task = button.closest('.task');
+    var taskId = task && task.getAttribute('data-task-id');
+    if (!taskId || !hasPA) return;
+
+    if (window.PA.store.isSolved(taskId)) window.PA.store.set('tasks', taskId, null);
+    else window.PA.store.markTask(taskId, 'solved');
+
+    var solved = window.PA.store.isSolved(taskId);
+    task.classList.toggle('task-solved', solved);
+    var state = task.querySelector('.task-state');
+    if (state) state.textContent = solved ? '✅ решено' : '';
+    button.textContent = solved ? '✓ Выполнено' : 'Отметить выполненным';
+    button.setAttribute('aria-pressed', solved ? 'true' : 'false');
+    refreshProgress();
+  }
+
   /* ── Прогресс ученика (этап 4) ───────────────────────── */
 
   function markTask(sb, solved) {
@@ -1633,7 +1697,9 @@
     var total = 0, solved = 0, first = null;
     (data.sections || []).forEach(function (section) {
       (section.blocks || []).forEach(function (block) {
-        if (block.type !== 'task' || !block.check || !block.id) return;
+        // Задание без автопроверки («на бумаге») тоже считается: ученик
+        // отмечает его сам, иначе четыре задания курса просто не существуют
+        if (block.type !== 'task' || !block.id) return;
         total++;
         if (hasPA && window.PA.store.isSolved(block.id)) solved++;
         else if (!first) first = { anchor: section.anchor, id: block.id };
@@ -1674,7 +1740,7 @@
   function markSolvedChips(data) {
     (data.sections || []).forEach(function (section) {
       var tasks = (section.blocks || []).filter(function (b) {
-        return b.type === 'task' && b.check && b.id;
+        return b.type === 'task' && b.id;
       });
       if (!tasks.length) return;
       var done = tasks.every(function (b) { return hasPA && window.PA.store.isSolved(b.id); });
@@ -1772,6 +1838,7 @@
     ['.sb-run',           (el) => runSandbox(el.closest('.sandbox'), 'run')],
     ['.sb-check',         (el) => runSandbox(el.closest('.sandbox'), 'check')],
     ['.sb-reset',         (el) => resetSandbox(el.closest('.sandbox'))],
+    ['.task-done',        (el) => toggleManualTask(el)],
     ['.pb-continue',      (el) => goToAnchor(el.getAttribute('data-anchor'))],
     ['.pb-io',            (el) => el.getAttribute('data-io') === 'export' ? exportProgress() : importProgress()],
     ['.solution-toggle',  (el) => toggleSolution(el)],
@@ -2069,9 +2136,16 @@
         if (first) state.lastModuleInGroup[group.id] = first.id;
       });
 
-      const startModule = state.modules[0].id;
+      // Возвращаем туда, где ученик закрыл вкладку. Защищённый раздел
+      // без запомненного пароля пропускаем — иначе встретим формой входа
+      const place = hasPA ? window.PA.store.get('ui', 'place', null) : null;
+      const placeMeta = place ? getModuleMeta(place.mod) : null;
+      const canReturn = placeMeta && !(placeMeta.protected && !state.authToken);
+
+      const startModule = canReturn ? place.mod : state.modules[0].id;
       state.activeModule = startModule;
       state.activeGroup = groupOfModule(startModule);
+      state.lastModuleInGroup[state.activeGroup] = startModule;
 
       renderNav();
       const startAnchor = (location.hash || '').replace('#', '');
@@ -2080,6 +2154,7 @@
         fitTabs();
         scrollActiveTabIntoView(false);
         if (startAnchor) goToAnchor(startAnchor, false);
+        savePlace();
         registerOffline();
       });
     })
