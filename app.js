@@ -8,9 +8,8 @@
 
   /* ── Настройки поведения ─────────────────────────────── */
   const CONFIG = {
-    headerCollapseAt: 150,   // прокрутка, после которой панель групп уезжает
+    headerCollapseAt: 150,   // прокрутка, после которой шапка сжимается
     headerExpandAt: 40,      // и на которой возвращается (гистерезис)
-    tabPeek: 64,             // сколько px соседней вкладки оставлять видимыми
     searchDebounce: 120,     // пауза перед поиском, мс
     searchMinLength: 2,
     searchLimit: 8,
@@ -43,8 +42,6 @@
     modules: [],          // из манифеста
     groups: [],           // из манифеста
     activeModule: null,
-    activeGroup: null,
-    lastModuleInGroup: {},
     authToken: localStorage.getItem(REMEMBER_KEY) === '1' ? '1' : null
   };
 
@@ -95,18 +92,6 @@
       'data-mod': modId,
       style: meta && meta.color ? '--mod-color: ' + meta.color : null
     }, extra || {});
-  }
-
-  function plural(count, one) {
-    const forms = {
-      'модуль': ['модуль', 'модуля', 'модулей'],
-      'раздел': ['раздел', 'раздела', 'разделов'],
-      'курс':   ['курс',   'курса',   'курсов']
-    }[one] || [one, one, one];
-    const d10 = count % 10, d100 = count % 100;
-    if (d10 === 1 && d100 !== 11) return forms[0];
-    if (d10 >= 2 && d10 <= 4 && (d100 < 10 || d100 >= 20)) return forms[1];
-    return forms[2];
   }
 
   const byId = (id) => document.getElementById(id);
@@ -208,17 +193,8 @@
     return state.modules.find((m) => m.id === modId) || null;
   }
 
-  function getGroup(groupId) {
-    return state.groups.find((g) => g.id === groupId) || state.groups[0];
-  }
-
   function modulesOfGroup(groupId) {
     return state.modules.filter((m) => m.group === groupId);
-  }
-
-  function groupOfModule(modId) {
-    const meta = getModuleMeta(modId);
-    return meta ? meta.group : state.groups[0].id;
   }
 
   /* Модули с оглавлением — справочники и курсы */
@@ -257,147 +233,119 @@
     });
   }
 
-  function loadAllModules(filter) {
-    const list = state.modules.filter(filter || (() => true));
-    return Promise.all(list.map((m) =>
+  function loadAllModules(modules) {
+    return Promise.all(modules.map((m) =>
       fetchModuleCached(m.id).catch(() => null)
     ));
   }
 
-  /* ── Верхний уровень навигации: группы ───────────────── */
+  /* ── Панель материалов: постоянная левая колонка ───────
+     Раньше группа и её модули были двумя лентами вкладок (сначала
+     выбираешь группу, потом — модуль внутри неё). Панель показывает
+     сразу всё: заголовки групп из манифеста и под каждым — её модули,
+     кликнуть можно по любому пункту без промежуточного переключения. */
 
-  function renderGroups() {
+  /* Аттестация — не занятие: в счётчиках её не показываем */
+  function lessonsCount(data) {
+    return data.lessons.filter((l) => !l.attestation).length;
+  }
+
+  /* Число, которое видно счётчиком справа от пункта: занятия — для
+     видеомодулей, разделы — для справочников и курсов. Пока данные
+     модуля не загружены (loaded — см. выше), считать нечем: пункт
+     просто без счётчика, а не с нулём — ноль выглядел бы как «пусто». */
+  function railCount(modId) {
+    const data = loaded.get(modId);
+    if (!data) return null;
+    if (data.lessons) return lessonsCount(data);
+    return (data.sections || []).length;
+  }
+
+  /* Дерево разделов под активным пунктом — замена выпадающему меню
+     вкладки. Есть только у модулей с data.sections (справочники, курсы)
+     и только когда данные уже загружены — иначе рисовать нечего. */
+  function railSectionsHtml(modId) {
+    const data = loaded.get(modId);
+    if (!data || !data.sections) return '';
+
+    let items = '';
+    data.sections.forEach((section) => {
+      if (!section.anchor) return;
+      items += h('button', {
+        class: 'rail-sec' + (sectionSolved(section) ? ' rail-sec-done' : ''),
+        'data-anchor': section.anchor
+      },
+        h('span', { class: 'rail-sec-num' }, esc(section.num)) +
+        h('span', { class: 'rail-sec-title' }, esc(section.title))
+      );
+    });
+
+    return items ? h('div', { class: 'rail-sec-list' }, items) : '';
+  }
+
+  function renderRail() {
     let html = '';
+
     state.groups.forEach((group) => {
-      const count = modulesOfGroup(group.id).length;
-      const note = group.note || (count + ' ' + plural(count, group.unit));
-      html += h('button', {
-        class: 'group-tab' + (group.id === state.activeGroup ? ' active' : ''),
-        'data-group': group.id,
-        role: 'tab',
-        'aria-selected': group.id === state.activeGroup ? 'true' : 'false',
-        style: '--group-color: ' + group.color
-      },
-        h('span', { class: 'group-icon' }, esc(group.icon)) +
-        h('span', { class: 'group-text' },
-          h('span', { class: 'group-label' }, esc(group.label)) +
-          h('span', { class: 'group-note' }, esc(note))
-        )
+      const modules = modulesOfGroup(group.id);
+      if (!modules.length) return;   // валидатор допускает пустую группу — рисовать в ней нечего
+
+      html += h('div', { class: 'rail-group' },
+        h('span', { class: 'rail-group-icon' }, esc(group.icon)) +
+        h('span', { class: 'rail-group-label' }, esc(group.label))
       );
-    });
-    byId('groups').innerHTML = html;
-  }
 
-  /* ── Нижний уровень: модули активной группы ──────────── */
+      modules.forEach((meta) => {
+        const active = meta.id === state.activeModule;
+        const count = railCount(meta.id);
 
-  function renderTabs() {
-    const modules = modulesOfGroup(state.activeGroup);
-    let html = '';
+        html += h('button', modAttrs(meta.id, {
+          class: 'rail-item' + (active ? ' active' : ''),
+          'aria-current': active ? 'page' : 'false'
+        }),
+          h('span', { class: 'rail-item-icon' }, esc(meta.icon)) +
+          h('span', { class: 'rail-item-text' },
+            h('span', { class: 'rail-item-label' }, esc(meta.label)) +
+            (meta.sub ? h('span', { class: 'rail-item-sub' }, esc(meta.sub)) : '')
+          ) +
+          (count !== null ? h('span', { class: 'rail-item-count' }, count) : '')
+        );
 
-    modules.forEach((meta) => {
-      html += h('button', {
-        class: 'tab' + (meta.id === state.activeModule ? ' active' : ''),
-        'data-mod': meta.id,
-        role: 'tab',
-        'aria-selected': meta.id === state.activeModule ? 'true' : 'false',
-        style: '--mod-color: ' + meta.color
-      },
-        h('span', { class: 'tab-icon' }, esc(meta.icon)) + ' ' + esc(meta.label) +
-        (meta.sub ? h('span', { class: 'tab-label-sub' }, esc(meta.sub)) : '') +
-        (meta.menu ? h('span', { class: 'tab-caret', 'data-menu': meta.id }, '▾') : '')
-      );
+        if (active) html += railSectionsHtml(meta.id);
+      });
     });
 
-    byId('tabs').innerHTML = html;
-    byId('tabs-wrap').classList.toggle('single', modules.length < 2);
-    fitTabs();
+    byId('rail').innerHTML = h('nav', { class: 'rail-nav', role: 'navigation', 'aria-label': 'Материалы' }, html);
   }
 
-  function renderNav() {
-    renderGroups();
-    renderTabs();
+  /* ── Выезжающая на узком экране панель ─────────────────
+     Класс open поднимает панель поверх контента, но объявлен он только
+     внутри медиа-запроса (см. styles.css): на широком экране класс ни
+     на что не влияет, поэтому закрывать панель можно, не спрашивая
+     ширину окна — порог остаётся один, в стилях. */
+
+  function setRailOpen(open) {
+    byId('rail').classList.toggle('open', open);
+    byId('rail-scrim').classList.toggle('open', open);
+    byId('rail-toggle').setAttribute('aria-expanded', open ? 'true' : 'false');
   }
 
-  function switchGroup(groupId) {
-    if (groupId === state.activeGroup) return;
-    // У пустой группы (валидатор их допускает, с предупреждением) переключаться некуда
-    const first = modulesOfGroup(groupId)[0];
-    if (!state.lastModuleInGroup[groupId] && !first) return;
-    const target = state.lastModuleInGroup[groupId] || first.id;
-    switchModule(target);
+  function toggleRail() {
+    setRailOpen(!byId('rail').classList.contains('open'));
   }
 
-  /* ── Прокрутка ленты вкладок ─────────────────────────── */
-
-  function fitTabs() {
-    const tabs = byId('tabs');
-    const wrap = byId('tabs-wrap');
-    if (!tabs || !wrap) return;
-
-    // Меряем естественную ширину, затем решаем: растянуть или прокручивать
-    tabs.classList.remove('stretch');
-    const fits = tabs.scrollWidth <= tabs.clientWidth + 1;
-    tabs.classList.toggle('stretch', fits);
-    wrap.classList.toggle('no-overflow', fits);
-    updateTabFades();
-  }
-
-  function updateTabFades() {
-    const tabs = byId('tabs');
-    const wrap = byId('tabs-wrap');
-    if (!tabs || !wrap) return;
-    const maxScroll = tabs.scrollWidth - tabs.clientWidth;
-    wrap.classList.toggle('fade-left', maxScroll > 1 && tabs.scrollLeft > 4);
-    wrap.classList.toggle('fade-right', maxScroll > 1 && tabs.scrollLeft < maxScroll - 4);
-  }
-
-  function scrollTabs(direction) {
-    const tabs = byId('tabs');
-    if (!tabs) return;
-    tabs.scrollBy({ left: direction * Math.max(160, tabs.clientWidth * 0.6), behavior: scrollBehavior() });
-  }
-
-  /* Активная вкладка выезжает в центр — соседи остаются видны */
-  function scrollActiveTabIntoView(smooth) {
-    const tabs = byId('tabs');
-    const active = document.querySelector('.tab.active');
-    if (!tabs || !active) return;
-
-    const maxScroll = tabs.scrollWidth - tabs.clientWidth;
-    if (maxScroll <= 1) { updateTabFades(); return; }
-
-    let target = active.offsetLeft - (tabs.clientWidth - active.offsetWidth) / 2;
-    if (target < CONFIG.tabPeek) target = 0;
-    if (target > maxScroll - CONFIG.tabPeek) target = maxScroll;
-    target = Math.max(0, Math.min(target, maxScroll));
-
-    if (smooth && tabs.scrollTo) {
-      tabs.scrollTo({ left: target, behavior: scrollBehavior() });
-    } else {
-      setScrollWithoutAnimation(tabs, target);
-    }
-    setTimeout(updateTabFades, 350);
-  }
-
-  function setScrollWithoutAnimation(element, left) {
-    element.classList.add('no-anim');
-    element.scrollLeft = left;
-    void element.offsetWidth;
-    element.classList.remove('no-anim');
+  function onRailItem(el) {
+    const modId = parseInt(el.getAttribute('data-mod'), 10);
+    if (modId !== state.activeModule) switchModule(modId);
+    window.scrollTo({ top: 0, behavior: scrollBehavior() });
+    setRailOpen(false);
   }
 
   /* ── Переключение модуля ─────────────────────────────── */
 
   function switchModule(modId) {
-    const tabs = byId('tabs');
-    const savedScroll = tabs ? tabs.scrollLeft : 0;
-
     state.activeModule = modId;
-    state.activeGroup = groupOfModule(modId);
-    state.lastModuleInGroup[state.activeGroup] = modId;
-
-    renderNav();
-    if (tabs) setScrollWithoutAnimation(tabs, savedScroll);
+    renderRail();
 
     // Запоминаем уже после отрисовки: до неё в DOM ещё прошлый модуль
     return loadModule(modId).then(function (data) {
@@ -425,7 +373,10 @@
     setContent(h('div', { class: 'empty-state' }, 'Загрузка…'));
 
     return fetchModuleCached(modId).then((data) => {
-      if (state.activeModule === modId) setContent(renderModule(data));
+      if (state.activeModule === modId) {
+        setContent(renderModule(data));
+        renderRail();   // счётчик и дерево разделов панели ждали именно этих данных
+      }
       return data;
     }).catch(() => {
       setContent(h('div', { class: 'empty-state' },
@@ -494,7 +445,7 @@
   }
 
   function goToAnchor(anchor, updateHash) {
-    closeTabMenu();
+    setRailOpen(false);   // на узком экране панель закрывает то, к чему прыгаем
 
     function jump() {
       const element = byId('ref-' + anchor);
@@ -520,62 +471,13 @@
     }
 
     // Загружаем оглавления, находим модуль, переключаемся и только потом прыгаем
-    loadAllModules((m) => m.menu).then(() => {
+    loadAllModules(menuModules()).then(() => {
+      renderRail();   // разделы только что загружены — дерево в панели могло быть неполным
       const modId = findModuleForAnchor(anchor);
       if (modId === null) return;
       if (state.activeModule === modId) { jump(); return; }
       return switchModule(modId).then(jump);
     });
-  }
-
-  /* ── Выпадающее оглавление модуля ────────────────────── */
-
-  function closeTabMenu() {
-    const menu = byId('tab-menu');
-    if (menu) menu.remove();
-    const caret = document.querySelector('.tab-caret.open');
-    if (caret) caret.classList.remove('open');
-  }
-
-  function toggleTabMenu(caretEl) {
-    const modId = parseInt(caretEl.getAttribute('data-menu'), 10);
-    const opened = byId('tab-menu');
-    if (opened && opened.getAttribute('data-mod') === String(modId)) {
-      closeTabMenu();
-      return;
-    }
-
-    fetchModuleCached(modId).then((data) => {
-      closeTabMenu();
-      caretEl.classList.add('open');
-
-      let items = '';
-      (data.sections || []).forEach((section) => {
-        if (!section.anchor) return;
-        items += h('button', {
-          class: 'tab-menu-item' + (sectionSolved(section) ? ' tmi-solved' : ''),
-          'data-anchor': section.anchor
-        },
-          h('span', { class: 'tmi-num' }, esc(section.num)) +
-          h('span', { class: 'tmi-title' }, esc(section.title))
-        );
-      });
-
-      const menu = document.createElement('div');
-      menu.id = 'tab-menu';
-      menu.className = 'tab-menu';
-      menu.setAttribute('data-mod', modId);
-      menu.setAttribute('role', 'listbox');
-      menu.style.setProperty('--mod-color', getModuleMeta(modId).color);
-      menu.innerHTML = h('div', { class: 'tab-menu-head' }, esc(data.title || 'Разделы')) + items;
-      byId('tabs-wrap').appendChild(menu);
-
-      // Позиционируем под вкладкой, не давая вылезти за колонку
-      const wrapRect = byId('tabs-wrap').getBoundingClientRect();
-      const tabRect = caretEl.closest('.tab').getBoundingClientRect();
-      const maxLeft = wrapRect.width - menu.offsetWidth;
-      menu.style.left = Math.max(0, Math.min(tabRect.left - wrapRect.left, maxLeft)) + 'px';
-    }).catch(() => {});
   }
 
   /* ── Поиск ───────────────────────────────────────────── */
@@ -633,7 +535,7 @@
         if (!response.ok) throw new Error('нет предсобранного индекса');
         return response.json();
       })
-      .catch(() => loadAllModules((m) => !m.protected).then(buildSearchIndex))
+      .catch(() => loadAllModules(state.modules.filter((m) => !m.protected)).then(buildSearchIndex))
       .then((index) => {
         search.index = index.map((item) => Object.assign({}, item, {
           titleNorm: normalize(item.title + ' ' + (item.chip || '')),
@@ -925,9 +827,8 @@
         '<div class="extra-text">' + extraContent + '</div></div>';
     }
 
-    var lessonsCount = data.lessons.filter(function (l) { return !l.attestation; }).length;
     var headerHtml = renderModuleHeader(data.id, data.icon, data.title,
-      lessonsCount + ' занятий • 🎬 ' + totalV + ' • 📄 ' + totalL + ' • 🖼️ ' + totalS);
+      lessonsCount(data) + ' занятий • 🎬 ' + totalV + ' • 📄 ' + totalL + ' • 🖼️ ' + totalS);
 
     return headerHtml + lessonsHtml + extraHtml;
   }
@@ -1734,6 +1635,7 @@
       if (wrap.firstChild) bar.replaceWith(wrap.firstChild);
     }
     markSolvedChips(data);
+    renderRail();   // галочка у раздела в дереве панели — тоже часть прогресса
   }
 
   /* Галочки на плитках «Быстрого перехода» */
@@ -1842,12 +1744,10 @@
     ['.pb-continue',      (el) => goToAnchor(el.getAttribute('data-anchor'))],
     ['.pb-io',            (el) => el.getAttribute('data-io') === 'export' ? exportProgress() : importProgress()],
     ['.solution-toggle',  (el) => toggleSolution(el)],
-    ['.tab-caret',        (el, e) => { e.stopPropagation(); toggleTabMenu(el); }],
-    ['.tab-menu-item',    (el) => goToAnchor(el.getAttribute('data-anchor'))],
-    ['.qn-chip, .ref-link, .rm-step[data-anchor]:not([data-anchor=""])',
+    ['.qn-chip, .ref-link, .rail-sec, .rm-step[data-anchor]:not([data-anchor=""])',
                           (el, e) => { e.preventDefault(); goToAnchor(el.getAttribute('data-anchor')); }],
-    ['.group-tab',        (el) => { closeTabMenu(); switchGroup(el.getAttribute('data-group')); }],
-    ['.tab',              (el) => onTabClick(el)],
+    ['.rail-item',        (el) => onRailItem(el)],
+    ['#rail-toggle',      () => toggleRail()],
     ['.lesson-header',    (el) => setLessonOpen(el.parentElement, !el.parentElement.classList.contains('open'))],
     ['#cert-submit',      () => handleLogin()],
     ['.screenshot-card',  (el) => openLightbox(el.querySelector('img').src, el)],
@@ -1877,14 +1777,6 @@
     const open = solution.classList.toggle('open');
     button.textContent = open ? 'Скрыть разбор' : 'Показать разбор';
     button.setAttribute('aria-expanded', open ? 'true' : 'false');
-  }
-
-  function onTabClick(tab) {
-    const modId = parseInt(tab.getAttribute('data-mod'), 10);
-    if (modId === state.activeModule) return;
-    switchModule(modId);
-    scrollActiveTabIntoView(true);
-    window.scrollTo({ top: 0, behavior: scrollBehavior() });
   }
 
   // Элемент, с которого открыт лайтбокс: закрытие возвращает фокус на него
@@ -1933,14 +1825,16 @@
       if (element) { handler(element, e); return; }
     }
     // Клик мимо — закрываем всплывающее
-    if (!e.target.closest('.tab-menu')) closeTabMenu();
     if (!e.target.closest('.search-box')) closeSearch();
+    // Клик мимо панели её задвигает; по кнопке-открывашке сюда не дойдёт —
+    // такой клик разобран в CLICK_ROUTES выше
+    if (!e.target.closest('.rail')) setRailOpen(false);
   });
 
   document.addEventListener('keydown', function (e) {
     if (e.key === 'Escape') {
       closeLightbox();
-      closeTabMenu();
+      setRailOpen(false);
     }
     // Ловушка фокуса в лайтбоксе: единственный фокусируемый элемент —
     // кнопка закрытия, поэтому Tab/Shift+Tab просто возвращают фокус на неё
@@ -1958,85 +1852,17 @@
     }
     if (e.key === 'Enter' && e.target.id === 'cert-input') handleLogin();
 
-    // Стрелки в ленте вкладок/групп: фокус на соседнюю кнопку и сразу
-    // активируем её — маршруты те же, что и у клика (onTabClick/switchGroup)
-    if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
-      const isGroupTab = e.target.classList.contains('group-tab');
-      const isTab = e.target.classList.contains('tab');
-      if (isGroupTab || isTab) {
-        e.preventDefault();
-        const list = Array.from(document.querySelectorAll(isGroupTab ? '.group-tab' : '.tab'));
-        const idx = list.indexOf(e.target);
-        if (idx === -1) return;
-        const next = list[(idx + (e.key === 'ArrowRight' ? 1 : -1) + list.length) % list.length];
-        // Переключение перерисовывает ленту, поэтому фокус ставим уже
-        // на новую кнопку с тем же data-атрибутом — иначе он пропадёт
-        if (isGroupTab) {
-          const groupId = next.getAttribute('data-group');
-          switchGroup(groupId);
-          const fresh = document.querySelector('.group-tab[data-group="' + groupId + '"]');
-          if (fresh) fresh.focus();
-        } else {
-          const modId = next.getAttribute('data-mod');
-          onTabClick(next);
-          const fresh = document.querySelector('.tab[data-mod="' + modId + '"]');
-          if (fresh) fresh.focus();
-        }
-      }
+    // Стрелки вверх/вниз на пункте панели переводят фокус на соседний
+    // пункт, но не активируют его — Enter/пробел сработают сами, это кнопки
+    if ((e.key === 'ArrowUp' || e.key === 'ArrowDown') && e.target.classList.contains('rail-item')) {
+      e.preventDefault();
+      const list = Array.from(document.querySelectorAll('.rail-item'));
+      const idx = list.indexOf(e.target);
+      if (idx === -1) return;
+      const next = list[(idx + (e.key === 'ArrowDown' ? 1 : -1) + list.length) % list.length];
+      next.focus();
     }
   });
-
-  /* ── Прокрутка ленты вкладок ─────────────────────────── */
-
-  const tabsEl = byId('tabs');
-  tabsEl.addEventListener('scroll', updateTabFades, { passive: true });
-  window.addEventListener('resize', fitTabs);
-
-  // Вертикальное колесо крутит ленту по горизонтали
-  tabsEl.addEventListener('wheel', function (e) {
-    const maxScroll = tabsEl.scrollWidth - tabsEl.clientWidth;
-    if (maxScroll <= 1) return;
-    const delta = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
-    if (!delta) return;
-    // У края отдаём прокрутку странице
-    if ((delta < 0 && tabsEl.scrollLeft <= 0) ||
-        (delta > 0 && tabsEl.scrollLeft >= maxScroll - 1)) return;
-    e.preventDefault();
-    tabsEl.scrollLeft += delta;
-  }, { passive: false });
-
-  // Перетаскивание мышью
-  let drag = { active: false, moved: false, startX: 0, startScroll: 0 };
-
-  tabsEl.addEventListener('pointerdown', function (e) {
-    if (e.button !== 0 || tabsEl.scrollWidth <= tabsEl.clientWidth + 1) return;
-    drag = { active: true, moved: false, startX: e.clientX, startScroll: tabsEl.scrollLeft };
-  });
-
-  tabsEl.addEventListener('pointermove', function (e) {
-    if (!drag.active) return;
-    const dx = e.clientX - drag.startX;
-    if (!drag.moved && Math.abs(dx) < 5) return;    // отличаем клик от перетаскивания
-    if (!drag.moved) {
-      drag.moved = true;
-      tabsEl.classList.add('dragging');
-      tabsEl.setPointerCapture(e.pointerId);
-    }
-    tabsEl.scrollLeft = drag.startScroll - dx;
-  });
-
-  ['pointerup', 'pointercancel', 'pointerleave'].forEach((event) => {
-    tabsEl.addEventListener(event, function () {
-      if (!drag.active) return;
-      drag.active = false;
-      tabsEl.classList.remove('dragging');
-    });
-  });
-
-  byId('tabs-prev').addEventListener('click', () => scrollTabs(-1));
-  byId('tabs-next').addEventListener('click', () => scrollTabs(1));
-
-  if (document.fonts && document.fonts.ready) document.fonts.ready.then(fitTabs);
 
   /* ── Поиск ───────────────────────────────────────────── */
 
@@ -2130,29 +1956,19 @@
       state.modules = manifest.modules;
       state.searchIndexFile = (manifest.search && manifest.search.index) || 'data/search-index.json';
 
-      // Стартовый модуль каждой группы — первый в её списке
-      state.groups.forEach((group) => {
-        const first = modulesOfGroup(group.id)[0];
-        if (first) state.lastModuleInGroup[group.id] = first.id;
-      });
-
       // Возвращаем туда, где ученик закрыл вкладку. Защищённый раздел
       // без запомненного пароля пропускаем — иначе встретим формой входа
-      const place = hasPA ? window.PA.store.get('ui', 'place', null) : null;
+      const place = savedPlace();
       const placeMeta = place ? getModuleMeta(place.mod) : null;
       const canReturn = placeMeta && !(placeMeta.protected && !state.authToken);
 
       const startModule = canReturn ? place.mod : state.modules[0].id;
       state.activeModule = startModule;
-      state.activeGroup = groupOfModule(startModule);
-      state.lastModuleInGroup[state.activeGroup] = startModule;
 
-      renderNav();
+      renderRail();
       const startAnchor = (location.hash || '').replace('#', '');
 
       return loadModule(startModule).then(() => {
-        fitTabs();
-        scrollActiveTabIntoView(false);
         if (startAnchor) goToAnchor(startAnchor, false);
         savePlace();
         registerOffline();

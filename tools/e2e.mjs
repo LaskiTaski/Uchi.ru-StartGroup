@@ -85,35 +85,35 @@ const ok = (name, cond, extra='') => { cond ? pass++ : fail++; console.log(`${co
   await wait(600);
   console.log('НАВИГАЦИЯ');
   ok('манифест загружен первым', fetched[0] === 'data/manifest.json');
-  ok('групп: 4', qa('.group-tab').length === 4);
-  ok('вкладок видео: 4', qa('.tab').length === 4);
-  ok('цвет из манифеста инлайном', q('.tab').getAttribute('style').includes('--mod-color'));
+  // Панель — не лента: все группы и их материалы видны в ней сразу,
+  // без промежуточного клика по группе
+  ok('заголовков групп в панели: 4', qa('.rail-group').length === 4);
+  ok('пунктов материалов в панели: 12', qa('.rail-item').length === 12, qa('.rail-item').length+'');
+  ok('цвет из манифеста инлайном', q('.rail-item').getAttribute('style').includes('--mod-color'));
   ok('модуль 1 отрисован', q('.module-header') !== null);
+  ok('активный пункт помечен aria-current="page"', q('.rail-item.active')?.getAttribute('aria-current') === 'page');
 
   console.log('\nПЕРЕКЛЮЧЕНИЕ ГРУПП');
-  q('[data-group="ref"]').dispatchEvent(new w.MouseEvent('click', {bubbles:true}));
+  // Группы больше не переключаются — панель показывает материалы всех
+  // групп одновременно, поэтому проверяем прямой переход между ними
+  q('.rail-item[data-mod="11"]').dispatchEvent(new w.MouseEvent('click', {bubbles:true}));
   await wait(400);
-  ok('группа ref активна', q('.group-tab.active').dataset.group === 'ref');
-  ok('вкладок справочника: 6', qa('.tab').length === 6, qa('.tab').length+'');
-  q('.tab[data-mod="11"]').dispatchEvent(new w.MouseEvent('click', {bubbles:true}));
-  await wait(400);
-  q('[data-group="video"]').dispatchEvent(new w.MouseEvent('click', {bubbles:true}));
-  await wait(300);
-  q('[data-group="ref"]').dispatchEvent(new w.MouseEvent('click', {bubbles:true}));
-  await wait(400);
-  ok('память последнего модуля группы', q('.tab.active').dataset.mod === '11');
+  ok('пункт другой группы стал активным',
+     q('.rail-item[data-mod="11"]').classList.contains('active') &&
+     q('.rail-item[data-mod="11"]').getAttribute('aria-current') === 'page');
+  ok('прежний активный пункт снят', q('.rail-item[data-mod="1"]').getAttribute('aria-current') === 'false');
+  ok('содержимое сменилось', q('.module-header') !== null);
 
   console.log('\nМЕНЮ И ЯКОРЯ');
-  q('.tab-caret').dispatchEvent(new w.MouseEvent('click', {bubbles:true}));
-  await wait(300);
-  ok('меню открылось', d.getElementById('tab-menu') !== null);
-  ok('цвет меню задан', d.getElementById('tab-menu').style.getPropertyValue('--mod-color') !== '');
-  const item = qa('.tab-menu-item').find(i => i.dataset.anchor === 'refs');
-  item.dispatchEvent(new w.MouseEvent('click', {bubbles:true}));
+  // Оглавления вкладки больше нет — дерево разделов активного материала
+  // видно в панели сразу, без отдельного открытия
+  q('.rail-item[data-mod="6"]').dispatchEvent(new w.MouseEvent('click', {bubbles:true}));
+  await wait(400);
+  ok('дерево разделов активного материала показано', q('.rail-sec[data-anchor="refs"]') !== null);
+  q('.rail-sec[data-anchor="refs"]').dispatchEvent(new w.MouseEvent('click', {bubbles:true}));
   await wait(700);
   ok('переход к #refs', d.getElementById('ref-refs')?.classList.contains('open'));
   ok('адрес обновлён', w.location.hash === '#refs');
-  ok('меню закрылось', d.getElementById('tab-menu') === null);
 
   console.log('\nКРОСС-МОДУЛЬНАЯ ССЫЛКА');
   const cross = qa('.ref-link').find(a => a.dataset.anchor && a.dataset.anchor !== 'refs');
@@ -144,11 +144,12 @@ const ok = (name, cond, extra='') => { cond ? pass++ : fail++; console.log(`${co
   await wait(500);
   q('.sr-item').dispatchEvent(new w.MouseEvent('click', {bubbles:true}));
   await wait(800);
-  ok('группа переключилась на видео', q('.group-tab.active').dataset.group === 'video');
+  ok('активный пункт — видеомодуль', ['1','2','3','4'].includes(q('.rail-item.active')?.getAttribute('data-mod')),
+     q('.rail-item.active')?.getAttribute('data-mod'));
   ok('урок раскрыт', q('.lesson.open') !== null);
 
   console.log('\nЗАЩИЩЁННЫЙ РАЗДЕЛ');
-  q('[data-group="extra"]').dispatchEvent(new w.MouseEvent('click', {bubbles:true}));
+  q('.rail-item[data-mod="5"]').dispatchEvent(new w.MouseEvent('click', {bubbles:true}));
   await wait(400);
   ok('форма пароля показана', d.getElementById('cert-input') !== null);
   d.getElementById('cert-input').value = 'неверный';
@@ -162,17 +163,18 @@ const ok = (name, cond, extra='') => { cond ? pass++ : fail++; console.log(`${co
 
   console.log('\nДЕДУПЛИКАЦИЯ ЗАПРОСОВ');
   fetched = [];
-  q('[data-group="ref"]').dispatchEvent(new w.MouseEvent('click', {bubbles:true}));
+  // Модуль 6 уже загружен (см. «МЕНЮ И ЯКОРЯ») — повторный клик не должен
+  // ничего запрашивать; переход по разделу дозагрузит только то, что
+  // ещё не в кэше, но одно и то же имя файла не встретится дважды
+  q('.rail-item[data-mod="6"]').dispatchEvent(new w.MouseEvent('click', {bubbles:true}));
   await wait(300);
-  q('.tab-caret').dispatchEvent(new w.MouseEvent('click', {bubbles:true}));
+  q('.rail-sec[data-anchor="refs"]').dispatchEvent(new w.MouseEvent('click', {bubbles:true}));
   await wait(300);
   const dupes = fetched.filter((f,i) => fetched.indexOf(f) !== i);
   ok('повторных запросов нет', dupes.length === 0, dupes.join(',') || 'ни одного');
 
   console.log('\nКОПИРОВАНИЕ КОДА');
-  q('[data-group="ref"]').dispatchEvent(new w.MouseEvent('click', {bubbles:true}));
-  await wait(300);
-  q('.tab[data-mod="6"]').dispatchEvent(new w.MouseEvent('click', {bubbles:true}));
+  q('.rail-item[data-mod="6"]').dispatchEvent(new w.MouseEvent('click', {bubbles:true}));
   await wait(500);
   const withCode = qa('.code-block[data-code]');
   ok('исходник лежит в data-code', withCode.length > 0, withCode.length + ' блоков');
@@ -232,9 +234,9 @@ const ok = (name, cond, extra='') => { cond ? pass++ : fail++; console.log(`${co
   ed.value = 'print("черновик ученика")';
   ed.dispatchEvent(new w.Event('input', {bubbles:true}));
   await wait(50);
-  q('.tab[data-mod="7"]').dispatchEvent(new w.MouseEvent('click', {bubbles:true}));
+  q('.rail-item[data-mod="7"]').dispatchEvent(new w.MouseEvent('click', {bubbles:true}));
   await wait(400);
-  q('.tab[data-mod="6"]').dispatchEvent(new w.MouseEvent('click', {bubbles:true}));
+  q('.rail-item[data-mod="6"]').dispatchEvent(new w.MouseEvent('click', {bubbles:true}));
   await wait(400);
   const back = d.querySelector('.sandbox[data-block-key="' + key + '"] .ed-input');
   ok('код вернулся после переключения вкладки', back.value === 'print("черновик ученика")',
@@ -300,17 +302,14 @@ const ok = (name, cond, extra='') => { cond ? pass++ : fail++; console.log(`${co
   d.body.dispatchEvent(new w.MouseEvent('click', {bubbles:true}));
   await wait(100);
 
-  console.log('  Табы');
-  ok('#tabs — role="tablist"', q('#tabs').getAttribute('role') === 'tablist');
-  ok('#groups — role="tablist"', q('#groups').getAttribute('role') === 'tablist');
-  const activeGroupTab = q('.group-tab.active');
-  ok('активная группа — aria-selected="true"', !!activeGroupTab && activeGroupTab.getAttribute('aria-selected') === 'true');
-  const activeTab = q('.tab.active');
-  ok('активная вкладка — aria-selected="true"', !!activeTab && activeTab.getAttribute('aria-selected') === 'true');
-  const inactiveTabs = qa('.tab:not(.active)');
-  ok('неактивные вкладки — aria-selected="false"',
-     inactiveTabs.length > 0 && inactiveTabs.every(t => t.getAttribute('aria-selected') === 'false'),
-     inactiveTabs.length + ' шт');
+  console.log('  Панель материалов');
+  ok('.rail-nav — role="navigation"', q('.rail-nav').getAttribute('role') === 'navigation');
+  const activeItem = q('.rail-item.active');
+  ok('активный пункт — aria-current="page"', !!activeItem && activeItem.getAttribute('aria-current') === 'page');
+  const inactiveItems = qa('.rail-item:not(.active)');
+  ok('неактивные пункты — aria-current="false"',
+     inactiveItems.length > 0 && inactiveItems.every(t => t.getAttribute('aria-current') === 'false'),
+     inactiveItems.length + ' шт');
 
   console.log('  Аккордеон');
   const firstHeader = q('.lesson-header');
@@ -346,9 +345,7 @@ const ok = (name, cond, extra='') => { cond ? pass++ : fail++; console.log(`${co
   await wait(100);
 
   console.log('  Лайтбокс');
-  q('[data-group="video"]').dispatchEvent(new w.MouseEvent('click', {bubbles:true}));
-  await wait(400);
-  q('.tab[data-mod="1"]').dispatchEvent(new w.MouseEvent('click', {bubbles:true}));
+  q('.rail-item[data-mod="1"]').dispatchEvent(new w.MouseEvent('click', {bubbles:true}));
   await wait(400);
 
   // Скриншоты лежат внутри свёрнутых уроков — раскрываем по очереди,
@@ -372,10 +369,8 @@ const ok = (name, cond, extra='') => { cond ? pass++ : fail++; console.log(`${co
   ok('Escape закрывает лайтбокс', !q('#lightbox').classList.contains('active'));
   ok('фокус возвращается на карточку', d.activeElement === card);
 
-  console.log('  Галочки в оглавлении вкладки');
-  q('[data-group="ref"]').dispatchEvent(new w.MouseEvent('click', {bubbles:true}));
-  await wait(300);
-  q('.tab[data-mod="6"]').dispatchEvent(new w.MouseEvent('click', {bubbles:true}));
+  console.log('  Галочки в дереве разделов панели');
+  q('.rail-item[data-mod="6"]').dispatchEvent(new w.MouseEvent('click', {bubbles:true}));
   await wait(400);
 
   const notesData = JSON.parse(fs.readFileSync(P + 'data/notes.json', 'utf8'));
@@ -386,24 +381,46 @@ const ok = (name, cond, extra='') => { cond ? pass++ : fail++; console.log(`${co
   ok('в разделе «numbers» есть задания с проверкой', taskIds.length > 0, taskIds.join(','));
   taskIds.forEach(id => w.PA.store.markTask(id, 'solved'));
 
-  d.body.dispatchEvent(new w.MouseEvent('click', {bubbles:true}));   // закрыть возможное старое меню
-  await wait(100);
-  q('.tab-caret[data-menu="6"]').dispatchEvent(new w.MouseEvent('click', {bubbles:true}));
+  // w.PA.store.markTask пишет напрямую в хранилище, минуя рендер — панель
+  // ещё не знает об отметке. Переключение модуля туда-обратно и есть
+  // штатный путь её перерисовки (см. renderRail() в switchModule)
+  q('.rail-item[data-mod="7"]').dispatchEvent(new w.MouseEvent('click', {bubbles:true}));
   await wait(300);
+  q('.rail-item[data-mod="6"]').dispatchEvent(new w.MouseEvent('click', {bubbles:true}));
+  await wait(400);
 
-  const menuItems = qa('.tab-menu-item');
-  const numbersItem = menuItems.find(i => i.dataset.anchor === 'numbers');
-  const otherItem = menuItems.find(i => i.dataset.anchor && i.dataset.anchor !== 'numbers');
-  ok('решённый раздел помечен галочкой (tmi-solved)', !!numbersItem && numbersItem.classList.contains('tmi-solved'));
-  ok('нерешённый раздел галочки не получает', !!otherItem && !otherItem.classList.contains('tmi-solved'));
+  const secItems = qa('.rail-sec');
+  const numbersItem = secItems.find(i => i.dataset.anchor === 'numbers');
+  const otherItem = secItems.find(i => i.dataset.anchor && i.dataset.anchor !== 'numbers');
+  ok('решённый раздел помечен галочкой (rail-sec-done)', !!numbersItem && numbersItem.classList.contains('rail-sec-done'));
+  ok('нерешённый раздел галочки не получает', !!otherItem && !otherItem.classList.contains('rail-sec-done'));
 
   numbersItem.dispatchEvent(new w.MouseEvent('click', {bubbles:true}));
   await wait(700);
   const numbersLesson = d.getElementById('ref-numbers');
-  ok('переход по оглавлению раскрывает раздел', !!numbersLesson && numbersLesson.classList.contains('open'));
+  ok('переход по дереву разделов раскрывает раздел', !!numbersLesson && numbersLesson.classList.contains('open'));
   const numbersHeader = numbersLesson && numbersLesson.querySelector('.lesson-header');
   ok('aria-expanded синхронизирован после перехода по якорю',
      !!numbersHeader && numbersHeader.getAttribute('aria-expanded') === 'true');
+
+  console.log('  Панель на узком экране');
+  ok('кнопка-гамбургер есть в разметке', q('#rail-toggle') !== null);
+  // jsdom не считает медиа-запросы для видимости — саму открывашку панели
+  // проверяем по её обработчику, а не по вычисленному display
+  q('#rail-toggle').dispatchEvent(new w.MouseEvent('click', {bubbles:true}));
+  await wait(50);
+  ok('кнопка открывает панель',
+     q('#rail').classList.contains('open') && q('#rail-toggle').getAttribute('aria-expanded') === 'true');
+  q('.rail-item.active').dispatchEvent(new w.MouseEvent('click', {bubbles:true}));
+  await wait(200);
+  ok('панель закрывается после выбора пункта', !q('#rail').classList.contains('open'));
+
+  // Переход по якорю закрывает панель сам (goToAnchor) — маршрут у раздела
+  // панели и у ссылки в тексте один и тот же
+  q('#rail-toggle').dispatchEvent(new w.MouseEvent('click', {bubbles:true}));
+  q('.rail-sec').dispatchEvent(new w.MouseEvent('click', {bubbles:true}));
+  await wait(300);
+  ok('панель закрывается после перехода по разделу', !q('#rail').classList.contains('open'));
 
   console.log('\nHEAD, ВИДЕО И ПОДСКАЗКА');
 
@@ -416,9 +433,7 @@ const ok = (name, cond, extra='') => { cond ? pass++ : fail++; console.log(`${co
 
   // Плеер появляется только по клику: до этого страница не делает
   // ни одного запроса к YouTube, даже из свёрнутых уроков
-  q('[data-group="video"]').dispatchEvent(new w.MouseEvent('click', {bubbles:true}));
-  await wait(400);
-  q('.tab[data-mod="1"]').dispatchEvent(new w.MouseEvent('click', {bubbles:true}));
+  q('.rail-item[data-mod="1"]').dispatchEvent(new w.MouseEvent('click', {bubbles:true}));
   await wait(400);
   const facades = qa('.video-facade');
   ok('до клика ни одного iframe нет', qa('iframe').length === 0, qa('iframe').length + ' шт');
@@ -449,9 +464,7 @@ const ok = (name, cond, extra='') => { cond ? pass++ : fail++; console.log(`${co
      !qa('iframe').some(f => (f.getAttribute('src') || '').includes('www.youtube.com/embed/')));
 
   // Честная подсказка песочницы: упоминает интернет/сеть и pip
-  q('[data-group="ref"]').dispatchEvent(new w.MouseEvent('click', {bubbles:true}));
-  await wait(300);
-  q('.tab[data-mod="6"]').dispatchEvent(new w.MouseEvent('click', {bubbles:true}));
+  q('.rail-item[data-mod="6"]').dispatchEvent(new w.MouseEvent('click', {bubbles:true}));
   await wait(400);
   const hintEl = q('.sb-hint');
   const hintTitle = hintEl ? hintEl.getAttribute('title') || '' : '';
@@ -462,6 +475,7 @@ const ok = (name, cond, extra='') => { cond ? pass++ : fail++; console.log(`${co
   // Адаптив и печать — проверяем сами правила в файле стилей
   const cssText = fs.readFileSync(P + 'styles.css', 'utf8');
   ok('есть медиа-блок max-width: 1024px', /@media \(max-width:\s*1024px\)/.test(cssText));
+  ok('есть медиа-блок max-width: 900px (выезжающая панель)', /@media \(max-width:\s*900px\)/.test(cssText));
   ok('есть медиа-блок max-width: 820px', /@media \(max-width:\s*820px\)/.test(cssText));
   ok('есть блок @media print', /@media print/.test(cssText));
   ok('в print-блоке .lesson-body раскрывается (display: block)',
@@ -490,9 +504,7 @@ const ok = (name, cond, extra='') => { cond ? pass++ : fail++; console.log(`${co
   ok('sw.js кеширует Pyodide с cdn.jsdelivr.net', swText.includes('cdn.jsdelivr.net') && swText.includes('pyodide'));
 
   console.log('\nВВОД И ВЫВОД');
-  q('[data-group="ref"]').dispatchEvent(new w.MouseEvent('click', {bubbles:true}));
-  await wait(300);
-  q('.tab[data-mod="6"]').dispatchEvent(new w.MouseEvent('click', {bubbles:true}));
+  q('.rail-item[data-mod="6"]').dispatchEvent(new w.MouseEvent('click', {bubbles:true}));
   await wait(500);
   const readBox = q('.sandbox[data-task-id="num-read"]');
   const sumBox = q('.sandbox[data-task-id="num-sum"]');
@@ -545,7 +557,7 @@ const ok = (name, cond, extra='') => { cond ? pass++ : fail++; console.log(`${co
      runBlock !== null && runBlock.querySelector('.ed-input').value === runBlock.getAttribute('data-code'));
 
   console.log('\nЗАДАНИЯ БЕЗ КОДА');
-  q('[data-group="my"]').dispatchEvent(new w.MouseEvent('click', {bubbles:true}));
+  q('.rail-item[data-mod="9"]').dispatchEvent(new w.MouseEvent('click', {bubbles:true}));
   await wait(500);
   const paper = q('.task[data-task-id="plan-understand"]');
   ok('задание без автопроверки помечено «без кода»',
@@ -573,9 +585,7 @@ const ok = (name, cond, extra='') => { cond ? pass++ : fail++; console.log(`${co
      /Решено 0 из 5/.test(q('.pb-text').textContent), q('.pb-text').textContent);
 
   console.log('\nВОЗВРАТ НА СТРАНИЦУ');
-  q('[data-group="ref"]').dispatchEvent(new w.MouseEvent('click', {bubbles:true}));
-  await wait(300);
-  q('.tab[data-mod="8"]').dispatchEvent(new w.MouseEvent('click', {bubbles:true}));
+  q('.rail-item[data-mod="8"]').dispatchEvent(new w.MouseEvent('click', {bubbles:true}));
   await wait(600);
   const readSection = q('.ref-section[id^="ref-"]');
   readSection.querySelector('.lesson-header').dispatchEvent(new w.MouseEvent('click', {bubbles:true}));
@@ -599,12 +609,21 @@ const ok = (name, cond, extra='') => { cond ? pass++ : fail++; console.log(`${co
   w2.eval(fs.readFileSync(P + 'sandbox.js', 'utf8'));
   w2.eval(fs.readFileSync(P + 'app.js', 'utf8'));
   await wait(900);
+  const activeAfterReload = d2.querySelector('.rail-item.active');
   ok('после перезагрузки открыт тот же модуль',
-     d2.querySelector('.tab.active') && d2.querySelector('.tab.active').dataset.mod === '8',
-     d2.querySelector('.tab.active') ? d2.querySelector('.tab.active').dataset.mod : 'нет вкладки');
-  ok('активна та же группа',
-     d2.querySelector('.group-tab.active') &&
-     d2.querySelector('.group-tab.active').dataset.group === 'ref');
+     !!activeAfterReload && activeAfterReload.dataset.mod === '8',
+     activeAfterReload ? activeAfterReload.dataset.mod : 'нет активного пункта');
+
+  // Пункты идут внутри панели плоским списком — заголовок его группы
+  // ищем ближайшим .rail-group перед активным пунктом по разметке
+  let groupHeading = activeAfterReload && activeAfterReload.previousElementSibling;
+  while (groupHeading && !groupHeading.classList.contains('rail-group')) {
+    groupHeading = groupHeading.previousElementSibling;
+  }
+  ok('пункт остался в группе «Справочник»',
+     !!groupHeading && groupHeading.textContent.includes('Справочник'),
+     groupHeading ? groupHeading.textContent : 'нет заголовка группы');
+
   ok('раскрытый раздел остался раскрытым',
      !!d2.getElementById('ref-' + openAnchor) &&
      d2.getElementById('ref-' + openAnchor).classList.contains('open'));
