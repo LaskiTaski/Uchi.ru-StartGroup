@@ -20,6 +20,10 @@
   --radius: 12px;
   /* Единый «зелёный успеха» — решённое задание, кольцо прогресса и т.п. */
   --good: #34D399;
+  /* Тот же зелёный каналами — для полупрозрачных фонов и рамок:
+     rgba(var(--good-rgb), .08). Иначе один цвет живёт в файле
+     двумя записями и расходится при первой же правке */
+  --good-rgb: 52, 211, 153;
   /* Высота шапки: от неё пляшет прилипшая панель слева */
   --header-h: 84px;
   --anim: 0.25s ease;
@@ -129,8 +133,8 @@ textarea:focus-visible, select:focus-visible, [tabindex]:focus-visible {
 
 .contact-badge.support { color: #60A5FA; background: rgba(96,165,250,0.06); }
 .contact-badge.support:hover { background: rgba(96,165,250,0.12); border-color: rgba(96,165,250,0.3); }
-.contact-badge.teacher { color: #34D399; background: rgba(52,211,153,0.06); }
-.contact-badge.teacher:hover { background: rgba(52,211,153,0.12); border-color: rgba(52,211,153,0.3); }
+.contact-badge.teacher { color: var(--good); background: rgba(var(--good-rgb), 0.06); }
+.contact-badge.teacher:hover { background: rgba(var(--good-rgb), 0.12); border-color: rgba(var(--good-rgb), 0.3); }
 
 /* ── Поиск по материалам ───────────────────────────────── */
 .search-box {
@@ -417,7 +421,7 @@ textarea:focus-visible, select:focus-visible, [tabindex]:focus-visible {
 .lesson-title { font-size: 14px; font-weight: 600; color: var(--text-bright); flex: 1; }
 
 .lesson-badges { display: flex; align-items: center; gap: 10px; font-family: var(--mono); font-size: 11px; color: var(--text-muted); }
-.badge-has { color: #34D399; }
+.badge-has { color: var(--good); }
 .badge-zero { color: #EF4444; }
 .badge-attest { color: #FBBF24; }
 
@@ -582,15 +586,15 @@ textarea:focus-visible, select:focus-visible, [tabindex]:focus-visible {
   letter-spacing: 0.02em; min-width: 90px; text-align: center;
 }
 
-.tag-free    { color: #34D399; background: rgba(52,211,153,0.1);  border: 1px solid rgba(52,211,153,0.2); }
+.tag-free    { color: var(--good); background: rgba(var(--good-rgb), 0.1);  border: 1px solid rgba(var(--good-rgb), 0.2); }
 .tag-paid    { color: #EF4444; background: rgba(239,68,68,0.1);   border: 1px solid rgba(239,68,68,0.2); }
-.tag-easy    { color: #34D399; background: rgba(52,211,153,0.08); border: 1px solid rgba(52,211,153,0.15); }
+.tag-easy    { color: var(--good); background: rgba(var(--good-rgb), 0.08); border: 1px solid rgba(var(--good-rgb), 0.15); }
 .tag-medium  { color: #FBBF24; background: rgba(251,191,36,0.08); border: 1px solid rgba(251,191,36,0.15); }
 .tag-hard    { color: #F97316; background: rgba(249,115,22,0.08); border: 1px solid rgba(249,115,22,0.15); }
 .tag-heavy   { color: #EF4444; background: rgba(239,68,68,0.08);  border: 1px solid rgba(239,68,68,0.15); }
 .tag-super   { color: #22D3EE; background: rgba(34,211,238,0.1);  border: 1px solid rgba(34,211,238,0.25); text-transform: uppercase; }
 .tag-start   { color: #60A5FA; background: rgba(96,165,250,0.1);  border: 1px solid rgba(96,165,250,0.2); }
-.tag-useful  { color: #34D399; background: rgba(52,211,153,0.08); border: 1px solid rgba(52,211,153,0.15); }
+.tag-useful  { color: var(--good); background: rgba(var(--good-rgb), 0.08); border: 1px solid rgba(var(--good-rgb), 0.15); }
 .tag-optional{ color: var(--text-muted); background: rgba(255,255,255,0.03); border: 1px solid var(--border); }
 .tag-unknown { color: var(--text-muted); background: transparent;  border: 1px dashed var(--border); }
 
@@ -705,14 +709,14 @@ code, pre, .ic { font-variant-ligatures: none; font-feature-settings: "liga" 0, 
 }
 .compare-grid .compare-card { margin: 0; }
 
-.compare-good { border: 1px solid rgba(52,211,153,0.2); }
+.compare-good { border: 1px solid rgba(var(--good-rgb), 0.2); }
 .compare-bad  { border: 1px solid rgba(239,68,68,0.2); }
 
 .compare-title {
   padding: 8px 14px; font-family: var(--mono); font-size: 11px; font-weight: 700;
   border-bottom: 1px solid rgba(255,255,255,0.05);
 }
-.compare-good .compare-title { color: #34D399; background: rgba(52,211,153,0.06); }
+.compare-good .compare-title { color: var(--good); background: rgba(var(--good-rgb), 0.06); }
 .compare-bad  .compare-title { color: #F87171; background: rgba(239,68,68,0.06); }
 
 .compare-text { padding: 10px 14px 0; font-size: 12.5px; color: var(--text-dim); line-height: 1.55; }
@@ -813,7 +817,7 @@ code, pre, .ic { font-variant-ligatures: none; font-feature-settings: "liga" 0, 
 .prog-card-steps-count {
   font-family: var(--mono); font-size: 11px; color: var(--text-muted); white-space: nowrap;
 }
-.prog-card-done .lesson-num { color: var(--good); background: rgba(52,211,153,0.12); }
+.prog-card-done .lesson-num { color: var(--good); background: rgba(var(--good-rgb), 0.12); }
 
 /* Кольцо прогресса раздела — доля решённых заданий, приём из прототипа:
    доля передаётся через --p прямо в conic-gradient */
@@ -961,12 +965,12 @@ code, pre, .ic { font-variant-ligatures: none; font-feature-settings: "liga" 0, 
 /* ── Чек-лист ──────────────────────────────────────────── */
 .checklist {
   margin: 14px 0; padding: 14px 18px; border-radius: 12px;
-  background: rgba(52,211,153,0.04); border: 1px solid rgba(52,211,153,0.15);
+  background: rgba(var(--good-rgb), 0.04); border: 1px solid rgba(var(--good-rgb), 0.15);
 }
 .checklist-title {
   font-family: var(--mono); font-size: 10px; font-weight: 700;
   text-transform: uppercase; letter-spacing: 0.1em;
-  color: #34D399; margin-bottom: 10px;
+  color: var(--good); margin-bottom: 10px;
 }
 .checklist ul { margin: 0; padding: 0; list-style: none; }
 .checklist li {
@@ -976,7 +980,7 @@ code, pre, .ic { font-variant-ligatures: none; font-feature-settings: "liga" 0, 
 .checklist li:last-child { margin-bottom: 0; }
 .checklist li::before {
   content: '✓'; position: absolute; left: 6px; top: 0;
-  color: #34D399; font-weight: 700;
+  color: var(--good); font-weight: 700;
 }
 
 /* ── Кнопка копирования у блоков кода ──────────────────── */
@@ -999,7 +1003,7 @@ code, pre, .ic { font-variant-ligatures: none; font-feature-settings: "liga" 0, 
 .code-block:hover .code-copy,
 .code-copy:focus-visible { opacity: 1; }
 .code-copy:hover { color: var(--text-bright); border-color: var(--border-active); }
-.code-copy.copied { opacity: 1; color: #34D399; border-color: rgba(52,211,153,0.35); }
+.code-copy.copied { opacity: 1; color: var(--good); border-color: rgba(var(--good-rgb), 0.35); }
 
 /* На тачскрине наведения нет — кнопку показываем всегда */
 @media (hover: none) {
@@ -1103,7 +1107,7 @@ code, pre, .ic { font-variant-ligatures: none; font-feature-settings: "liga" 0, 
 
 .sb-status { font-size: 11.5px; color: var(--text-dim); flex: 1 1 auto; min-width: 120px; }
 .sb-wait { color: var(--text-dim); }
-.sb-good { color: #34D399; }
+.sb-good { color: var(--good); }
 .sb-bad  { color: #F87171; }
 .sb-warn { color: #FBBF24; }
 
@@ -1145,7 +1149,7 @@ code, pre, .ic { font-variant-ligatures: none; font-feature-settings: "liga" 0, 
 
 /* Отчёт автопроверки */
 .sb-report { padding: 10px 12px; border-top: 1px solid rgba(255,255,255,0.06); }
-.sb-report.good { background: rgba(52,211,153,0.05); }
+.sb-report.good { background: rgba(var(--good-rgb), 0.05); }
 .sb-report.bad  { background: rgba(248,113,113,0.05); }
 
 .rp-line {
@@ -1175,12 +1179,12 @@ code, pre, .ic { font-variant-ligatures: none; font-feature-settings: "liga" 0, 
 }
 .task-done:hover { color: var(--text-bright); border-color: var(--border-active); }
 .task-done[aria-pressed="true"] {
-  color: #34D399; border-color: rgba(52,211,153,0.35); background: rgba(52,211,153,0.08);
+  color: var(--good); border-color: rgba(var(--good-rgb), 0.35); background: rgba(var(--good-rgb), 0.08);
 }
 
 /* Решённое задание или викторина */
-.task-state { font-size: 11px; color: #34D399; margin-left: auto; }
-.task-solved, .quiz-solved { border-left-color: #34D399; }
+.task-state { font-size: 11px; color: var(--good); margin-left: auto; }
+.task-solved, .quiz-solved { border-left-color: var(--good); }
 
 /* ── Викторина ─────────────────────────────────────────────
    Карточка описана вместе с .task, заголовок переиспользует
@@ -1202,7 +1206,7 @@ code, pre, .ic { font-variant-ligatures: none; font-feature-settings: "liga" 0, 
 .quiz-option:hover { border-color: var(--border-active); }
 .quiz-option input[type="radio"] { accent-color: var(--mod-color); cursor: pointer; flex-shrink: 0; }
 
-.quiz-option-correct { border-color: rgba(52,211,153,0.4); background: rgba(52,211,153,0.08); }
+.quiz-option-correct { border-color: rgba(var(--good-rgb), 0.4); background: rgba(var(--good-rgb), 0.08); }
 .quiz-option-wrong   { border-color: rgba(248,113,113,0.4); background: rgba(248,113,113,0.08); }
 
 /* Пояснение лежит в разметке сразу (renderQuizQuestion), но видно только
@@ -1232,7 +1236,7 @@ code, pre, .ic { font-variant-ligatures: none; font-feature-settings: "liga" 0, 
   transition: width 0.4s ease;
 }
 .pb-text { font-size: 12px; color: var(--text-dim); white-space: nowrap; }
-.pb-done { font-size: 12px; color: #34D399; }
+.pb-done { font-size: 12px; color: var(--good); }
 
 .pb-continue {
   font-family: var(--mono); font-size: 11px; font-weight: 700;
@@ -1331,8 +1335,8 @@ code, pre, .ic { font-variant-ligatures: none; font-feature-settings: "liga" 0, 
   letter-spacing: 0.06em; color: var(--text-muted);
 }
 .week-dot { display: block; height: 10px; font-size: 10px; line-height: 1; color: transparent; }
-.week-cell.week-active { background: rgba(52,211,153,0.1); border-color: rgba(52,211,153,0.3); }
-.week-cell.week-active .week-dot { color: #34D399; }
+.week-cell.week-active { background: rgba(var(--good-rgb), 0.1); border-color: rgba(var(--good-rgb), 0.3); }
+.week-cell.week-active .week-dot { color: var(--good); }
 .week-cell.week-today { border-color: var(--border-active); }
 .week-cell.week-today .week-day { color: var(--text-bright); }
 
@@ -1486,7 +1490,6 @@ code, pre, .ic { font-variant-ligatures: none; font-feature-settings: "liga" 0, 
   .lesson-body { padding: 4px 14px 16px; }
   .search-box { margin: 0 0 12px; }
   .search-hint { display: none; }
-  .quick-nav { padding: 14px 16px; }
   .course-card { flex-wrap: nowrap; }
   .course-name { min-width: unset; }
   .course-tags { width: 100%; }

@@ -96,6 +96,17 @@ def warn(message: str) -> None:
     warnings.append(message)
 
 
+def require_fields(where: str, item: dict, fields) -> None:
+    """Обязательные непустые поля — одна формулировка ошибки на весь файл.
+
+    Поля проверяются независимо: пустой title не должен прятать пустой
+    desc, иначе автор чинит контент по одной ошибке за прогон.
+    """
+    for field in fields:
+        if not item.get(field):
+            error(f'{where}: не заполнено поле {field}')
+
+
 def check_manifest() -> list[dict]:
     path = DATA / 'manifest.json'
     if not path.exists():
@@ -176,9 +187,7 @@ def check_content(modules: list[dict]) -> None:
             else:
                 anchors[anchor] = where
 
-            for field in ('num', 'title'):
-                if not section.get(field):
-                    error(f'{where}: не заполнено поле {field}')
+            require_fields(where, section, ('num', 'title'))
 
             for index, block in iter_blocks(section):
                 kind = block.get('type')
@@ -305,12 +314,9 @@ def check_quiz(where: str, block: dict) -> int:
 
     for qi, question in enumerate(questions):
         qwhere = f'{where}, вопрос {qi}'
-        # Поля независимы: сломанные options не должны прятать пустые
-        # text/explain — иначе прогон покажет только одну ошибку за раз
-        if not question.get('text'):
-            error(f'{qwhere}: не заполнено поле text')
-        if not question.get('explain'):
-            error(f'{qwhere}: не заполнено поле explain')
+        # Сломанные options не должны прятать пустые text/explain —
+        # иначе прогон покажет только одну ошибку за раз
+        require_fields(qwhere, question, ('text', 'explain'))
 
         options = question.get('options')
         if not isinstance(options, list) or len(options) not in QUIZ_OPTIONS_RANGE:
@@ -371,9 +377,7 @@ def check_lessons(data: dict, title: str) -> tuple[int, int]:
         if lesson.get('attestation'):
             continue
 
-        for field in ('num', 'title', 'desc'):
-            if not lesson.get(field):
-                error(f'{where}: не заполнено поле {field}')
+        require_fields(where, lesson, ('num', 'title', 'desc'))
 
         lesson_count += 1
         for video in lesson.get('videos', []):
