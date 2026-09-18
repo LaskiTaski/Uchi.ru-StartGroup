@@ -30,6 +30,8 @@
 <header class="header">
   <div class="header-inner">
     <div class="header-top">
+      <!-- Виден только на узком экране (styles.css) — на широком панель слева и так открыта -->
+      <button class="rail-toggle" id="rail-toggle" type="button" aria-expanded="false" aria-controls="rail">☰ Меню</button>
       <div class="logo">
         <div class="logo-icon">Py</div>
         <div>
@@ -55,19 +57,19 @@
         </a>
       </div>
     </div>
-    <div class="nav-primary-wrap" id="groups-wrap">
-      <nav class="nav-primary" id="groups" role="tablist"></nav>
-    </div>
-    <div class="tabs-wrap" id="tabs-wrap">
-      <button class="tabs-arrow left" id="tabs-prev" type="button" aria-label="Прокрутить влево">‹</button>
-      <nav class="tabs" id="tabs" role="tablist"></nav>
-      <button class="tabs-arrow right" id="tabs-next" type="button" aria-label="Прокрутить вправо">›</button>
-    </div>
   </div>
 </header>
 
-<!-- Контент -->
-<main class="content" id="content" role="tabpanel" tabindex="-1"></main>
+<!-- Затемнение позади выезжающей панели на узком экране, закрывает её кликом мимо -->
+<div class="rail-scrim" id="rail-scrim" aria-hidden="true"></div>
+
+<div class="layout">
+  <!-- Постоянная панель материалов слева (app.js → renderRail) -->
+  <aside class="rail" id="rail"></aside>
+
+  <!-- Контент -->
+  <main class="content" id="content" tabindex="-1"></main>
+</div>
 
 <!-- Подвал -->
 <footer class="footer">

@@ -7,21 +7,28 @@
   ],
 
   "modules": [
-    { "id": 1,  "group": "video", "file": "data/module1.json", "icon": "🐍", "label": "Модуль 1", "sub": "• Основы Python",          "color": "#E86B2A" },
-    { "id": 2,  "group": "video", "file": "data/module2.json", "icon": "📦", "label": "Модуль 2", "sub": "• Строки, функции, циклы", "color": "#2A8FE8" },
-    { "id": 3,  "group": "video", "file": "data/module3.json", "icon": "⚙️", "label": "Модуль 3", "sub": "• Коллекции",             "color": "#8B5CF6" },
-    { "id": 4,  "group": "video", "file": "data/module4.json", "icon": "🚀", "label": "Модуль 4", "sub": "• ООП и проекты",         "color": "#10B981" },
+    { "id": 1,  "group": "video", "file": "data/module1.json", "icon": "🐍", "label": "Модуль 1", "sub": "• Основы Python",          "color": "#E86B2A", "status": "ready", "level": "начальный" },
+    { "id": 2,  "group": "video", "file": "data/module2.json", "icon": "📦", "label": "Модуль 2", "sub": "• Строки, функции, циклы", "color": "#2A8FE8", "status": "ready", "level": "начальный" },
+    { "id": 3,  "group": "video", "file": "data/module3.json", "icon": "⚙️", "label": "Модуль 3", "sub": "• Коллекции",             "color": "#8B5CF6", "status": "ready", "level": "средний" },
+    { "id": 4,  "group": "video", "file": "data/module4.json", "icon": "🚀", "label": "Модуль 4", "sub": "• ООП и проекты",         "color": "#10B981", "status": "ready", "level": "средний" },
 
-    { "id": 9,  "group": "my",    "file": "data/course1.json", "icon": "🎯", "label": "Как решать задачи", "sub": "• Алгоритмическое мышление", "color": "#6366F1", "menu": true },
+    { "id": 9,  "group": "my",    "file": "data/course1.json", "icon": "🎯", "label": "Как решать задачи", "sub": "• Алгоритмическое мышление", "color": "#6366F1", "menu": true, "status": "ready", "level": "начальный" },
 
-    { "id": 6,  "group": "ref", "file": "data/notes.json",  "icon": "📖", "label": "Основы Python",     "sub": "• Типы данных",        "color": "#22D3EE", "menu": true },
-    { "id": 7,  "group": "ref", "file": "data/notes2.json", "icon": "🔀", "label": "Ветвление и циклы", "sub": "• Условия, for, while", "color": "#F472B6", "menu": true },
-    { "id": 8,  "group": "ref", "file": "data/notes3.json", "icon": "🧩", "label": "Функции",           "sub": "• Аргументы, return",   "color": "#A3E635", "menu": true },
-    { "id": 10, "group": "ref", "file": "data/notes4.json", "icon": "🧯", "label": "Ошибки",            "sub": "• try / except",        "color": "#C084FC", "menu": true },
-    { "id": 11, "group": "ref", "file": "data/notes5.json", "icon": "🏛️", "label": "ООП",               "sub": "• классы и объекты",    "color": "#FB923C", "menu": true },
-    { "id": 12, "group": "ref", "file": "data/notes6.json", "icon": "📦", "label": "Модули и файлы",    "sub": "• import, math, файлы", "color": "#2DD4BF", "menu": true },
+    { "id": 6,  "group": "ref", "file": "data/notes.json",  "icon": "📖", "label": "Основы Python",     "sub": "• Типы данных",        "color": "#22D3EE", "menu": true, "status": "ready", "level": "начальный" },
+    { "id": 7,  "group": "ref", "file": "data/notes2.json", "icon": "🔀", "label": "Ветвление и циклы", "sub": "• Условия, for, while", "color": "#F472B6", "menu": true, "status": "ready", "level": "начальный" },
+    { "id": 8,  "group": "ref", "file": "data/notes3.json", "icon": "🧩", "label": "Функции",           "sub": "• Аргументы, return",   "color": "#A3E635", "menu": true, "status": "ready", "level": "средний" },
+    { "id": 10, "group": "ref", "file": "data/notes4.json", "icon": "🧯", "label": "Ошибки",            "sub": "• try / except",        "color": "#C084FC", "menu": true, "status": "ready", "level": "средний" },
+    { "id": 11, "group": "ref", "file": "data/notes5.json", "icon": "🏛️", "label": "ООП",               "sub": "• классы и объекты",    "color": "#FB923C", "menu": true, "status": "ready", "level": "продвинутый" },
+    { "id": 12, "group": "ref", "file": "data/notes6.json", "icon": "📦", "label": "Модули и файлы",    "sub": "• import, math, файлы", "color": "#2DD4BF", "menu": true, "status": "ready", "level": "средний" },
 
-    { "id": 5,  "group": "extra", "file": "data/module5.json", "icon": "📚", "label": "Доп. курсы", "sub": "", "color": "#F59E0B", "protected": true }
+    { "id": 5,  "group": "extra", "file": "data/module5.json", "icon": "📚", "label": "Доп. курсы", "sub": "", "color": "#F59E0B", "protected": true, "status": "ready" },
+
+    { "id": 20, "group": "my", "status": "planned", "icon": "🧩",
+      "label": "Паттерны в ООП", "sub": "• Стратегия, фабрика, наблюдатель", "color": "#FB923C", "level": "продвинутый" },
+    { "id": 21, "group": "my", "status": "planned", "icon": "🕸️",
+      "label": "Парсинг сайтов", "sub": "• requests, BeautifulSoup, таблицы", "color": "#38BDF8", "level": "средний" },
+    { "id": 22, "group": "ref", "status": "planned", "icon": "🎨",
+      "label": "HTML и CSS", "sub": "• Разметка и стили для веба", "color": "#F472B6", "level": "начальный" }
   ],
 
   "search": { "index": "data/search-index.json" }

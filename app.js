@@ -8,13 +8,11 @@
 
   /* ── Настройки поведения ─────────────────────────────── */
   const CONFIG = {
-    headerCollapseAt: 150,   // прокрутка, после которой панель групп уезжает
+    headerCollapseAt: 150,   // прокрутка, после которой шапка сжимается
     headerExpandAt: 40,      // и на которой возвращается (гистерезис)
-    tabPeek: 64,             // сколько px соседней вкладки оставлять видимыми
     searchDebounce: 120,     // пауза перед поиском, мс
     searchMinLength: 2,
-    searchLimit: 8,
-    scrollOffset: 14         // зазор под липкой шапкой при переходе по якорю
+    searchLimit: 8
   };
 
   // Уважаем системную настройку «меньше анимации» (этап 5): в jsdom
@@ -38,15 +36,47 @@
   const REMEMBER_KEY = 'pa_m5_unlocked';
   const SECRET_PASSWORD = 'NwrBJQF92k&=';
 
+  // Вид материала по-русски — для карточки каталога. Вид однозначно
+  // следует из группы, поэтому в манифесте его нет: вся связь здесь
+  const KIND_LABELS = {
+    video: 'Видеомодуль', my: 'Курс', ref: 'Справочник', extra: 'Внешний курс'
+  };
+
+  // Режим проверки задания по-русски — для шага в программе (шаг 3)
+  const TASK_KIND_LABELS = { stdout: 'вывод программы', function: 'функция', asserts: 'проверки' };
+
+  const WEEKDAY_LABELS = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
+
+  /* Пункты верхней части панели — переключают весь экран, а не материал */
+  const RAIL_VIEWS = [
+    { view: 'home', icon: '🏠', label: 'Моё обучение' },
+    { view: 'catalog', icon: '📚', label: 'Каталог' }
+  ];
+
   /* ── Состояние ───────────────────────────────────────── */
   const state = {
     modules: [],          // из манифеста
     groups: [],           // из манифеста
     activeModule: null,
-    activeGroup: null,
-    lastModuleInGroup: {},
+    // 'home' | 'catalog' | 'material' | 'program' | 'section' — какой экран сейчас.
+    // 'material' — старое единое полотно, оставлено только для модуля «Доп. курсы»
+    // (data.type === 'courses'): у него нет ни секций-с-блоками, ни занятий,
+    // делить там нечего на шаги. Всё остальное — 'program'/'section'.
+    // Источник истины — адрес (location.hash, см. «Маршруты» ниже): state
+    // только зеркалит то, что уже отрисовано, ради renderRail/refreshProgress —
+    // сами переходы всегда идут через navigate(), а не через прямую мутацию.
+    view: 'home',
+    section: null,         // якорь раздела (или занятия) — только для view 'section'
+    step: null,            // номер текущего шага (с единицы) — только для view 'section'
     authToken: localStorage.getItem(REMEMBER_KEY) === '1' ? '1' : null
   };
+
+  /* Любой из экранов конкретного материала. Спрашивают и про текущий
+     экран (панель, savePlace), и про сохранённое место: place.view
+     хранит те же значения, что и state.view */
+  function isModuleScreen(view) {
+    return view === 'material' || view === 'program' || view === 'section';
+  }
 
   /* ── Утилиты разметки ────────────────────────────────── */
 
@@ -97,25 +127,16 @@
     }, extra || {});
   }
 
-  function plural(count, one) {
-    const forms = {
-      'модуль': ['модуль', 'модуля', 'модулей'],
-      'раздел': ['раздел', 'раздела', 'разделов'],
-      'курс':   ['курс',   'курса',   'курсов']
-    }[one] || [one, one, one];
-    const d10 = count % 10, d100 = count % 100;
-    if (d10 === 1 && d100 !== 11) return forms[0];
-    if (d10 >= 2 && d10 <= 4 && (d100 < 10 || d100 >= 20)) return forms[1];
-    return forms[2];
-  }
-
   const byId = (id) => document.getElementById(id);
 
-  /* ── Состояние блоков переживает перерисовку (этап 0.2) ─
-     loadModule заменяет весь innerHTML, поэтому введённый
+  /* Материал, на который указывает элемент разметки (data-mod) */
+  const modOf = (el) => parseInt(el.getAttribute('data-mod'), 10);
+
+  /* ── Состояние блоков переживает перерисовку ─────────────
+     setContent заменяет весь innerHTML, поэтому введённый
      учеником код обязан жить вне разметки. Реестром служит
      PA.store: он же дублирует данные в localStorage, так что
-     код переживает и переключение вкладки, и перезагрузку.   */
+     код переживает и переход на другой шаг, и перезагрузку.   */
 
   const hasPA = typeof window.PA !== 'undefined';
 
@@ -171,35 +192,42 @@
     root.querySelectorAll('.pa-editor').forEach((editor) => {
       window.PA.editor.sync(editor);
     });
-    restorePlace();
   }
 
-  /* ── Где ученик остановился (этап 5) ─────────────────────
-     Возврат на сайт не должен стоить четырёх кликов: помним
-     модуль и раскрытые в нём разделы. Хранится отдельно от
-     прогресса, в экспорт не идёт. */
-
-  let restoringPlace = false;
+  /* ── Где ученик остановился ──────────────────────────────
+     Возврат на сайт не должен стоить нескольких кликов: помним адрес —
+     он и так однозначно описывает экран, материал, раздел и шаг. Хранится
+     отдельно от прогресса, в экспорт не идёт. Старый формат записи —
+     объект { view, mod, section, tab } из этапа до перехода на адреса —
+     распознаёт routeFromPlace() ниже, падать на нём нельзя: у учеников,
+     не открывавших сайт с этого обновления, в PA.store лежит именно он. */
 
   function savePlace() {
-    if (!hasPA || restoringPlace || !state.activeModule) return;
-    const open = [];
-    document.querySelectorAll('.lesson.open[id^="ref-"]').forEach((el) => {
-      open.push(el.id.slice(4));
-    });
-    window.PA.store.set('ui', 'place', { mod: state.activeModule, open: open });
+    if (!hasPA) return;
+    window.PA.store.set('ui', 'place', location.hash || '#/');
   }
 
   function savedPlace() {
     return hasPA ? window.PA.store.get('ui', 'place', null) : null;
   }
 
-  function restorePlace() {
-    const place = savedPlace();
-    if (!place || place.mod !== state.activeModule || !place.open) return;
-    restoringPlace = true;
-    place.open.forEach((anchor) => setLessonOpen(byId('ref-' + anchor), true));
-    restoringPlace = false;
+  /* Сохранённое место → маршрут. Строка — уже сам адрес (новый формат,
+     см. parseRoute). Объект — запись до перехода на адреса: раздел там
+     помнился без номера шага, поэтому открываем его с первого шага —
+     точнее не восстановить, а падать нельзя. */
+  function routeFromPlace(raw) {
+    if (!raw) return null;
+    if (typeof raw === 'string') {
+      const route = parseRoute(raw);
+      return route.view === 'legacy' ? null : route;
+    }
+    if (raw.view === 'catalog') return { view: 'catalog' };
+    if (isModuleScreen(raw.view) && raw.mod) {
+      return raw.view === 'section' && raw.section
+        ? { view: 'section', mod: raw.mod, section: raw.section, step: 1 }
+        : { view: 'program', mod: raw.mod };
+    }
+    return null;
   }
 
   /* ── Конфигурация из манифеста ───────────────────────── */
@@ -208,17 +236,14 @@
     return state.modules.find((m) => m.id === modId) || null;
   }
 
-  function getGroup(groupId) {
-    return state.groups.find((g) => g.id === groupId) || state.groups[0];
-  }
-
   function modulesOfGroup(groupId) {
     return state.modules.filter((m) => m.group === groupId);
   }
 
-  function groupOfModule(modId) {
-    const meta = getModuleMeta(modId);
-    return meta ? meta.group : state.groups[0].id;
+  /* Карточка «программы вперёд»: показана, но открыть нечем — файла
+     с контентом ещё нет (см. data/manifest.json, status: planned) */
+  function isPlanned(meta) {
+    return !!meta && meta.status === 'planned';
   }
 
   /* Модули с оглавлением — справочники и курсы */
@@ -257,181 +282,598 @@
     });
   }
 
-  function loadAllModules(filter) {
-    const list = state.modules.filter(filter || (() => true));
-    return Promise.all(list.map((m) =>
+  function loadAllModules(modules) {
+    return Promise.all(modules.map((m) =>
       fetchModuleCached(m.id).catch(() => null)
     ));
   }
 
-  /* ── Верхний уровень навигации: группы ───────────────── */
+  /* «Моё обучение» и «Каталог» считают счётчики и прогресс только по
+     уже загруженным модулям (loaded), чтобы не тянуть все файлы разом
+     и не блокировать экран. Но чтобы цифры не пустовали вечно, один раз
+     за визит тихо подгружаем всё незащищённое в фоне и перерисовываем
+     тот же экран, если ученик всё ещё на нём. Защищённый модуль (пароль)
+     не трогаем — его загрузка не дело фонового процесса. */
+  let backgroundLoadStarted = false;
 
-  function renderGroups() {
+  function preloadModulesInBackground() {
+    if (backgroundLoadStarted) return;
+    backgroundLoadStarted = true;
+
+    const targets = state.modules.filter((m) => !isPlanned(m) && !m.protected && !loaded.has(m.id));
+    if (!targets.length) return;
+
+    // Перерисовываем с адреса — если ученик к этому моменту ушёл с «Моего
+    // обучения»/каталога на материал, перерисуется уже он, что не страшно:
+    // данные всё равно закешированы, лишний проход дёшев
+    loadAllModules(targets).then(() => renderRoute(currentRoute()));
+  }
+
+  /* ── Панель материалов: постоянная левая колонка ───────
+     Раньше группа и её модули были двумя лентами вкладок (сначала
+     выбираешь группу, потом — модуль внутри неё). Панель показывает
+     сразу всё: заголовки групп из манифеста и под каждым — её модули,
+     кликнуть можно по любому пункту без промежуточного переключения. */
+
+  /* Аттестация — не занятие: в счётчиках её не показываем */
+  function lessonsCount(data) {
+    return data.lessons.filter((l) => !l.attestation).length;
+  }
+
+  /* Число, которое видно счётчиком справа от пункта: занятия — для
+     видеомодулей, разделы — для справочников и курсов. Пока данные
+     модуля не загружены (loaded — см. выше), считать нечем: пункт
+     просто без счётчика, а не с нулём — ноль выглядел бы как «пусто». */
+  function railCount(modId) {
+    const data = loaded.get(modId);
+    if (!data) return null;
+    if (data.lessons) return lessonsCount(data);
+    return (data.sections || []).length;
+  }
+
+  /* Дерево разделов под активным пунктом — замена выпадающему меню
+     вкладки. Есть только у модулей с data.sections (справочники, курсы)
+     и только когда данные уже загружены — иначе рисовать нечего. */
+  function railSectionsHtml(modId) {
+    const data = loaded.get(modId);
+    if (!data || !data.sections) return '';
+
+    let items = '';
+    data.sections.forEach((section) => {
+      if (!section.anchor) return;
+      // Активный раздел подсвечивается, только когда открыт именно экран
+      // раздела (шаг 3) — на экране программы ни один пункт не выбран
+      const active = state.view === 'section' && state.section === section.anchor;
+      items += h('button', modAttrs(modId, {
+        class: 'rail-sec' + (allSolved(sectionParts(section)) ? ' rail-sec-done' : '') + (active ? ' active' : ''),
+        'data-anchor': section.anchor,
+        'aria-current': active ? 'page' : 'false'
+      }),
+        h('span', { class: 'rail-sec-num' }, esc(section.num)) +
+        h('span', { class: 'rail-sec-title' }, esc(section.title))
+      );
+    });
+
+    return items ? h('div', { class: 'rail-sec-list' }, items) : '';
+  }
+
+  /* Два пункта над деревом материалов: переключают весь экран (шаг 2),
+     подсвечиваются так же, как активный материал */
+  function railViewsHtml() {
+    let items = '';
+    RAIL_VIEWS.forEach((v) => {
+      const active = state.view === v.view;
+      items += h('button', {
+        class: 'rail-view' + (active ? ' active' : ''),
+        'data-view': v.view,
+        'aria-current': active ? 'page' : 'false'
+      },
+        h('span', { class: 'rail-view-icon' }, esc(v.icon)) +
+        h('span', { class: 'rail-view-label' }, esc(v.label))
+      );
+    });
+    return h('div', { class: 'rail-views' }, items);
+  }
+
+  function renderRail() {
     let html = '';
+
     state.groups.forEach((group) => {
-      const count = modulesOfGroup(group.id).length;
-      const note = group.note || (count + ' ' + plural(count, group.unit));
-      html += h('button', {
-        class: 'group-tab' + (group.id === state.activeGroup ? ' active' : ''),
-        'data-group': group.id,
-        role: 'tab',
-        'aria-selected': group.id === state.activeGroup ? 'true' : 'false',
-        style: '--group-color: ' + group.color
-      },
-        h('span', { class: 'group-icon' }, esc(group.icon)) +
-        h('span', { class: 'group-text' },
-          h('span', { class: 'group-label' }, esc(group.label)) +
-          h('span', { class: 'group-note' }, esc(note))
-        )
+      const modules = modulesOfGroup(group.id);
+      if (!modules.length) return;   // валидатор допускает пустую группу — рисовать в ней нечего
+
+      html += h('div', { class: 'rail-group' },
+        h('span', { class: 'rail-group-icon' }, esc(group.icon)) +
+        h('span', { class: 'rail-group-label' }, esc(group.label))
       );
-    });
-    byId('groups').innerHTML = html;
-  }
 
-  /* ── Нижний уровень: модули активной группы ──────────── */
+      modules.forEach((meta) => {
+        // Активный пункт — на любом из экранов материала (программа,
+        // раздел, старое полотно «Доп. курсов»): в «Моём обучении»
+        // и каталоге дерево разделов не рисуем (см. ниже), а подсветку
+        // текущего экрана берут на себя кнопки .rail-view
+        const active = isModuleScreen(state.view) && meta.id === state.activeModule;
+        const planned = isPlanned(meta);
+        const count = planned ? null : railCount(meta.id);
 
-  function renderTabs() {
-    const modules = modulesOfGroup(state.activeGroup);
-    let html = '';
+        html += h('button', modAttrs(meta.id, {
+          class: 'rail-item' + (active ? ' active' : '') + (planned ? ' rail-item-planned' : ''),
+          'aria-current': active ? 'page' : 'false',
+          'aria-disabled': planned ? 'true' : null
+        }),
+          h('span', { class: 'rail-item-icon' }, esc(meta.icon)) +
+          h('span', { class: 'rail-item-text' },
+            h('span', { class: 'rail-item-label' }, esc(meta.label)) +
+            (meta.sub ? h('span', { class: 'rail-item-sub' }, esc(meta.sub)) : '')
+          ) +
+          (planned ? h('span', { class: 'rail-item-soon' }, 'скоро')
+                   : (count !== null ? h('span', { class: 'rail-item-count' }, count) : ''))
+        );
 
-    modules.forEach((meta) => {
-      html += h('button', {
-        class: 'tab' + (meta.id === state.activeModule ? ' active' : ''),
-        'data-mod': meta.id,
-        role: 'tab',
-        'aria-selected': meta.id === state.activeModule ? 'true' : 'false',
-        style: '--mod-color: ' + meta.color
-      },
-        h('span', { class: 'tab-icon' }, esc(meta.icon)) + ' ' + esc(meta.label) +
-        (meta.sub ? h('span', { class: 'tab-label-sub' }, esc(meta.sub)) : '') +
-        (meta.menu ? h('span', { class: 'tab-caret', 'data-menu': meta.id }, '▾') : '')
-      );
+        // Дерево разделов рисуется только в виде 'material' — см. active выше
+        if (active) html += railSectionsHtml(meta.id);
+      });
     });
 
-    byId('tabs').innerHTML = html;
-    byId('tabs-wrap').classList.toggle('single', modules.length < 2);
-    fitTabs();
+    byId('rail').innerHTML = railViewsHtml() +
+      h('nav', { class: 'rail-nav', role: 'navigation', 'aria-label': 'Материалы' }, html);
   }
 
-  function renderNav() {
-    renderGroups();
-    renderTabs();
+  /* ── Выезжающая на узком экране панель ─────────────────
+     Класс open поднимает панель поверх контента, но объявлен он только
+     внутри медиа-запроса (см. styles.css): на широком экране класс ни
+     на что не влияет, поэтому закрывать панель можно, не спрашивая
+     ширину окна — порог остаётся один, в стилях. */
+
+  function setRailOpen(open) {
+    byId('rail').classList.toggle('open', open);
+    byId('rail-scrim').classList.toggle('open', open);
+    byId('rail-toggle').setAttribute('aria-expanded', open ? 'true' : 'false');
   }
 
-  function switchGroup(groupId) {
-    if (groupId === state.activeGroup) return;
-    // У пустой группы (валидатор их допускает, с предупреждением) переключаться некуда
-    const first = modulesOfGroup(groupId)[0];
-    if (!state.lastModuleInGroup[groupId] && !first) return;
-    const target = state.lastModuleInGroup[groupId] || first.id;
-    switchModule(target);
+  function toggleRail() {
+    setRailOpen(!byId('rail').classList.contains('open'));
   }
 
-  /* ── Прокрутка ленты вкладок ─────────────────────────── */
-
-  function fitTabs() {
-    const tabs = byId('tabs');
-    const wrap = byId('tabs-wrap');
-    if (!tabs || !wrap) return;
-
-    // Меряем естественную ширину, затем решаем: растянуть или прокручивать
-    tabs.classList.remove('stretch');
-    const fits = tabs.scrollWidth <= tabs.clientWidth + 1;
-    tabs.classList.toggle('stretch', fits);
-    wrap.classList.toggle('no-overflow', fits);
-    updateTabFades();
+  /* Материал, на который указывает кликнутый элемент, — или null, если
+     открывать нечего. Единственный рубеж для запланированных: карточка
+     и пункт панели нарисованы, но файла с контентом у них ещё нет,
+     поэтому глубже (renderModuleRoute) про planned не знают. */
+  function openableModule(el) {
+    const modId = modOf(el);
+    const meta = getModuleMeta(modId);
+    return meta && !isPlanned(meta) ? modId : null;
   }
 
-  function updateTabFades() {
-    const tabs = byId('tabs');
-    const wrap = byId('tabs-wrap');
-    if (!tabs || !wrap) return;
-    const maxScroll = tabs.scrollWidth - tabs.clientWidth;
-    wrap.classList.toggle('fade-left', maxScroll > 1 && tabs.scrollLeft > 4);
-    wrap.classList.toggle('fade-right', maxScroll > 1 && tabs.scrollLeft < maxScroll - 4);
+  /* Открыть материал, на который указывает кликнутый элемент: пункт
+     панели и карточку каталога ведёт один и тот же путь — на экран
+     программы, даже если материал уже открыт глубоко в разделе (адрес
+     всё равно меняется на «/m/<id>», а значит и перерисуется).
+     Возвращает false, если открывать нечего (материал запланирован) —
+     панель на узком экране в этом случае остаётся открытой. */
+  function openModuleFrom(el) {
+    const modId = openableModule(el);
+    if (modId === null) return false;
+    navigate({ view: 'program', mod: modId });
+    return true;
   }
 
-  function scrollTabs(direction) {
-    const tabs = byId('tabs');
-    if (!tabs) return;
-    tabs.scrollBy({ left: direction * Math.max(160, tabs.clientWidth * 0.6), behavior: scrollBehavior() });
-  }
+  /* ── Маршруты: один разбор, одна сборка ──────────────────
+     #/                      «Моё обучение»
+     #/catalog               «Каталог»
+     #/m/<id>                программа материала
+     #/m/<id>/<anchor>       раздел, первый шаг
+     #/m/<id>/<anchor>/<n>   шаг n раздела (n с единицы)
 
-  /* Активная вкладка выезжает в центр — соседи остаются видны */
-  function scrollActiveTabIntoView(smooth) {
-    const tabs = byId('tabs');
-    const active = document.querySelector('.tab.active');
-    if (!tabs || !active) return;
+     Старые адреса (голый якорь без ведущего «/» — раздел справочника или
+     задание из перекрёстной ссылки/поискового индекса/закладки) разбираются
+     в { view: 'legacy' } — resolveLegacyRoute ниже находит, куда они ведут
+     сейчас, и заменяет адрес на канонический через replaceState. */
+  const ROUTE_RE = /^\/m\/(\d+)(?:\/([A-Za-z0-9_-]+)(?:\/(\d+))?)?$/;
 
-    const maxScroll = tabs.scrollWidth - tabs.clientWidth;
-    if (maxScroll <= 1) { updateTabFades(); return; }
-
-    let target = active.offsetLeft - (tabs.clientWidth - active.offsetWidth) / 2;
-    if (target < CONFIG.tabPeek) target = 0;
-    if (target > maxScroll - CONFIG.tabPeek) target = maxScroll;
-    target = Math.max(0, Math.min(target, maxScroll));
-
-    if (smooth && tabs.scrollTo) {
-      tabs.scrollTo({ left: target, behavior: scrollBehavior() });
-    } else {
-      setScrollWithoutAnimation(tabs, target);
+  function parseRoute(hash) {
+    let raw = String(hash || '');
+    if (raw.charAt(0) === '#') raw = raw.slice(1);
+    if (raw === '' || raw === '/') return { view: 'home' };
+    if (raw === '/catalog') return { view: 'catalog' };
+    if (raw.charAt(0) === '/') {
+      const m = ROUTE_RE.exec(raw);
+      if (!m) return { view: 'home' };   // незнакомый новый маршрут — безопасный запасной вариант
+      const mod = parseInt(m[1], 10);
+      if (!m[2]) return { view: 'program', mod: mod };
+      return { view: 'section', mod: mod, section: m[2], step: m[3] ? parseInt(m[3], 10) : 1 };
     }
-    setTimeout(updateTabFades, 350);
+    return { view: 'legacy', anchor: raw };
   }
 
-  function setScrollWithoutAnimation(element, left) {
-    element.classList.add('no-anim');
-    element.scrollLeft = left;
-    void element.offsetWidth;
-    element.classList.remove('no-anim');
+  function buildRoute(route) {
+    switch (route.view) {
+      case 'catalog': return '#/catalog';
+      case 'program': return '#/m/' + route.mod;
+      case 'section':
+        return '#/m/' + route.mod + '/' + route.section + (route.step > 1 ? '/' + route.step : '');
+      default: return '#/';
+    }
   }
 
-  /* ── Переключение модуля ─────────────────────────────── */
+  /* Переход по маршруту — единственное место, что трогает location.hash.
+     Разный адрес (обычный переход) меняет хеш и НИЧЕГО не рисует сам —
+     отрисовку запускает обработчик hashchange (см. низ файла), поэтому
+     «назад»/«вперёд» браузера работают бесплатно. Тот же адрес или
+     opts.replace — рендерить придётся отсюда: одинаковый хеш и
+     history.replaceState хешchange не порождают. */
+  function navigate(route, opts) {
+    const replace = !!(opts && opts.replace);
+    const hash = buildRoute(route);
+    if (replace) {
+      if (location.hash !== hash) history.replaceState(null, '', hash);
+      return renderRoute(route);
+    }
+    if (location.hash === hash) return renderRoute(route);
+    location.hash = hash;
+    return undefined;
+  }
 
-  function switchModule(modId) {
-    const tabs = byId('tabs');
-    const savedScroll = tabs ? tabs.scrollLeft : 0;
+  function currentRoute() {
+    return parseRoute(location.hash);
+  }
+
+  /* Общий финал любой отрисованной страницы: панель, содержимое, память
+     места, прокрутка наверх (после смены шага она и должна уходить наверх —
+     внутристраничная прокрутка больше не нужна, шаги короткие) и закрытие
+     выезжающей панели на узком экране. */
+  function commitView(html) {
+    renderRail();
+    setContent(html);
+    savePlace();
+    window.scrollTo({ top: 0, behavior: scrollBehavior() });
+    setRailOpen(false);
+  }
+
+  /* ── Разбор адреса на экран ──────────────────────────────
+     Единственная точка, откуда рисуется страница: и обработчик hashchange,
+     и navigate() (для replace/повторного адреса) зовут только её. */
+  function renderRoute(route) {
+    switch (route.view) {
+      case 'home':
+        state.view = 'home'; state.activeModule = null; state.section = null; state.step = null;
+        preloadModulesInBackground();   // цифрам экрана нужны данные модулей — тянем их в фоне
+        commitView(renderHome());
+        return undefined;
+      case 'catalog':
+        state.view = 'catalog'; state.activeModule = null; state.section = null; state.step = null;
+        preloadModulesInBackground();
+        commitView(renderCatalog());
+        return undefined;
+      case 'program':
+      case 'section':
+        return renderModuleRoute(route);
+      case 'legacy':
+        return resolveLegacyRoute(route.anchor);
+      default:
+        return navigate({ view: 'home' }, { replace: true });
+    }
+  }
+
+  /* Материал по адресу: программа или раздел. Данные могут быть ещё
+     не загружены — тогда показываем «Загрузка…» и, дождавшись фетча,
+     просто пересчитываем маршрут заново (currentRoute() читает адрес
+     на тот момент — если ученик успел уйти, отрисуется уже новое место). */
+  function renderModuleRoute(route) {
+    const modId = route.mod;
+    const meta = getModuleMeta(modId);
+    if (!meta || isPlanned(meta)) return navigate({ view: 'home' }, { replace: true });
 
     state.activeModule = modId;
-    state.activeGroup = groupOfModule(modId);
-    state.lastModuleInGroup[state.activeGroup] = modId;
 
-    renderNav();
-    if (tabs) setScrollWithoutAnimation(tabs, savedScroll);
-
-    // Запоминаем уже после отрисовки: до неё в DOM ещё прошлый модуль
-    return loadModule(modId).then(function (data) {
-      savePlace();
-      return data;
-    });
-  }
-
-  /**
-   * Показывает модуль и возвращает промис, который выполнится
-   * после отрисовки. Именно это убрало ожидание рендера опросом.
-   */
-  function loadModule(modId) {
-    const meta = getModuleMeta(modId);
-    if (meta && meta.protected && !state.authToken) {
-      setContent(renderLoginForm());
-      return Promise.resolve();
+    if (meta.protected && !state.authToken) {
+      state.view = 'material'; state.section = null; state.step = null;
+      commitView(renderLoginForm());
+      return undefined;
     }
 
     if (loaded.has(modId)) {
-      setContent(renderModule(loaded.get(modId)));
-      return Promise.resolve(loaded.get(modId));
+      showModuleRoute(modId, loaded.get(modId), route);
+      return undefined;
     }
 
-    setContent(h('div', { class: 'empty-state' }, 'Загрузка…'));
+    state.view = 'material';
+    commitView(h('div', { class: 'empty-state' }, 'Загрузка…'));
 
-    return fetchModuleCached(modId).then((data) => {
-      if (state.activeModule === modId) setContent(renderModule(data));
-      return data;
-    }).catch(() => {
-      setContent(h('div', { class: 'empty-state' },
-        '⚠️ Не удалось загрузить модуль. Проверьте, что файл ' +
-        esc(meta ? meta.file : '') + ' на месте.'));
+    return fetchModuleCached(modId).then(() => renderRoute(currentRoute())).catch(() => {
+      commitView(h('div', { class: 'empty-state' },
+        '⚠️ Не удалось загрузить модуль. Проверьте, что файл ' + esc(meta.file) + ' на месте.'));
     });
+  }
+
+  /* Материал уже загружен — решаем, что именно показать: старое полотно
+     «Доп. курсов» (у него нет ни разделов-с-шагами, ни занятий, делить
+     нечего), программу или конкретный шаг раздела/занятия. Битый или
+     устаревший адрес (раздел/шаг не существует) чиним через replaceState,
+     не показывая ученику пустой экран. */
+  function showModuleRoute(modId, data, route) {
+    state.activeModule = modId;
+
+    if (data.type === 'courses') {
+      state.view = 'material'; state.section = null; state.step = null;
+      commitView(renderCoursesModule(data));
+      return;
+    }
+
+    if (route.view === 'program') {
+      state.view = 'program'; state.section = null; state.step = null;
+      commitView(renderProgramScreen(data));
+      return;
+    }
+
+    const anchor = route.section;
+
+    if (data.lessons) {
+      const lessons = data.lessons.filter((l) => !l.attestation);
+      const found = lessons.some((l) => lessonAnchorOf(modId, l.num) === anchor);
+      if (!found) { navigate({ view: 'program', mod: modId }, { replace: true }); return; }
+      if (route.step !== 1) { navigate({ view: 'section', mod: modId, section: anchor, step: 1 }, { replace: true }); return; }
+      state.view = 'section'; state.section = anchor; state.step = 1;
+      commitView(renderSectionScreen(data, anchor, 1));
+      return;
+    }
+
+    const section = (data.sections || []).find((s) => s.anchor === anchor);
+    if (!section) { navigate({ view: 'program', mod: modId }, { replace: true }); return; }
+
+    const total = sectionSteps(section).length;
+    const step = Math.min(Math.max(route.step || 1, 1), total);
+    if (step !== route.step) { navigate({ view: 'section', mod: modId, section: anchor, step: step }, { replace: true }); return; }
+
+    state.view = 'section'; state.section = anchor; state.step = step;
+    commitView(renderSectionScreen(data, anchor, step));
+  }
+
+  /* ── Экран «Моё обучение» (шаг 2) ───────────────────────
+     Стартовый экран вместо первого видеомодуля: свод того, что уже
+     сделано, и подсказка, что делать дальше. Все числа — из PA.store,
+     без выдуманных примеров: нет данных — пустое состояние или ноль. */
+
+  /* Раздел экрана: пустое тело — нет и заголовка, иначе «Дальше
+     в программе» висело бы над пустотой */
+  function homeSection(title, body) {
+    return body ? h('div', { class: 'home-section' },
+      (title ? h('div', { class: 'home-title' }, title) : '') + body) : '';
+  }
+
+  /* Плитка материала — общая часть карточки «Продолжить» и строк
+     «Прохожу сейчас» / «Дальше в программе»: цветная иконка, название,
+     подпись и то, что идёт под ней (обычно полоса прогресса) */
+  function tileHtml(meta, sub, extra) {
+    return h('span', { class: 'tile-icon' }, esc(meta.icon)) +
+      h('div', { class: 'tile-body' },
+        h('div', { class: 'tile-label' }, esc(meta.label)) +
+        (sub ? h('div', { class: 'tile-sub' }, esc(sub)) : '') +
+        (extra || '')
+      );
+  }
+
+  /* Одна формула на мини-полосу, полосу модуля и кольцо раздела */
+  function percentOf(solved, total) {
+    return total ? Math.round(solved / total * 100) : 0;
+  }
+
+  /* Общая мини-полоса прогресса: карточка «Продолжить», плитка каталога
+     и строка «Прохожу сейчас» показывают одно и то же по одной формуле */
+  function renderProgressMini(data) {
+    const p = progressOf(data);
+    if (!p.total) return '';
+    return h('div', { class: 'mini-progress' },
+      h('div', { class: 'mini-progress-track' },
+        h('div', { class: 'mini-progress-fill', style: 'width:' + percentOf(p.solved, p.total) + '%' })) +
+      h('div', { class: 'mini-progress-text' }, 'Решено ' + p.solved + ' из ' + p.total)
+    );
+  }
+
+  function renderContinueCard() {
+    // Куда вести: на сохранённое место, а если ученик ещё ничего не открывал —
+    // на первый материал справочника (бесплатный и доступен без пароля)
+    const route = routeFromPlace(savedPlace());
+    const savedMeta = route && route.mod ? getModuleMeta(route.mod) : null;
+    const fromPlace = !!savedMeta && !isPlanned(savedMeta);
+    const meta = fromPlace ? savedMeta : modulesOfGroup('ref')[0];
+    if (!meta) return '';
+
+    // Раздел известен, только если в прошлый раз ушли именно с экрана
+    // раздела — на экране программы «место» не более точное, чем модуль
+    const anchor = fromPlace && route.view === 'section' ? route.section : null;
+
+    // Карточке нужны слова, а не якорь: у справочников и курсов заголовок
+    // берётся из разделов (data.sections), у видеомодулей — из занятий
+    const data = loaded.get(meta.id);
+    const item = data && anchor
+      ? (data.sections || []).find((s) => s.anchor === anchor) ||
+        (data.lessons || []).find((l) => lessonAnchorOf(data.id, l.num) === anchor)
+      : null;
+    const sub = item
+      ? 'вы остановились на разделе «' + item.title + '»'
+      : (anchor ? 'вы остановились здесь — открываем раздел' : 'откройте материал, чтобы продолжить');
+
+    return h('div', modAttrs(meta.id, { class: 'continue-card' }),
+      tileHtml(meta, sub, data ? renderProgressMini(data) : '') +
+      h('button', {
+        class: 'home-continue', type: 'button',
+        'data-mod': meta.id, 'data-anchor': anchor || ''
+      }, 'Продолжить')
+    );
+  }
+
+  /* ── Недельная активность ───────────────────────────────
+     Источник — ts (секунды) у каждой записи в PA.store('tasks'):
+     свой таймер платформа не ведёт, день считаем прямо по нему. */
+
+  function dayKeyOf(date) {
+    return date.getFullYear() + '-' + (date.getMonth() + 1) + '-' + date.getDate();
+  }
+
+  /* Дней подряд с занятиями, сегодня включительно — считаем назад,
+     пока календарный день числится активным */
+  function currentStreak(days) {
+    let streak = 0;
+    const cursor = new Date();
+    while (days.has(dayKeyOf(cursor))) {
+      streak++;
+      cursor.setDate(cursor.getDate() - 1);
+    }
+    return streak;
+  }
+
+  function renderWeekActivity() {
+    const records = hasPA ? window.PA.store.get('tasks', undefined, {}) : {};
+    const days = new Set();
+    let solved = 0;
+    Object.keys(records).forEach((id) => {
+      const rec = records[id];
+      if (!rec) return;
+      if (rec.ts) days.add(dayKeyOf(new Date(rec.ts * 1000)));
+      if (rec.status === 'solved') solved++;
+    });
+
+    // Пн—Вс текущей недели: getDay() воскресенье — 0, поэтому у него
+    // сдвиг особый (-6), у остальных дней — 1 - номер дня
+    const now = new Date();
+    const shift = now.getDay() === 0 ? -6 : 1 - now.getDay();
+    const today = dayKeyOf(now);
+
+    let cells = '';
+    WEEKDAY_LABELS.forEach((label, i) => {
+      const key = dayKeyOf(new Date(now.getFullYear(), now.getMonth(), now.getDate() + shift + i));
+      const active = days.has(key);
+      cells += h('div', {
+        class: 'week-cell' + (active ? ' week-active' : '') + (key === today ? ' week-today' : '')
+      },
+        h('span', { class: 'week-day' }, label) +
+        h('span', { class: 'week-dot' }, active ? '●' : '')
+      );
+    });
+
+    return h('div', { class: 'week-activity' },
+      h('div', { class: 'week-grid' }, cells) +
+      h('div', { class: 'week-stats' },
+        h('span', { class: 'week-stat' }, 'Решено заданий: ' + solved) +
+        h('span', { class: 'week-stat' }, 'Дней подряд: ' + currentStreak(days))
+      )
+    );
+  }
+
+  /* ── «Прохожу сейчас» и «Дальше в программе» ───────────── */
+
+  /* В работе — то, где есть решённое задание (данные уже должны быть
+     загружены, см. preloadModulesInBackground) или само сохранённое
+     место: ученик мог открыть материал и ещё не решить в нём ничего.
+     Пока такого нет — вместо списка приглашение в каталог. */
+  function renderInProgress() {
+    // Любой экран материала считается «последним открытым»: программа,
+    // раздел и полотно «Доп. курсов» — это всё тот же материал
+    const route = routeFromPlace(savedPlace());
+    const placeModId = route ? route.mod || null : null;
+
+    let rows = '';
+    state.modules.forEach((meta) => {
+      if (isPlanned(meta)) return;
+      const data = loaded.get(meta.id);
+      const solved = data ? progressOf(data).solved : 0;
+      if (!solved && meta.id !== placeModId) return;
+      rows += h('div', modAttrs(meta.id, { class: 'progress-item' }),
+        tileHtml(meta, null, data ? renderProgressMini(data) : '') +
+        h('button', { class: 'pi-open', type: 'button', 'data-mod': meta.id }, 'Открыть')
+      );
+    });
+
+    if (!rows) {
+      return h('div', { class: 'home-empty' },
+        h('p', { class: 'home-empty-text' }, 'Вы ещё не начали.') +
+        h('button', { class: 'home-open-catalog', type: 'button' }, 'Открыть каталог')
+      );
+    }
+    return h('div', { class: 'progress-list' }, rows);
+  }
+
+  function renderPlanned() {
+    let rows = '';
+    state.modules.filter(isPlanned).forEach((meta) => {
+      rows += h('div', modAttrs(meta.id, { class: 'planned-item' }),
+        tileHtml(meta, meta.sub, '') +
+        h('span', { class: 'planned-soon' }, 'скоро')
+      );
+    });
+    return rows ? h('div', { class: 'planned-list' }, rows) : '';
+  }
+
+  function renderHome() {
+    return h('div', { class: 'home-view' },
+      homeSection(null, renderContinueCard()) +
+      homeSection('Активность за неделю', renderWeekActivity()) +
+      homeSection('Прохожу сейчас', renderInProgress()) +
+      homeSection('Дальше в программе', renderPlanned())
+    );
+  }
+
+  /* ── Экран «Каталог» ────────────────────────────────────
+     Все материалы разом, сгруппированные как в манифесте — противовес
+     «Моему обучению»: там то, чем занят ученик, здесь — всё, что есть. */
+
+  function renderCatalogCard(meta) {
+    const planned = isPlanned(meta);
+    const kindLabel = KIND_LABELS[meta.group];
+
+    // Цифры — только по уже загруженным данным (loaded): тянуть все файлы
+    // ради сетки карточек не стоит того
+    const data = planned ? null : loaded.get(meta.id);
+    const progress = data ? progressOf(data) : null;
+    const metricsHtml = data ? h('div', { class: 'catalog-card-metrics' },
+      h('span', { class: 'catalog-card-metric' },
+        railCount(meta.id) + (data.lessons ? ' занятий' : ' разделов')) +
+      (progress.total
+        ? h('span', { class: 'catalog-card-metric' }, 'заданий ' + progress.solved + '/' + progress.total)
+        : '')
+    ) : '';
+
+    let badges = '';
+    if (planned) badges += h('span', { class: 'catalog-card-badge catalog-card-badge-soon' }, 'скоро');
+    if (meta.protected) badges += h('span', { class: 'catalog-card-badge catalog-card-badge-locked' }, 'под паролем');
+
+    return h(planned ? 'div' : 'button', modAttrs(meta.id, {
+      class: 'catalog-card' + (planned ? ' catalog-card-planned' : ''),
+      type: planned ? null : 'button'
+    }),
+      h('span', { class: 'tile-icon' }, esc(meta.icon)) +
+      h('div', { class: 'tile-body' },
+        (kindLabel ? h('div', { class: 'catalog-card-kind' }, esc(kindLabel)) : '') +
+        h('div', { class: 'tile-label' }, esc(meta.label)) +
+        (meta.sub ? h('div', { class: 'tile-sub' }, esc(meta.sub)) : '') +
+        metricsHtml +
+        (data ? renderProgressMini(data) : '')
+      ) +
+      (badges ? h('div', { class: 'catalog-card-badges' }, badges) : '')
+    );
+  }
+
+  function renderCatalog() {
+    let html = '';
+    state.groups.forEach((group) => {
+      const modules = modulesOfGroup(group.id);
+      if (!modules.length) return;
+
+      let cards = '';
+      modules.forEach((meta) => { cards += renderCatalogCard(meta); });
+
+      html += h('div', { class: 'catalog-group' },
+        h('div', { class: 'catalog-group-head' },
+          h('span', { class: 'catalog-group-icon' }, esc(group.icon)) +
+          h('span', { class: 'catalog-group-label' }, esc(group.label)) +
+          h('span', { class: 'catalog-group-count' }, modules.length)
+        ) +
+        h('div', { class: 'catalog-grid' }, cards)
+      );
+    });
+
+    return h('div', { class: 'catalog-view' }, html);
   }
 
   /* ── Защищённый раздел ───────────────────────────────── */
@@ -466,7 +908,7 @@
 
     state.authToken = '1';
     if (remember && remember.checked) localStorage.setItem(REMEMBER_KEY, '1');
-    loadModule(state.activeModule);
+    renderRoute(currentRoute());   // тот же адрес — теперь уже с пройденной проверкой
   }
 
   /* ── Якоря ───────────────────────────────────────────── */
@@ -475,107 +917,75 @@
     return 'l' + modId + '-' + String(num).replace(/\./g, '-');
   }
 
-  function headerOffset() {
-    const header = document.querySelector('.header');
-    return (header ? header.offsetHeight : 0) + CONFIG.scrollOffset;
-  }
-
-  /* В каком модуле живёт якорь */
+  /* В каком модуле живёт якорь — якорь раздела, задания или занятия.
+     Сам разбор якоря один на всех, см. resolveAnchorTarget. */
   function findModuleForAnchor(anchor) {
     const lessonMatch = /^l(\d+)-/.exec(anchor);
     if (lessonMatch) return parseInt(lessonMatch[1], 10);
 
     for (const meta of menuModules()) {
       const data = loaded.get(meta.id);
-      if (!data || !data.sections) continue;
-      if (data.sections.some((section) => section.anchor === anchor)) return meta.id;
+      if (data && data.sections && resolveAnchorTarget(data, anchor)) return meta.id;
     }
     return null;
   }
 
-  function goToAnchor(anchor, updateHash) {
-    closeTabMenu();
-
-    function jump() {
-      const element = byId('ref-' + anchor);
-      if (!element) return;
-      setLessonOpen(element, true);
-
-      // Ниже порога шапка свернётся — сворачиваем до замера позиции
-      const absoluteTop = element.getBoundingClientRect().top + window.pageYOffset;
-      if (absoluteTop > CONFIG.headerCollapseAt) {
-        document.querySelector('.header').classList.add('compact');
-      }
-
-      const top = element.getBoundingClientRect().top + window.pageYOffset - headerOffset();
-      window.scrollTo({ top, behavior: scrollBehavior() });
-
-      element.classList.remove('flash');
-      void element.offsetWidth;
-      element.classList.add('flash');
-
-      if (updateHash !== false && history.replaceState) {
-        history.replaceState(null, '', '#' + anchor);
+  /* Куда именно ведёт якорь внутри уже загруженных данных модуля: якорь
+     раздела — сам раздел, первый шаг; якорь задания/викторины — раздел,
+     где лежит блок, и номер того самого шага (каждый оцениваемый блок —
+     свой отдельный шаг, см. sectionSteps); у видеомодулей якорь занятия
+     ведёт на экран этого занятия (у него всегда один шаг). */
+  function resolveAnchorTarget(data, anchor) {
+    if (!data) return null;
+    for (const section of data.sections || []) {
+      if (!section.anchor) continue;
+      if (section.anchor === anchor) return { section: section.anchor, step: 1 };
+      const steps = sectionSteps(section);
+      for (let i = 0; i < steps.length; i++) {
+        if (steps[i].kind === 'graded' && steps[i].block.id === anchor) {
+          return { section: section.anchor, step: i + 1 };
+        }
       }
     }
+    return data.lessons ? { section: anchor, step: 1 } : null;
+  }
 
-    // Загружаем оглавления, находим модуль, переключаемся и только потом прыгаем
-    loadAllModules((m) => m.menu).then(() => {
-      const modId = findModuleForAnchor(anchor);
-      if (modId === null) return;
-      if (state.activeModule === modId) { jump(); return; }
-      return switchModule(modId).then(jump);
+  /* Маршрут, на который ведёт якорь, — промисом: находим модуль (у занятий
+     номер модуля зашит в сам якорь, у остальных ищем среди оглавлений),
+     догружаем его данные и разбираем якорь внутри них. null — якорь никуда
+     не ведёт (устарел, опечатка в ссылке). Общая точка для goToAnchor
+     (обычный переход) и resolveLegacyRoute (замена старого адреса). */
+  function anchorRoute(anchor) {
+    const lessonMatch = /^l(\d+)-/.exec(anchor);
+    const modIdPromise = lessonMatch
+      ? Promise.resolve(parseInt(lessonMatch[1], 10))
+      : loadAllModules(menuModules()).then(() => { renderRail(); return findModuleForAnchor(anchor); });
+
+    return modIdPromise.then((modId) => {
+      if (modId === null || modId === undefined) return null;
+      return fetchModuleCached(modId).then((data) => {
+        const target = resolveAnchorTarget(data, anchor);
+        return target
+          ? { view: 'section', mod: modId, section: target.section, step: target.step }
+          : { view: 'program', mod: modId };
+      }).catch(() => null);
     });
   }
 
-  /* ── Выпадающее оглавление модуля ────────────────────── */
-
-  function closeTabMenu() {
-    const menu = byId('tab-menu');
-    if (menu) menu.remove();
-    const caret = document.querySelector('.tab-caret.open');
-    if (caret) caret.classList.remove('open');
+  /* Точка входа для поиска, плиток быстрого перехода, ссылок [текст](#якорь)
+     и кнопки «Продолжить»: вычисляет маршрут и переходит по нему (обычный
+     переход — адрес меняется, попадает в историю). */
+  function goToAnchor(anchor) {
+    setRailOpen(false);   // на узком экране панель закрывает то, к чему переходим
+    anchorRoute(anchor).then((route) => { if (route) navigate(route); });
   }
 
-  function toggleTabMenu(caretEl) {
-    const modId = parseInt(caretEl.getAttribute('data-menu'), 10);
-    const opened = byId('tab-menu');
-    if (opened && opened.getAttribute('data-mod') === String(modId)) {
-      closeTabMenu();
-      return;
-    }
-
-    fetchModuleCached(modId).then((data) => {
-      closeTabMenu();
-      caretEl.classList.add('open');
-
-      let items = '';
-      (data.sections || []).forEach((section) => {
-        if (!section.anchor) return;
-        items += h('button', {
-          class: 'tab-menu-item' + (sectionSolved(section) ? ' tmi-solved' : ''),
-          'data-anchor': section.anchor
-        },
-          h('span', { class: 'tmi-num' }, esc(section.num)) +
-          h('span', { class: 'tmi-title' }, esc(section.title))
-        );
-      });
-
-      const menu = document.createElement('div');
-      menu.id = 'tab-menu';
-      menu.className = 'tab-menu';
-      menu.setAttribute('data-mod', modId);
-      menu.setAttribute('role', 'listbox');
-      menu.style.setProperty('--mod-color', getModuleMeta(modId).color);
-      menu.innerHTML = h('div', { class: 'tab-menu-head' }, esc(data.title || 'Разделы')) + items;
-      byId('tabs-wrap').appendChild(menu);
-
-      // Позиционируем под вкладкой, не давая вылезти за колонку
-      const wrapRect = byId('tabs-wrap').getBoundingClientRect();
-      const tabRect = caretEl.closest('.tab').getBoundingClientRect();
-      const maxLeft = wrapRect.width - menu.offsetWidth;
-      menu.style.left = Math.max(0, Math.min(tabRect.left - wrapRect.left, maxLeft)) + 'px';
-    }).catch(() => {});
+  /* Старый адрес (голый якорь без ведущего «/») — заменяем на канонический
+     маршрут через replaceState и показываем то, на что он указывает.
+     Ничего не нашли — не оставлять же ученика на пустом экране: «Моё
+     обучение», как при заходе без всякого адреса. */
+  function resolveLegacyRoute(anchor) {
+    return anchorRoute(anchor).then((route) => navigate(route || { view: 'home' }, { replace: true }));
   }
 
   /* ── Поиск ───────────────────────────────────────────── */
@@ -633,7 +1043,7 @@
         if (!response.ok) throw new Error('нет предсобранного индекса');
         return response.json();
       })
-      .catch(() => loadAllModules((m) => !m.protected).then(buildSearchIndex))
+      .catch(() => loadAllModules(state.modules.filter((m) => !m.protected)).then(buildSearchIndex))
       .then((index) => {
         search.index = index.map((item) => Object.assign({}, item, {
           titleNorm: normalize(item.title + ' ' + (item.chip || '')),
@@ -693,6 +1103,10 @@
       if (block.good) parts.push(block.good.title || '', block.good.code || '');
       if (block.bad) parts.push(block.bad.title || '', block.bad.code || '');
       parts.push(block.hint || '', block.explain || '');    // подсказка и разбор задания
+      // Викторина: вопрос, варианты и пояснение — тоже часть текста раздела
+      (block.questions || []).forEach((q) => {
+        parts.push(q.text || '', (q.options || []).join(' '), q.explain || '');
+      });
     });
     return cleanText(parts.join(' '));
   }
@@ -852,89 +1266,244 @@
     goToAnchor(result.item.anchor);
   }
 
-  function renderModule(data) {
-    if (data.type === 'courses') return renderCoursesModule(data);
-    if (data.type === 'notes' || data.type === 'course') return renderNotesModule(data);
-    return renderLessonsModule(data);
+  /* ── Экран «Программа» (шаг 3) ──────────────────────────
+     Раньше выбор материала сразу разворачивал одно длинное полотно —
+     все разделы гармошками, внутри вперемешку теория и практика. Теперь
+     сначала «Программа»: шапка и список разделов (или занятий — для
+     видеомодулей), и только клик по шагу ведёт на экран самого раздела
+     (см. renderSectionScreen дальше по файлу). */
+  function renderProgramScreen(data) {
+    return data.lessons ? renderLessonsProgram(data) : renderSectionsProgram(data);
   }
 
-  /* ── Модули 1-4: уроки ───────────────────────────────── */
-  function renderLessonsModule(data) {
+  /* ── Видеомодули: список занятий вместо гармошки ────────
+     Делить видеомодуль на теорию/практику нечем — заданий там нет.
+     Занятие целиком показывается на экране раздела (renderLessonSection). */
+  function lessonsMetaLine(data) {
     var totalV = 0, totalL = 0, totalS = 0;
-    var lessonsHtml = '';
+    data.lessons.forEach(function (lesson) {
+      if (lesson.attestation) return;
+      totalV += (lesson.videos || []).length;
+      totalL += (lesson.links || []).length;
+      totalS += (lesson.screenshots || []).length;
+    });
+    return lessonsCount(data) + ' занятий • 🎬 ' + totalV + ' • 📄 ' + totalL + ' • 🖼️ ' + totalS;
+  }
+
+  function renderExtraBlock(data) {
+    if (!data.extra) return '';
+    var extraContent = data.extra.text ? esc(data.extra.text) : '';
+    if (data.extra.screenshots && data.extra.screenshots.length > 0) {
+      extraContent += renderSection('🖼️ Скриншоты с занятий', renderScreenshotsGrid(data.extra.screenshots));
+    }
+    return '<div class="extra-block">' +
+      '<div class="extra-title">📚 Дополнительная информация для этого модуля</div>' +
+      '<div class="extra-text">' + extraContent + '</div></div>';
+  }
+
+  /* Значки занятия (метки из данных плюс счётчики видео, материалов
+     и скриншотов) — общие для списка программы и шапки занятия */
+  function lessonBadges(lesson) {
+    var html = '';
+    (lesson.badges || []).forEach(function (b) { html += '<span class="badge-has">' + esc(b) + '</span>'; });
+    return html +
+      renderCountBadge('🎬', (lesson.videos || []).length) +
+      renderCountBadge('📄', (lesson.links || []).length) +
+      renderCountBadge('🖼️', (lesson.screenshots || []).length);
+  }
+
+  function renderLessonsProgram(data) {
+    var rowsHtml = '';
 
     data.lessons.forEach(function (lesson) {
-      if (lesson.attestation) {
-        lessonsHtml += renderAttestation(data.id);
-        return;
-      }
+      if (lesson.attestation) { rowsHtml += renderAttestation(data.id); return; }
 
-      var nV = (lesson.videos || []).length;
-      var nL = (lesson.links || []).length;
-      var nS = (lesson.screenshots || []).length;
-      totalV += nV; totalL += nL; totalS += nS;
-
-      var hasContent = nV + nL + nS > 0;
-
-      // Бейджи
-      var badgesHtml = '';
-      (lesson.badges || []).forEach(function (b) {
-        badgesHtml += '<span class="badge-has">' + esc(b) + '</span>';
-      });
-      if (!lesson.attestation) {
-        badgesHtml += renderCountBadge('🎬', nV);
-        badgesHtml += renderCountBadge('📄', nL);
-        badgesHtml += renderCountBadge('🖼️', nS);
-      }
-
-      // Тело урока
-      var bodyParts = '<p class="lesson-desc">' + esc(lesson.desc) + '</p>';
-
-      if (!hasContent) {
-        bodyParts += '<div class="empty-state">🔒 Материалы для этого занятия ещё не добавлены.</div>';
-      } else {
-        if (nV > 0) bodyParts += renderSection('🎬 Видео', renderVideoGrid(lesson.videos));
-        if (nL > 0) bodyParts += renderSection('📄 Материалы', renderLinkList(lesson.links));
-        if (nS > 0) bodyParts += renderSection('🖼️ Скриншоты с занятия', renderScreenshotsGrid(lesson.screenshots));
-      }
-
-      var lessonAnchor = lessonAnchorOf(data.id, lesson.num);
-      lessonsHtml += hOpen('div', modAttrs(data.id, { class: 'lesson', id: 'ref-' + lessonAnchor })) +
-        '<button type="button" class="lesson-header" aria-expanded="false">' +
-          '<span class="lesson-num">' + esc(lesson.num) + '</span>' +
-          '<span class="lesson-title">' + esc(lesson.title) + '</span>' +
-          '<span class="lesson-badges">' + badgesHtml + '</span>' +
-          '<span class="chevron">▾</span>' +
-        '</button>' +
-        '<div class="lesson-body">' + bodyParts + '</div>' +
-      '</div>';
+      rowsHtml += hOpen('button', modAttrs(data.id, {
+        type: 'button', class: 'prog-lesson', 'data-anchor': lessonAnchorOf(data.id, lesson.num)
+      })) +
+        '<span class="lesson-num">' + esc(lesson.num) + '</span>' +
+        '<span class="lesson-title">' + esc(lesson.title) + '</span>' +
+        '<span class="lesson-badges">' + lessonBadges(lesson) + '</span>' +
+        '<span class="prog-lesson-arrow">→</span>' +
+      '</button>';
     });
 
-    // Extra block
-    var extraHtml = '';
-    if (data.extra) {
-      var extraContent = '';
-      if (data.extra.text) {
-        extraContent = esc(data.extra.text);
+    return renderModuleHeader(data) + h('div', { class: 'prog-list' }, rowsHtml) + renderExtraBlock(data);
+  }
+
+  /* Оцениваемый блок — задание или викторина: у обоих есть id, отметка
+     решённости в PA.store и место в шагах раздела. Все, кому важно
+     «считается ли блок» — sectionParts, sectionSteps, progressOf,
+     resolveAnchorTarget — спрашивают здесь, а не перечисляют типы у себя. */
+  function isGradedBlock(block) {
+    return block.type === 'task' || block.type === 'quiz';
+  }
+
+  /* Чем оцениваемые блоки отличаются на виду: значок и подпись шага
+     в программе (renderProgramStep), класс и знак квадратика в полосе
+     шагов (renderStepStrip). Свой вид квадратика у викторины — кружок
+     (см. styles.css): по нему её отличают от задания, не открывая шаг.
+     У задания подпись зависит от режима проверки, поэтому её тут нет
+     (см. taskKindLabel). Новый оцениваемый тип — строка сюда и в
+     isGradedBlock, остальной код о нём знать не должен. */
+  const GRADED_BLOCKS = {
+    task: { icon: '📝', title: 'Задание', square: 'step-task', mark: '' },
+    quiz: { icon: '❓', title: 'Викторина', square: 'step-quiz', mark: '?', kind: 'викторина' }
+  };
+
+  /* Счётчики раздела — сколько тем теории, сколько заданий/викторин решено
+     из скольких. Задание без id в счёт не идёт: отмечать негде. От нарезки
+     на шаги (sectionSteps, ниже) счётчики не зависят и не меняют смысла:
+     индекс блока всегда берётся от исходного (не нарезанного) section.blocks —
+     на нём держатся ключи черновиков (blockKeyOf) и отметки решённости. */
+  function sectionParts(section) {
+    var parts = { theory: 0, total: 0, solved: 0 };
+    (section.blocks || []).forEach(function (block) {
+      var graded = isGradedBlock(block);
+      if (!graded && block.type !== 'heading') return;
+      if (!graded) { parts.theory++; return; }
+      if (!block.id) return;
+      parts.total++;
+      if (hasPA && window.PA.store.isSolved(block.id)) parts.solved++;
+    });
+    return parts;
+  }
+
+  /* ── Справочники и курсы: раздел — последовательность шагов ──────
+     Раньше теория и практика раздела были двумя вкладками. Теперь раздел —
+     цепочка экранов-шагов, как в Stepik: у каждого свой адрес (см.
+     «Маршруты»), вперёд идут по кнопке «Далее», а не переключением.
+
+     Разбор одинаков для всех разделов и не зависит от данных: блоки до
+     первого heading — шаг вступления (вместе с section.desc, добавляется
+     при отрисовке — см. renderStepContent), каждый heading начинает новый
+     шаг теории и держит все блоки до следующего heading или до первого
+     оцениваемого блока, а каждый оцениваемый блок (задание, викторина) —
+     отдельный шаг целиком. Порядок шагов — порядок данных, один проход.
+     Индексы блоков — из исходного section.blocks (см. sectionParts). */
+  function sectionSteps(section) {
+    var steps = [];
+    var theory = { kind: 'theory', heading: null, blocks: [] };
+    steps.push(theory);
+
+    (section.blocks || []).forEach(function (block, index) {
+      if (isGradedBlock(block)) {
+        steps.push({ kind: 'graded', block: block, index: index });
+        theory = null;   // до следующего heading блоков теории не бывает
+        return;
       }
-      if (data.extra.screenshots && data.extra.screenshots.length > 0) {
-        extraContent += renderSection('🖼️ Скриншоты с занятий', renderScreenshotsGrid(data.extra.screenshots));
+      if (block.type === 'heading') {
+        theory = { kind: 'theory', heading: block, blocks: [] };
+        steps.push(theory);
+        return;
       }
-      extraHtml = '<div class="extra-block">' +
-        '<div class="extra-title">📚 Дополнительная информация для этого модуля</div>' +
-        '<div class="extra-text">' + extraContent + '</div></div>';
+      if (!theory) { theory = { kind: 'theory', heading: null, blocks: [] }; steps.push(theory); }
+      theory.blocks.push({ block: block, index: index });
+    });
+
+    // Раздел может начинаться сразу с подзаголовка (так устроены
+    // «Аргументы» в «Функциях») — тогда шаг вступления пуст, и на нём
+    // нечего читать, кроме описания. Описание и так покажет первый шаг,
+    // каким бы он ни был, поэтому пустой отбрасываем.
+    if (steps.length > 1 && !steps[0].heading && !steps[0].blocks.length) steps.shift();
+
+    return steps;
+  }
+
+  /* Название шага — для подписи в шаге-навигации («Назад»/«Далее») и
+     подсказки квадратика полосы шагов: у оцениваемого блока — его
+     заголовок (или общее «Задание»/«Викторина»), у теории — текст
+     заголовка или «Вступление» для самого первого, безымянного шага. */
+  function stepLabel(step, section) {
+    if (step.kind === 'graded') {
+      var view = GRADED_BLOCKS[step.block.type];
+      return step.block.title || view.title;
     }
+    return step.heading ? step.heading.text : (section.title || 'Вступление');
+  }
 
-    var lessonsCount = data.lessons.filter(function (l) { return !l.attestation; }).length;
-    var headerHtml = renderModuleHeader(data.id, data.icon, data.title,
-      lessonsCount + ' занятий • 🎬 ' + totalV + ' • 📄 ' + totalL + ' • 🖼️ ' + totalS);
+  /* Кольцо прогресса — доля решённых заданий раздела через conic-gradient,
+     формула из прототипа: --p передаёт процент прямо в CSS */
+  function progressRingHtml(solved, total) {
+    return h('span', { class: 'prog-ring', style: '--p: ' + percentOf(solved, total) }, '');
+  }
 
-    return headerHtml + lessonsHtml + extraHtml;
+  /* Режим проверки задания по-русски: подпись шага в программе и метка
+     у самого задания. Сами режимы живут в tools/validate.py
+     и sandbox_runtime.py — здесь только их названия для ученика. */
+  function taskKindLabel(block) {
+    if (!block.check) return 'без кода';
+    return TASK_KIND_LABELS[block.check.mode] || 'проверки';
+  }
+
+  /* Строка шага в раскрытой карточке программы — клик ведёт прямо на его
+     адрес (данные для шага в точности те же, что и у полосы шагов внутри
+     самого раздела, см. renderStepStrip: номер шага — позиция в
+     sectionSteps, с единицы). */
+  function renderProgramStep(modId, section, step, stepNum) {
+    var solved = step.kind === 'graded' && !!step.block.id && hasPA && window.PA.store.isSolved(step.block.id);
+    var inner = step.kind === 'graded'
+      ? h('span', { class: 'prog-step-icon' }, solved ? '✅' : GRADED_BLOCKS[step.block.type].icon) +
+        h('span', { class: 'prog-step-title' }, esc(step.block.title || GRADED_BLOCKS[step.block.type].title)) +
+        h('span', { class: 'prog-step-kind' }, GRADED_BLOCKS[step.block.type].kind || taskKindLabel(step.block))
+      : h('span', { class: 'prog-step-icon' }, '📖') +
+        h('span', { class: 'prog-step-title' }, esc(stepLabel(step, section))) +
+        h('span', { class: 'prog-step-kind' }, 'теория');
+
+    return h('button', modAttrs(modId, {
+      class: 'prog-step-btn' + (solved ? ' prog-step-done' : ''), type: 'button',
+      'data-anchor': section.anchor, 'data-step': stepNum, 'data-kind': step.kind
+    }), h('span', { class: 'prog-step' }, inner));
+  }
+
+  function renderProgramSectionCard(modId, section) {
+    var parts = sectionParts(section);
+    var steps = sectionSteps(section);
+    var chip = section.chip ? h('span', { class: 'sec-chip' }, esc(section.chip)) : '';
+    var counterHtml = parts.total
+      ? h('div', { class: 'prog-card-progress' },
+          progressRingHtml(parts.solved, parts.total) +
+          h('span', { class: 'prog-card-count' }, parts.solved + ' из ' + parts.total))
+      : h('span', { class: 'prog-card-steps-count' }, steps.length + ' шагов');
+
+    var stepsHtml = '';
+    steps.forEach(function (step, i) { stepsHtml += renderProgramStep(modId, section, step, i + 1); });
+
+    return hOpen('div', modAttrs(modId, {
+      class: 'lesson prog-card' + (allSolved(parts) ? ' prog-card-done' : '')
+    })) +
+      '<button type="button" class="lesson-header prog-card-head" aria-expanded="false">' +
+        '<span class="lesson-num">' + esc(section.num) + '</span>' +
+        '<span class="lesson-title">' + esc(section.title) + '</span>' +
+        chip + counterHtml +
+        '<span class="chevron">▾</span>' +
+      '</button>' +
+      '<div class="lesson-body">' + stepsHtml + '</div>' +
+    '</div>';
+  }
+
+  function renderAboutCard(data) {
+    var metaHtml = '';
+    (data.about.meta || []).forEach(function (m) {
+      metaHtml += '<div class="about-item">' +
+        '<div class="about-label">' + esc(m.label) + '</div>' +
+        '<div class="about-value">' + inlineFmt(m.value) + '</div></div>';
+    });
+    return hOpen('div', modAttrs(data.id, { class: 'course-about' })) +
+      (data.about.text ? '<p class="about-text">' + inlineFmt(data.about.text) + '</p>' : '') +
+      (metaHtml ? '<div class="about-grid">' + metaHtml + '</div>' : '') +
+    '</div>';
+  }
+
+  function renderSectionsProgram(data) {
+    var aboutHtml = data.about ? renderAboutCard(data) : '';
+    var cardsHtml = '';
+    (data.sections || []).forEach(function (section) { cardsHtml += renderProgramSectionCard(data.id, section); });
+    return renderModuleHeader(data) + renderProgressBar(data) + aboutHtml + h('div', { class: 'prog-list' }, cardsHtml);
   }
 
   /* ── Модуль 5: курсы ─────────────────────────────────── */
   function renderCoursesModule(data) {
-    var headerHtml = renderModuleHeader(data.id, data.icon, data.title, data.subtitle);
     var sectionsHtml = '';
 
     data.sections.forEach(function (section) {
@@ -971,98 +1540,168 @@
       '</div>';
     });
 
-    return headerHtml + sectionsHtml;
+    return renderModuleHeader(data) + sectionsHtml;
   }
 
-  /* ── Модуль «Конспект»: справочные секции ────────────── */
-  function renderNotesModule(data) {
-    var headerHtml = renderModuleHeader(data.id, data.icon, data.title, data.subtitle);
-
-    // Быстрая навигация: плитки-ссылки на разделы
-    var navHtml = '';
-    var chips = '';
-    (data.sections || []).forEach(function (sec) {
-      if (!sec.anchor || !sec.chip) return;
-      chips += '<button class="qn-chip' + (sectionSolved(sec) ? ' qn-solved' : '') +
-        '" data-anchor="' + esc(sec.anchor) + '">' +
-        '<span class="qn-code">' + esc(sec.chip) + '</span>' +
-        (sec.chipNote ? '<span class="qn-note">' + esc(sec.chipNote) + '</span>' : '') +
-        '</button>';
-    });
-    if (chips) {
-      navHtml = hOpen('div', modAttrs(data.id, { class: 'quick-nav' })) +
-        '<div class="qn-title">Быстрый переход</div>' +
-        '<div class="qn-grid">' + chips + '</div></div>';
-    }
-
-    // Вводная карточка курса: для кого, сколько, что получит
-    var aboutHtml = '';
-    if (data.about) {
-      var metaHtml = '';
-      (data.about.meta || []).forEach(function (m) {
-        metaHtml += '<div class="about-item">' +
-          '<div class="about-label">' + esc(m.label) + '</div>' +
-          '<div class="about-value">' + inlineFmt(m.value) + '</div></div>';
-      });
-      aboutHtml = hOpen('div', modAttrs(data.id, { class: 'course-about' })) +
-        (data.about.text ? '<p class="about-text">' + inlineFmt(data.about.text) + '</p>' : '') +
-        (metaHtml ? '<div class="about-grid">' + metaHtml + '</div>' : '') +
-      '</div>';
-    }
-
-    // Дорожная карта курса
-    var roadHtml = '';
-    if (data.roadmap && data.roadmap.length) {
-      var steps = '';
-      data.roadmap.forEach(function (st, i) {
-        steps += '<button class="rm-step" data-anchor="' + esc(st.anchor || '') + '">' +
-          '<span class="rm-num">' + (i + 1) + '</span>' +
-          '<span class="rm-body">' +
-            '<span class="rm-title">' + esc(st.title) + '</span>' +
-            (st.note ? '<span class="rm-note">' + esc(st.note) + '</span>' : '') +
-          '</span></button>';
-      });
-      roadHtml = hOpen('div', modAttrs(data.id, { class: 'roadmap' })) +
-        '<div class="qn-title">Программа курса</div>' +
-        '<div class="rm-track">' + steps + '</div></div>';
-    }
-
-    var sectionsHtml = '';
-    (data.sections || []).forEach(function (section) {
-      var bodyParts = '';
-      if (section.desc) {
-        bodyParts += '<p class="lesson-desc">' + inlineFmt(section.desc) + '</p>';
-      }
-      (section.blocks || []).forEach(function (block, index) {
-        bodyParts += renderNoteBlock(block, { anchor: section.anchor }, index);
-      });
-
-      var idAttr = section.anchor ? ' id="ref-' + esc(section.anchor) + '"' : '';
-      var chipBadge = section.chip
-        ? '<span class="lesson-badges"><span class="sec-chip">' + esc(section.chip) + '</span></span>'
-        : '';
-
-      sectionsHtml += hOpen('div', modAttrs(data.id, { class: 'lesson ref-section', id: section.anchor ? 'ref-' + section.anchor : null })) +
-        '<button type="button" class="lesson-header" aria-expanded="false">' +
-          '<span class="lesson-num">' + esc(section.num) + '</span>' +
-          '<span class="lesson-title">' + esc(section.title) + '</span>' +
-          chipBadge +
-          '<span class="chevron">\u25be</span>' +
-        '</button>' +
-        '<div class="lesson-body">' + bodyParts + '</div>' +
-      '</div>';
-    });
-
-    return headerHtml + renderProgressBar(data) + aboutHtml + roadHtml + navHtml + sectionsHtml;
+  /* ── Экран «Раздел»: один шаг раздела на весь экран ──────
+     Раньше раздел (или занятие видеомодуля) показывался целиком, поделённый
+     вкладками «Теория»/«Практика». Теперь виден один шаг из sectionSteps
+     (у занятия шаг всегда один — делить там нечего, см. sectionSteps),
+     а движение вперёд — кнопками «Назад»/«Далее» и полосой шагов сверху. */
+  function renderSectionScreen(data, anchor, step) {
+    return data.lessons ? renderLessonSection(data, anchor) : renderNotesSection(data, anchor, step);
   }
 
-  /* Раздел считается пройденным, когда решены все его задания */
-  function sectionSolved(section) {
-    var tasks = (section.blocks || []).filter(function (b) {
-      return b.type === 'task' && b.id;
+  function renderSectionBack(modId) {
+    return h('button', modAttrs(modId, { class: 'sec-back', type: 'button' }), '← Программа');
+  }
+
+  /* Строка заголовка в шапке экрана: номер, название и то, что идёт
+     следом — чип у раздела, значки у занятия */
+  function secTitleRow(num, title, extra) {
+    return '<div class="sec-title-row">' +
+      '<span class="lesson-num">' + esc(num) + '</span>' +
+      '<span class="lesson-title sec-title">' + esc(title) + '</span>' +
+      extra + '</div>';
+  }
+
+  /* Кнопки «Назад»/«Далее»: back и forward — либо null (кнопки нет, только
+     пустая заглушка для сетки), либо { view: 'program', mod, title } на
+     программу материала, либо { view: 'section', mod, section, step, title }
+     на конкретный шаг (соседний в разделе или первый шаг соседнего раздела/
+     занятия — см. renderNotesSection/renderLessonSection). */
+  function renderStepNav(modId, back, forward) {
+    function navBtn(dir, arrow, target) {
+      if (!target) return '<span class="sec-nav-empty"></span>';
+      return hOpen('button', modAttrs(modId, {
+        class: 'sec-nav-btn sec-nav-' + dir, type: 'button',
+        'data-route-view': target.view,
+        'data-anchor': target.section || null,
+        'data-step': target.step || null
+      })) +
+        '<span class="sec-nav-dir">' + arrow + '</span>' +
+        '<span class="sec-nav-title">' + esc(target.title) + '</span>' +
+      '</button>';
+    }
+    return h('div', { class: 'sec-nav' }, navBtn('prev', '← Назад', back) + navBtn('next', 'Далее →', forward));
+  }
+
+  /* Полоса шагов раздела: квадратик на каждый шаг из sectionSteps (первый —
+     вступление, дальше темы теории и оцениваемые блоки по порядку данных).
+     Клик открывает адрес этого шага целиком — прокрутки внутри страницы
+     больше нет, шаги короткие. Текущий шаг подсвечен отдельным классом. */
+  function renderStepStrip(modId, section, currentStep) {
+    var steps = sectionSteps(section);
+    var parts = sectionParts(section);   // только для счётчика «решено N из M» — смысл тот же, что и раньше
+
+    var squares = '';
+    steps.forEach(function (step, i) {
+      var n = i + 1;
+      var view = step.kind === 'graded' ? GRADED_BLOCKS[step.block.type] : null;
+      var solved = step.kind === 'graded' && !!step.block.id && hasPA && window.PA.store.isSolved(step.block.id);
+      squares += h('button', modAttrs(modId, {
+        class: 'step-sq' + (view ? (solved ? ' step-done' : ' ' + view.square) : '') + (n === currentStep ? ' step-current' : ''),
+        type: 'button', title: esc(stepLabel(step, section)),
+        'data-anchor': section.anchor, 'data-step': n,
+        'aria-current': n === currentStep ? 'step' : null
+      }), solved ? '✓' : (view ? view.mark : ''));
     });
-    if (!tasks.length || !hasPA) return false;
-    return tasks.every(function (b) { return window.PA.store.isSolved(b.id); });
+
+    return h('div', { class: 'step-strip-row' },
+      h('div', { class: 'step-strip' }, squares) +
+      (parts.total ? h('span', { class: 'step-strip-count' }, 'решено ' + parts.solved + ' из ' + parts.total) : '')
+    );
+  }
+
+  /* Содержимое одного шага: вступление (только на первом шаге) добавляет
+     section.desc перед своими блоками, тема теории — подпись заголовка
+     и блоки до следующего заголовка, оцениваемый блок — сам блок целиком.
+     renderNoteBlock и индексы блоков те же, что были на едином полотне —
+     ключи черновиков (blockKeyOf) и отметки решённости не меняются. */
+  function renderStepContent(section, step, isIntro) {
+    var html = isIntro && section.desc ? '<p class="lesson-desc">' + inlineFmt(section.desc) + '</p>' : '';
+    if (step.kind === 'graded') {
+      html += renderNoteBlock(step.block, { anchor: section.anchor }, step.index);
+    } else {
+      if (step.heading) html += '<div class="section-label">' + esc(step.heading.text) + '</div>';
+      step.blocks.forEach(function (b) { html += renderNoteBlock(b.block, { anchor: section.anchor }, b.index); });
+    }
+    return h('div', { class: 'sec-body' }, html);
+  }
+
+  function renderNotesSection(data, anchor, stepNum) {
+    var sections = data.sections || [];
+    var idx = sections.findIndex(function (s) { return s.anchor === anchor; });
+    if (idx === -1) return h('div', { class: 'empty-state' }, 'Раздел не найден.');
+    var section = sections[idx];
+    var steps = sectionSteps(section);
+    var stepIdx = Math.min(Math.max((stepNum || 1) - 1, 0), steps.length - 1);
+    var step = steps[stepIdx];
+
+    var chip = section.chip ? h('span', { class: 'sec-chip' }, esc(section.chip)) : '';
+
+    var headHtml = hOpen('div', modAttrs(data.id, { class: 'sec-head sec-head-note', id: 'ref-' + section.anchor })) +
+      renderStepStrip(data.id, section, stepIdx + 1) +
+      secTitleRow(section.num, section.title, chip) +
+      h('div', { class: 'sec-step-count' }, 'Шаг ' + (stepIdx + 1) + ' из ' + steps.length) +
+    '</div>';
+
+    var bodyHtml = renderStepContent(section, step, stepIdx === 0);
+
+    var back = stepIdx > 0
+      ? { view: 'section', section: section.anchor, step: stepIdx, title: stepLabel(steps[stepIdx - 1], section) }
+      : { view: 'program', title: 'Программа материала' };
+
+    var forward = null;
+    if (stepIdx < steps.length - 1) {
+      forward = { view: 'section', section: section.anchor, step: stepIdx + 2, title: stepLabel(steps[stepIdx + 1], section) };
+    } else if (sections[idx + 1]) {
+      forward = { view: 'section', section: sections[idx + 1].anchor, step: 1, title: sections[idx + 1].title };
+    }
+
+    var navHtml = renderStepNav(data.id, back, forward);
+
+    return renderModuleHeader(data) + renderSectionBack(data.id) + headHtml + bodyHtml + navHtml;
+  }
+
+  /* Занятие видеомодуля целиком — как раньше внутри аккордеона, но
+     на отдельном экране: у занятия всегда один шаг, делить нечего.
+     «Назад» с него — всегда на программу, «Далее» — на следующее занятие,
+     тем же правилом границы, что и у раздела с несколькими шагами. */
+  function renderLessonSection(data, anchor) {
+    var lessons = (data.lessons || []).filter(function (l) { return !l.attestation; });
+    var idx = lessons.findIndex(function (l) { return lessonAnchorOf(data.id, l.num) === anchor; });
+    if (idx === -1) return h('div', { class: 'empty-state' }, 'Занятие не найдено.');
+    var lesson = lessons[idx];
+
+    var nV = (lesson.videos || []).length, nL = (lesson.links || []).length, nS = (lesson.screenshots || []).length;
+    var bodyParts = '<p class="lesson-desc">' + esc(lesson.desc) + '</p>';
+    if (nV + nL + nS === 0) {
+      bodyParts += '<div class="empty-state">🔒 Материалы для этого занятия ещё не добавлены.</div>';
+    } else {
+      if (nV > 0) bodyParts += renderSection('🎬 Видео', renderVideoGrid(lesson.videos));
+      if (nL > 0) bodyParts += renderSection('📄 Материалы', renderLinkList(lesson.links));
+      if (nS > 0) bodyParts += renderSection('🖼️ Скриншоты с занятия', renderScreenshotsGrid(lesson.screenshots));
+    }
+
+    var headHtml = hOpen('div', modAttrs(data.id, { class: 'sec-head', id: 'ref-' + anchor })) +
+      secTitleRow(lesson.num, lesson.title, h('span', { class: 'lesson-badges' }, lessonBadges(lesson))) +
+      bodyParts +
+    '</div>';
+
+    var back = { view: 'program', title: 'Программа материала' };
+    var next = lessons[idx + 1];
+    var forward = next ? { view: 'section', section: lessonAnchorOf(data.id, next.num), step: 1, title: next.title } : null;
+    var navHtml = renderStepNav(data.id, back, forward);
+
+    return renderModuleHeader(data) + renderSectionBack(data.id) + headHtml + navHtml;
+  }
+
+  /* Раздел считается пройденным, когда решены все его задания (см.
+     sectionParts): галочка в дереве панели и карточка программы
+     спрашивают об этом одинаково */
+  function allSolved(parts) {
+    return parts.total > 0 && parts.solved === parts.total;
   }
 
   function renderNoteBlock(block, ctx, index) {
@@ -1090,6 +1729,8 @@
         return renderCompareCard('bad', block);
       case 'task':
         return renderTaskBlock(block, ctx, index);
+      case 'quiz':
+        return renderQuizBlock(block);
       case 'checklist':
         var items = '';
         (block.items || []).forEach(function (it) {
@@ -1117,10 +1758,13 @@
     // нечем, поэтому ученик отмечает его сам, а не остаётся без отметки
     var manual = !block.check && !!block.id;
 
+    // id="ref-<id задания>" — отдельный от якорей раздела: по нему
+    // «Продолжить» (см. progressOf/renderProgressBar) и goToAnchor находят
+    // именно это задание и открывают его шаг (см. resolveAnchorTarget)
     var html = '<div class="task' + (solved ? ' task-solved' : '') + '"' +
-        (block.id ? ' data-task-id="' + esc(block.id) + '"' : '') + '>' +
+        (block.id ? ' id="ref-' + esc(block.id) + '" data-task-id="' + esc(block.id) + '"' : '') + '>' +
       '<div class="task-head"><span class="task-badge">Задание</span>' +
-      (manual ? '<span class="task-kind">без кода</span>' : '') +
+      (manual ? '<span class="task-kind">' + taskKindLabel(block) + '</span>' : '') +
       (block.title ? '<span class="task-title">' + esc(block.title) + '</span>' : '') +
       '<span class="task-state">' + (solved ? '✅ решено' : '') + '</span></div>' +
       '<div class="task-text">' + inlineFmt(block.text) + '</div>';
@@ -1167,6 +1811,56 @@
         '</div></div>';
     }
     return html + '</div>';
+  }
+
+  /* Викторина: узнавание без ввода кода — там, где задание с автопроверкой
+     избыточно («что напечатает программа?»). Проверяется мгновенно в
+     браузере (без Pyodide), решённость идёт в тот же PA.store, что и
+     задания (см. checkQuiz), поэтому прогресс и экспорт её не отличают.
+     Заголовок и отметка переиспользуют .task-head/.task-badge/.task-state —
+     заводить для них отдельные стили незачем. */
+  function renderQuizBlock(block) {
+    var solved = hasPA && block.id && window.PA.store.isSolved(block.id);
+    var html = '<div class="quiz' + (solved ? ' quiz-solved' : '') + '"' +
+        (block.id ? ' id="ref-' + esc(block.id) + '" data-quiz-id="' + esc(block.id) + '"' : '') + '>' +
+      '<div class="task-head"><span class="task-badge">Викторина</span>' +
+      (block.title ? '<span class="task-title">' + esc(block.title) + '</span>' : '') +
+      '<span class="task-state">' + (solved ? '✅ решено' : '') + '</span></div>';
+
+    (block.questions || []).forEach(function (q, qi) {
+      html += renderQuizQuestion(block.id, qi, q);
+    });
+
+    // Кнопки и статус — те же классы, что у панели песочницы (.sb-bar
+    // и соседи): одна и та же цветовая логика good/bad, без дублирования
+    html += '<div class="sb-bar quiz-bar">' +
+      '<button class="sb-btn quiz-check" type="button">Проверить</button>' +
+      '<button class="sb-btn sb-ghost quiz-retry" type="button">Пройти заново</button>' +
+      '<span class="sb-status" role="status"></span>' +
+    '</div>';
+    return html + '</div>';
+  }
+
+  /* Один вопрос — fieldset/legend с настоящими радиокнопками (доступность
+     без выдумок: общее имя не даёт выбрать два варианта разом, стрелки
+     ходят между вариантами сами). Правильный индекс кладём в data-answer,
+     как renderSandbox кладёт весь check (включая expect скрытых кейсов)
+     в data-check, — в этом проекте ответ и так не прячется дальше DOM.
+     Варианты — сырой текст из данных («<class 'int'>» и подобное),
+     поэтому esc() обязателен. */
+  function renderQuizQuestion(quizId, qi, q) {
+    var name = 'quiz-' + esc(quizId) + '-q' + qi;
+    var optionsHtml = '';
+    (q.options || []).forEach(function (opt, oi) {
+      optionsHtml += '<label class="quiz-option">' +
+        '<input type="radio" name="' + name + '" value="' + oi + '">' +
+        '<span>' + esc(opt) + '</span></label>';
+    });
+    return '<fieldset class="quiz-q" data-answer="' + esc(q.answer) + '">' +
+      '<legend class="quiz-q-text">' + inlineFmt(q.text) + '</legend>' +
+      '<div class="quiz-options">' + optionsHtml + '</div>' +
+      '<div class="quiz-explain">' + inlineFmt(q.explain) + '</div>' +
+    '</fieldset>';
   }
 
   /**
@@ -1347,10 +2041,15 @@
   }
 
   /* ── Компоненты-рендеры ──────────────────────────────── */
-  function renderModuleHeader(modId, icon, title, meta) {
-    return hOpen('div', modAttrs(modId, { class: 'module-header' })) +
-      '<span class="icon">' + esc(icon) + '</span>' +
-      '<div><div class="title">' + esc(title) + '</div>' +
+
+  /* Шапка материала — одна и та же на экране программы и на экране
+     раздела. Подпись под названием: у видеомодуля строка со счётчиками
+     занятий, у остальных — подзаголовок из данных */
+  function renderModuleHeader(data) {
+    var meta = data.lessons ? lessonsMetaLine(data) : (data.subtitle || '');
+    return hOpen('div', modAttrs(data.id, { class: 'module-header' })) +
+      '<span class="icon">' + esc(data.icon) + '</span>' +
+      '<div><div class="title">' + esc(data.title) + '</div>' +
       '<div class="meta">' + esc(meta) + '</div></div></div>';
   }
 
@@ -1432,7 +2131,6 @@
     lessonEl.classList.toggle('open', open);
     const header = lessonEl.querySelector('.lesson-header');
     if (header) header.setAttribute('aria-expanded', open ? 'true' : 'false');
-    savePlace();
   }
 
   /* ── Поведение песочницы ─────────────────────────────── */
@@ -1664,46 +2362,103 @@
     var taskId = task && task.getAttribute('data-task-id');
     if (!taskId || !hasPA) return;
 
-    if (window.PA.store.isSolved(taskId)) window.PA.store.set('tasks', taskId, null);
-    else window.PA.store.markTask(taskId, 'solved');
-
-    var solved = window.PA.store.isSolved(taskId);
-    task.classList.toggle('task-solved', solved);
-    var state = task.querySelector('.task-state');
-    if (state) state.textContent = solved ? '✅ решено' : '';
+    var solved = setBlockSolved(task, taskId, window.PA.store.isSolved(taskId) ? null : 'solved');
     button.textContent = solved ? '✓ Выполнено' : 'Отметить выполненным';
     button.setAttribute('aria-pressed', solved ? 'true' : 'false');
-    refreshProgress();
+  }
+
+  /* Проверка викторины: сверяем выбранный радиокнопкой вариант с
+     data-answer каждого вопроса — без запуска Python, вся логика в
+     браузере. Решена только тогда, когда верны все вопросы разом
+     (частичный успех — это «Верно N из M», а не отметка) */
+  function checkQuiz(quiz) {
+    var fieldsets = quiz.querySelectorAll('.quiz-q');
+    var correct = 0;
+
+    fieldsets.forEach(function (fs) {
+      var answer = parseInt(fs.getAttribute('data-answer'), 10);
+      var picked = fs.querySelector('input[type="radio"]:checked');
+      var selected = picked ? parseInt(picked.value, 10) : -1;
+      if (selected === answer) correct++;
+
+      fs.querySelectorAll('.quiz-option').forEach(function (label, oi) {
+        label.classList.toggle('quiz-option-correct', oi === answer);
+        label.classList.toggle('quiz-option-wrong', oi === selected && oi !== answer);
+      });
+      // Пояснение показывает CSS через .quiz-q.checked (см. styles.css) —
+      // оно уже лежит в разметке (renderQuizQuestion), прятать в JS нечего
+      fs.classList.add('checked');
+    });
+
+    var allCorrect = fieldsets.length > 0 && correct === fieldsets.length;
+    if (allCorrect) setBlockSolved(quiz, quiz.getAttribute('data-quiz-id'), 'solved');
+
+    // Статус пишет sbStatus — тот же .sb-status и те же sb-good/sb-bad,
+    // что у панели песочницы (разметка викторины переиспользует .sb-bar)
+    sbStatus(quiz, allCorrect ? 'Все ответы верны' : 'Верно ' + correct + ' из ' + fieldsets.length,
+      allCorrect ? 'good' : 'bad');
+  }
+
+  /* «Пройти заново»: снимает выбор, подсветку и отметку — тот же смысл,
+     что у «Сбросить» в песочнице (вернуть к исходному состоянию), только
+     сбрасывать больше нечего: черновики ответов викторина не хранила */
+  function resetQuiz(quiz) {
+    setBlockSolved(quiz, quiz.getAttribute('data-quiz-id'), null);
+
+    quiz.querySelectorAll('input[type="radio"]').forEach(function (input) { input.checked = false; });
+    quiz.querySelectorAll('.quiz-q').forEach(function (fs) {
+      fs.classList.remove('checked');
+      fs.querySelectorAll('.quiz-option').forEach(function (label) {
+        label.classList.remove('quiz-option-correct', 'quiz-option-wrong');
+      });
+    });
+    sbStatus(quiz, '');
   }
 
   /* ── Прогресс ученика (этап 4) ───────────────────────── */
 
-  function markTask(sb, solved) {
-    var taskId = sb.getAttribute('data-task-id');
-    if (!taskId || !hasPA) return;
-    window.PA.store.markTask(taskId, solved ? 'solved' : 'tried');
+  /* Единственная точка «отметить решённым / снять отметку»: запись
+     в PA.store, вид карточки и пересчёт прогресса. state — 'solved',
+     'tried' или null, чтобы стереть запись (так снимают отметку
+     «Отметить выполненным» и «Пройти заново»). Возвращает итоговую
+     решённость: её спрашивает кнопка, которая показывает своё состояние. */
+  function setBlockSolved(card, id, state) {
+    if (!id || !hasPA) return false;
+    if (state) window.PA.store.markTask(id, state);
+    else window.PA.store.set('tasks', id, null);
 
-    var task = sb.closest('.task');
-    if (task) {
-      task.classList.toggle('task-solved', window.PA.store.isSolved(taskId));
-      var state = task.querySelector('.task-state');
-      if (state) state.textContent = window.PA.store.isSolved(taskId) ? '✅ решено' : '';
+    var solved = window.PA.store.isSolved(id);
+    if (card) {
+      // Класс решённости назван по карточке: .task → .task-solved,
+      // .quiz → .quiz-solved (правило в styles.css у них общее)
+      card.classList.toggle((card.classList.contains('quiz') ? 'quiz' : 'task') + '-solved', solved);
+      var stateEl = card.querySelector('.task-state');
+      if (stateEl) stateEl.textContent = solved ? '✅ решено' : '';
     }
     refreshProgress();
+    return solved;
   }
 
-  /* Сколько заданий с автопроверкой в модуле и сколько решено */
+  function markTask(sb, solved) {
+    setBlockSolved(sb.closest('.task'), sb.getAttribute('data-task-id'), solved ? 'solved' : 'tried');
+  }
+
+  /* Прогресс по всему модулю — те же счётчики раздела (sectionParts),
+     сложенные по всем разделам: что считается решённым, знает только
+     sectionParts. first — id первого нерешённого блока для «Продолжить». */
   function progressOf(data) {
     var total = 0, solved = 0, first = null;
     (data.sections || []).forEach(function (section) {
-      (section.blocks || []).forEach(function (block) {
-        // Задание без автопроверки («на бумаге») тоже считается: ученик
-        // отмечает его сам, иначе четыре задания курса просто не существуют
-        if (block.type !== 'task' || !block.id) return;
-        total++;
-        if (hasPA && window.PA.store.isSolved(block.id)) solved++;
-        else if (!first) first = { anchor: section.anchor, id: block.id };
+      var parts = sectionParts(section);
+      total += parts.total;
+      solved += parts.solved;
+      if (first) return;
+      // Якорь блока (id="ref-<id>", см. renderTaskBlock и renderQuizBlock) —
+      // «Продолжить» ведёт goToAnchor прямо на его шаг (см. resolveAnchorTarget)
+      var next = (section.blocks || []).find(function (block) {
+        return isGradedBlock(block) && block.id && !(hasPA && window.PA.store.isSolved(block.id));
       });
+      if (next) first = next.id;
     });
     return { total: total, solved: solved, first: first };
   }
@@ -1711,42 +2466,42 @@
   function renderProgressBar(data) {
     var p = progressOf(data);
     if (!p.total) return '';
-    var percent = Math.round(p.solved / p.total * 100);
     return hOpen('div', modAttrs(data.id, { class: 'progress-bar' })) +
-      '<div class="pb-track"><div class="pb-fill" style="width:' + percent + '%"></div></div>' +
+      '<div class="pb-track"><div class="pb-fill" style="width:' + percentOf(p.solved, p.total) + '%"></div></div>' +
       '<div class="pb-text">Решено ' + p.solved + ' из ' + p.total + '</div>' +
       (p.first
-        ? '<button class="pb-continue" type="button" data-anchor="' + esc(p.first.anchor) + '">Продолжить</button>'
+        ? '<button class="pb-continue" type="button" data-anchor="' + esc(p.first) + '">Продолжить</button>'
         : '<span class="pb-done">Все задания модуля решены</span>') +
       '<button class="pb-io" type="button" data-io="export" title="Скачать прогресс файлом">⭳</button>' +
       '<button class="pb-io" type="button" data-io="import" title="Загрузить прогресс из файла">⭱</button>' +
     '</div>';
   }
 
-  /* Перерисовать только индикаторы, не трогая введённый код */
+  /* Перерисовать только индикаторы, не трогая введённый код и живую
+     песочницу — важно после автопроверки/отметки, чтобы работа ученика
+     не пропала. Программа и раздел обновляют каждый свою часть, если
+     она сейчас на экране; лишнее просто не находится и пропускается. */
+  /* Заменить элемент свежей разметкой, если он сейчас на экране */
+  function replaceNode(selector, html) {
+    var node = document.querySelector(selector);
+    if (!node) return;
+    var wrap = document.createElement('div');
+    wrap.innerHTML = html;
+    if (wrap.firstChild) node.replaceWith(wrap.firstChild);
+  }
+
   function refreshProgress() {
     var data = loaded.get(state.activeModule);
     if (!data) return;
-    var bar = document.querySelector('.progress-bar');
-    if (bar) {
-      var wrap = document.createElement('div');
-      wrap.innerHTML = renderProgressBar(data);
-      if (wrap.firstChild) bar.replaceWith(wrap.firstChild);
-    }
-    markSolvedChips(data);
-  }
 
-  /* Галочки на плитках «Быстрого перехода» */
-  function markSolvedChips(data) {
-    (data.sections || []).forEach(function (section) {
-      var tasks = (section.blocks || []).filter(function (b) {
-        return b.type === 'task' && b.id;
-      });
-      if (!tasks.length) return;
-      var done = tasks.every(function (b) { return hasPA && window.PA.store.isSolved(b.id); });
-      document.querySelectorAll('.qn-chip[data-anchor="' + section.anchor + '"]')
-        .forEach(function (chip) { chip.classList.toggle('qn-solved', done); });
-    });
+    replaceNode('.progress-bar', renderProgressBar(data));
+
+    if (state.view === 'section' && data.sections) {
+      var section = data.sections.find(function (s) { return s.anchor === state.section; });
+      if (section) replaceNode('.step-strip-row', renderStepStrip(state.activeModule, section, state.step));
+    }
+
+    renderRail();   // галочка у раздела в дереве панели — тоже часть прогресса
   }
 
   function exportProgress() {
@@ -1768,7 +2523,7 @@
       file.text().then(function (text) {
         try {
           window.PA.store.import(text);
-          loadModule(state.activeModule);
+          renderRoute(currentRoute());
         } catch (e) {
           alert('Не удалось прочитать файл прогресса: ' + e.message);
         }
@@ -1839,16 +2594,47 @@
     ['.sb-check',         (el) => runSandbox(el.closest('.sandbox'), 'check')],
     ['.sb-reset',         (el) => resetSandbox(el.closest('.sandbox'))],
     ['.task-done',        (el) => toggleManualTask(el)],
+    ['.quiz-check',       (el) => checkQuiz(el.closest('.quiz'))],
+    ['.quiz-retry',       (el) => resetQuiz(el.closest('.quiz'))],
     ['.pb-continue',      (el) => goToAnchor(el.getAttribute('data-anchor'))],
     ['.pb-io',            (el) => el.getAttribute('data-io') === 'export' ? exportProgress() : importProgress()],
     ['.solution-toggle',  (el) => toggleSolution(el)],
-    ['.tab-caret',        (el, e) => { e.stopPropagation(); toggleTabMenu(el); }],
-    ['.tab-menu-item',    (el) => goToAnchor(el.getAttribute('data-anchor'))],
-    ['.qn-chip, .ref-link, .rm-step[data-anchor]:not([data-anchor=""])',
-                          (el, e) => { e.preventDefault(); goToAnchor(el.getAttribute('data-anchor')); }],
-    ['.group-tab',        (el) => { closeTabMenu(); switchGroup(el.getAttribute('data-group')); }],
-    ['.tab',              (el) => onTabClick(el)],
+    ['.ref-link',         (el, e) => { e.preventDefault(); goToAnchor(el.getAttribute('data-anchor')); }],
+    ['.rail-item',        (el) => openModuleFrom(el)],
+    ['.rail-view',        (el) => navigate({ view: el.getAttribute('data-view') === 'catalog' ? 'catalog' : 'home' })],
+    ['.catalog-card',     (el) => openModuleFrom(el)],
+    ['.home-continue',    (el) => {
+      const anchor = el.getAttribute('data-anchor');
+      if (anchor) goToAnchor(anchor);
+      else navigate({ view: 'program', mod: modOf(el) });
+    }],
+    ['.pi-open',          (el) => navigate({ view: 'program', mod: modOf(el) })],
+    ['.home-open-catalog', () => navigate({ view: 'catalog' })],
+    ['#rail-toggle',      () => toggleRail()],
     ['.lesson-header',    (el) => setLessonOpen(el.parentElement, !el.parentElement.classList.contains('open'))],
+    // Дерево разделов панели и шаг в раскрытой карточке программы уже
+    // знают точный адрес цели (модуль известен из контекста, раздел и
+    // номер шага — из data-anchor/data-step, см. renderProgramStep) —
+    // переходим напрямую, без круга через поиск по всем материалам
+    ['.rail-sec, .prog-step-btn, .prog-lesson',
+                          (el) => navigate({
+                            view: 'section', mod: modOf(el),
+                            section: el.getAttribute('data-anchor'),
+                            step: parseInt(el.getAttribute('data-step'), 10) || 1
+                          })],
+    // «Назад»/«Далее» под шагом и квадратик полосы шагов несут в data- уже
+    // готовый маршрут (см. renderStepNav/renderStepStrip)
+    ['.sec-nav-btn',      (el) => navigate({
+                            view: el.getAttribute('data-route-view'), mod: modOf(el),
+                            section: el.getAttribute('data-anchor') || undefined,
+                            step: el.getAttribute('data-step') ? parseInt(el.getAttribute('data-step'), 10) : undefined
+                          })],
+    ['.step-sq',          (el) => navigate({
+                            view: 'section', mod: modOf(el),
+                            section: el.getAttribute('data-anchor'),
+                            step: parseInt(el.getAttribute('data-step'), 10)
+                          })],
+    ['.sec-back',         (el) => navigate({ view: 'program', mod: modOf(el) })],
     ['#cert-submit',      () => handleLogin()],
     ['.screenshot-card',  (el) => openLightbox(el.querySelector('img').src, el)],
     ['.lightbox',         () => closeLightbox()],
@@ -1877,14 +2663,6 @@
     const open = solution.classList.toggle('open');
     button.textContent = open ? 'Скрыть разбор' : 'Показать разбор';
     button.setAttribute('aria-expanded', open ? 'true' : 'false');
-  }
-
-  function onTabClick(tab) {
-    const modId = parseInt(tab.getAttribute('data-mod'), 10);
-    if (modId === state.activeModule) return;
-    switchModule(modId);
-    scrollActiveTabIntoView(true);
-    window.scrollTo({ top: 0, behavior: scrollBehavior() });
   }
 
   // Элемент, с которого открыт лайтбокс: закрытие возвращает фокус на него
@@ -1933,14 +2711,16 @@
       if (element) { handler(element, e); return; }
     }
     // Клик мимо — закрываем всплывающее
-    if (!e.target.closest('.tab-menu')) closeTabMenu();
     if (!e.target.closest('.search-box')) closeSearch();
+    // Клик мимо панели её задвигает; по кнопке-открывашке сюда не дойдёт —
+    // такой клик разобран в CLICK_ROUTES выше
+    if (!e.target.closest('.rail')) setRailOpen(false);
   });
 
   document.addEventListener('keydown', function (e) {
     if (e.key === 'Escape') {
       closeLightbox();
-      closeTabMenu();
+      setRailOpen(false);
     }
     // Ловушка фокуса в лайтбоксе: единственный фокусируемый элемент —
     // кнопка закрытия, поэтому Tab/Shift+Tab просто возвращают фокус на неё
@@ -1958,85 +2738,17 @@
     }
     if (e.key === 'Enter' && e.target.id === 'cert-input') handleLogin();
 
-    // Стрелки в ленте вкладок/групп: фокус на соседнюю кнопку и сразу
-    // активируем её — маршруты те же, что и у клика (onTabClick/switchGroup)
-    if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
-      const isGroupTab = e.target.classList.contains('group-tab');
-      const isTab = e.target.classList.contains('tab');
-      if (isGroupTab || isTab) {
-        e.preventDefault();
-        const list = Array.from(document.querySelectorAll(isGroupTab ? '.group-tab' : '.tab'));
-        const idx = list.indexOf(e.target);
-        if (idx === -1) return;
-        const next = list[(idx + (e.key === 'ArrowRight' ? 1 : -1) + list.length) % list.length];
-        // Переключение перерисовывает ленту, поэтому фокус ставим уже
-        // на новую кнопку с тем же data-атрибутом — иначе он пропадёт
-        if (isGroupTab) {
-          const groupId = next.getAttribute('data-group');
-          switchGroup(groupId);
-          const fresh = document.querySelector('.group-tab[data-group="' + groupId + '"]');
-          if (fresh) fresh.focus();
-        } else {
-          const modId = next.getAttribute('data-mod');
-          onTabClick(next);
-          const fresh = document.querySelector('.tab[data-mod="' + modId + '"]');
-          if (fresh) fresh.focus();
-        }
-      }
+    // Стрелки вверх/вниз на пункте панели переводят фокус на соседний
+    // пункт, но не активируют его — Enter/пробел сработают сами, это кнопки
+    if ((e.key === 'ArrowUp' || e.key === 'ArrowDown') && e.target.classList.contains('rail-item')) {
+      e.preventDefault();
+      const list = Array.from(document.querySelectorAll('.rail-item'));
+      const idx = list.indexOf(e.target);
+      if (idx === -1) return;
+      const next = list[(idx + (e.key === 'ArrowDown' ? 1 : -1) + list.length) % list.length];
+      next.focus();
     }
   });
-
-  /* ── Прокрутка ленты вкладок ─────────────────────────── */
-
-  const tabsEl = byId('tabs');
-  tabsEl.addEventListener('scroll', updateTabFades, { passive: true });
-  window.addEventListener('resize', fitTabs);
-
-  // Вертикальное колесо крутит ленту по горизонтали
-  tabsEl.addEventListener('wheel', function (e) {
-    const maxScroll = tabsEl.scrollWidth - tabsEl.clientWidth;
-    if (maxScroll <= 1) return;
-    const delta = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
-    if (!delta) return;
-    // У края отдаём прокрутку странице
-    if ((delta < 0 && tabsEl.scrollLeft <= 0) ||
-        (delta > 0 && tabsEl.scrollLeft >= maxScroll - 1)) return;
-    e.preventDefault();
-    tabsEl.scrollLeft += delta;
-  }, { passive: false });
-
-  // Перетаскивание мышью
-  let drag = { active: false, moved: false, startX: 0, startScroll: 0 };
-
-  tabsEl.addEventListener('pointerdown', function (e) {
-    if (e.button !== 0 || tabsEl.scrollWidth <= tabsEl.clientWidth + 1) return;
-    drag = { active: true, moved: false, startX: e.clientX, startScroll: tabsEl.scrollLeft };
-  });
-
-  tabsEl.addEventListener('pointermove', function (e) {
-    if (!drag.active) return;
-    const dx = e.clientX - drag.startX;
-    if (!drag.moved && Math.abs(dx) < 5) return;    // отличаем клик от перетаскивания
-    if (!drag.moved) {
-      drag.moved = true;
-      tabsEl.classList.add('dragging');
-      tabsEl.setPointerCapture(e.pointerId);
-    }
-    tabsEl.scrollLeft = drag.startScroll - dx;
-  });
-
-  ['pointerup', 'pointercancel', 'pointerleave'].forEach((event) => {
-    tabsEl.addEventListener(event, function () {
-      if (!drag.active) return;
-      drag.active = false;
-      tabsEl.classList.remove('dragging');
-    });
-  });
-
-  byId('tabs-prev').addEventListener('click', () => scrollTabs(-1));
-  byId('tabs-next').addEventListener('click', () => scrollTabs(1));
-
-  if (document.fonts && document.fonts.ready) document.fonts.ready.then(fitTabs);
 
   /* ── Поиск ───────────────────────────────────────────── */
 
@@ -2104,9 +2816,11 @@
     });
   }, { passive: true });
 
+  // Единственный источник отрисовки для обычных переходов (см. navigate()) —
+  // отсюда работают «назад»/«вперёд» браузера бесплатно: они меняют адрес,
+  // адрес порождает hashchange, а дальше всё как после любого другого перехода
   window.addEventListener('hashchange', function () {
-    const anchor = (location.hash || '').replace('#', '');
-    if (anchor) goToAnchor(anchor, false);
+    renderRoute(currentRoute());
   });
 
   /* ── Запуск: сначала манифест, потом всё остальное ───── */
@@ -2130,33 +2844,33 @@
       state.modules = manifest.modules;
       state.searchIndexFile = (manifest.search && manifest.search.index) || 'data/search-index.json';
 
-      // Стартовый модуль каждой группы — первый в её списке
-      state.groups.forEach((group) => {
-        const first = modulesOfGroup(group.id)[0];
-        if (first) state.lastModuleInGroup[group.id] = first.id;
-      });
+      const rawHash = location.hash || '';
+      let startPromise;
 
-      // Возвращаем туда, где ученик закрыл вкладку. Защищённый раздел
-      // без запомненного пароля пропускаем — иначе встретим формой входа
-      const place = hasPA ? window.PA.store.get('ui', 'place', null) : null;
-      const placeMeta = place ? getModuleMeta(place.mod) : null;
-      const canReturn = placeMeta && !(placeMeta.protected && !state.authToken);
+      if (rawHash && rawHash !== '#') {
+        // В адресе уже что-то есть (новый маршрут или старый голый якорь) —
+        // он важнее сохранённого места, разбираем и рисуем прямо его
+        startPromise = renderRoute(parseRoute(rawHash));
+      } else {
+        // Без адреса возвращаем туда, где ученик закрыл вкладку: в материал
+        // (программу или конкретный шаг раздела), в каталог или на «Моё
+        // обучение» (по умолчанию для первого визита). Защищённый без
+        // запомненного пароля и запланированный материал пропускаем —
+        // открыть их всё равно нечем.
+        let route = routeFromPlace(savedPlace());
+        if (route && route.mod) {
+          const placeMeta = getModuleMeta(route.mod);
+          const canReturn = placeMeta && !isPlanned(placeMeta) && !(placeMeta.protected && !state.authToken);
+          if (!canReturn) route = null;
+        }
+        // Адрес выставляем через replaceState — это восстановление места,
+        // а не переход, в историю попадать не должно
+        startPromise = navigate(route || { view: 'home' }, { replace: true });
+      }
 
-      const startModule = canReturn ? place.mod : state.modules[0].id;
-      state.activeModule = startModule;
-      state.activeGroup = groupOfModule(startModule);
-      state.lastModuleInGroup[state.activeGroup] = startModule;
-
-      renderNav();
-      const startAnchor = (location.hash || '').replace('#', '');
-
-      return loadModule(startModule).then(() => {
-        fitTabs();
-        scrollActiveTabIntoView(false);
-        if (startAnchor) goToAnchor(startAnchor, false);
-        savePlace();
-        registerOffline();
-      });
+      // sw.js регистрируем после того, как основной экран отрисован:
+      // его загрузка важнее
+      Promise.resolve(startPromise).then(registerOffline);
     })
     .catch(function (error) {
       byId('content').innerHTML = h('div', { class: 'empty-state' },

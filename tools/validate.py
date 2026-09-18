@@ -5,12 +5,16 @@
     python3 tools/validate.py
 
 Что проверяется:
-  * манифест: уникальность id, наличие файлов, ссылки на существующие группы;
+  * манифест: уникальность id, наличие файлов (кроме status: planned — это
+    карточка «программы вперёд» без контента), ссылки на существующие группы,
+    status/level из известных значений;
   * структура блоков: известный тип, обязательные поля;
   * якоря: уникальность по всем модулям;
   * перекрёстные ссылки [текст](#anchor) ведут на существующий якорь;
   * примеры кода разбираются интерпретатором Python;
   * задания с автопроверкой: схема check, уникальность id;
+  * викторины (quiz): questions (1–10 штук), у каждого вопроса — options
+    (2–6 вариантов), answer в границах options, непустой explain;
   * ЭТАЛОННЫЕ РЕШЕНИЯ ПРОГОНЯЮТСЯ ПРОТИВ СВОИХ ЖЕ ТЕСТОВ;
   * занятия видеомодулей: обязательные поля, id видео, ссылки, скриншоты
     (повтор номера занятия внутри модуля — предупреждение, не ошибка);
@@ -50,6 +54,9 @@ BLOCK_SCHEMA = {
     'warn':      ['text'],
     'task':      ['text'],
     'checklist': ['items'],
+    # id обязателен всегда (не только при наличии check, как у task) —
+    # без него отметку решённости негде хранить в PA.store
+    'quiz':      ['id', 'questions'],
 }
 
 CODE_FIELDS = {'code', 'example', 'solution'}
@@ -57,11 +64,21 @@ CODE_FIELDS = {'code', 'example', 'solution'}
 CHECK_MODES = {'stdout', 'function', 'asserts'}
 SOLUTION_TIMEOUT = 5      # секунд на одно эталонное решение
 
+# Викторина: сколько вопросов в блоке и вариантов в вопросе допустимо
+QUIZ_QUESTIONS_RANGE = range(1, 11)   # от одного до десяти вопросов
+QUIZ_OPTIONS_RANGE = range(2, 7)      # от двух до шести вариантов
+
 # Ключи подписей курсов, для которых в app.js есть русский текст
 KNOWN_TAGS = {
     'free', 'paid', 'easy', 'medium', 'hard', 'heavy',
     'useful', 'super', 'start', 'optional', 'unknown',
 }
+
+# Готовность материала (у карточки «программы вперёд» файла с контентом
+# ещё нет) и уровень сложности — то же, что показывает карточка
+# в каталоге (см. app.js, renderCatalogCard)
+KNOWN_STATUSES = {'ready', 'planned'}
+KNOWN_LEVELS = {'начальный', 'средний', 'продвинутый'}
 LINK_RE = re.compile(r'\]\(#([A-Za-z0-9_-]+)\)')
 # YouTube id — ровно 11 символов; если в поле затесался «&list=...»
 # из скопированной ссылки на плейлист, видео на странице не встанет
@@ -88,6 +105,7 @@ def check_manifest() -> list[dict]:
     manifest = json.loads(path.read_text(encoding='utf-8'))
     group_ids = {g['id'] for g in manifest['groups']}
     seen_ids: set[int] = set()
+    with_file: list[dict] = []
 
     for module in manifest['modules']:
         where = f"модуль {module.get('id')}"
@@ -97,16 +115,31 @@ def check_manifest() -> list[dict]:
 
         if module['group'] not in group_ids:
             error(f"{where}: неизвестная группа {module['group']}")
-        if not (ROOT / module['file']).exists():
-            error(f"{where}: файл {module['file']} не найден")
         if not re.fullmatch(r'#[0-9A-Fa-f]{6}', module.get('color', '')):
             error(f'{where}: цвет должен быть в формате #RRGGBB')
+
+        if module.get('status') not in KNOWN_STATUSES:
+            error(f"{where}: status «{module.get('status')}» не из {sorted(KNOWN_STATUSES)}")
+        if 'level' in module and module['level'] not in KNOWN_LEVELS:
+            error(f"{where}: level «{module['level']}» не из {sorted(KNOWN_LEVELS)}")
+
+        # Карточка-заглушка «программы вперёд»: показывает, что впереди,
+        # контента и файла для неё ещё нет — проверять контент нечем
+        if module.get('status') == 'planned':
+            continue
+
+        if not module.get('file'):
+            error(f'{where}: нет обязательного поля file')
+        elif not (ROOT / module['file']).exists():
+            error(f"{where}: файл {module['file']} не найден")
+        else:
+            with_file.append(module)
 
     for group in manifest['groups']:
         if not any(m['group'] == group['id'] for m in manifest['modules']):
             warn(f"группа {group['id']} пуста")
 
-    return manifest['modules']
+    return with_file
 
 
 def iter_blocks(section: dict):
@@ -121,6 +154,7 @@ def check_content(modules: list[dict]) -> None:
     tasks: list[tuple[str, dict]] = []
     task_ids: dict[str, str] = {}
     lesson_total = video_total = 0
+    quiz_total = question_total = 0
 
     for module in modules:
         data = json.loads((ROOT / module['file']).read_text(encoding='utf-8'))
@@ -182,6 +216,20 @@ def check_content(modules: list[dict]) -> None:
                     elif task_id:
                         task_ids[task_id] = where
 
+                if kind == 'quiz':
+                    quiz_id = block.get('id')
+                    # id обязателен всегда (BLOCK_SCHEMA уже проверил, что поле
+                    # есть) — здесь только уникальность в общем пространстве
+                    # с id заданий и якорями разделов (см. проверку ниже)
+                    if quiz_id:
+                        if quiz_id in task_ids:
+                            error(f'{where}, блок {index}: id «{quiz_id}» '
+                                  f'уже занят в {task_ids[quiz_id]}')
+                        else:
+                            task_ids[quiz_id] = where
+                    quiz_total += 1
+                    question_total += check_quiz(f'{where}, блок {index}', block)
+
                 if block.get('run') is True and block.get('lang', 'python') != 'python':
                     error(f'{where}, блок {index}: run: true у блока с lang='
                           f"{block.get('lang')} — запускать нечем")
@@ -200,6 +248,13 @@ def check_content(modules: list[dict]) -> None:
         lesson_total += l
         video_total += v
 
+    # Раздел, задание и викторина рисуются с одинаковым префиксом id="ref-…",
+    # поэтому совпадение якоря раздела с их id молча уводит переход не туда
+    for task_id, where in task_ids.items():
+        if task_id in anchors:
+            error(f'{where}: id «{task_id}» совпадает с якорем '
+                  f'раздела ({anchors[task_id]}) — переход по нему уведёт не туда')
+
     for link, where in links.items():
         if link not in anchors:
             error(f'{where}: ссылка на несуществующий якорь #{link}')
@@ -210,6 +265,8 @@ def check_content(modules: list[dict]) -> None:
           f'примеров кода: {len(snippets)}')
     if lesson_total:
         print(f'  занятий видеомодулей: {lesson_total}, видео в них: {video_total}')
+    if quiz_total:
+        print(f'  викторин: {quiz_total}, вопросов в них: {question_total}')
 
 
 def check_course_tags(data: dict, title: str) -> None:
@@ -231,6 +288,44 @@ def check_course_tags(data: dict, title: str) -> None:
                     if tag and tag not in KNOWN_TAGS:
                         error(f"{title} / {label}: "
                               f'подпись «{tag}» не переведена')
+
+
+def check_quiz(where: str, block: dict) -> int:
+    """Схема викторины: число вопросов, варианты, индекс ответа, пояснение.
+
+    Возвращает число вопросов в блоке — для статистики в конце прогона.
+    BLOCK_SCHEMA уже проверил, что id и questions на месте; здесь —
+    то, что базовая проверка полей не видит: диапазоны и типы значений.
+    """
+    questions = block.get('questions')
+    if not isinstance(questions, list) or len(questions) not in QUIZ_QUESTIONS_RANGE:
+        error(f'{where}: questions должен быть списком из '
+              f'{QUIZ_QUESTIONS_RANGE.start}..{QUIZ_QUESTIONS_RANGE.stop - 1} вопросов')
+        return 0
+
+    for qi, question in enumerate(questions):
+        qwhere = f'{where}, вопрос {qi}'
+        # Поля независимы: сломанные options не должны прятать пустые
+        # text/explain — иначе прогон покажет только одну ошибку за раз
+        if not question.get('text'):
+            error(f'{qwhere}: не заполнено поле text')
+        if not question.get('explain'):
+            error(f'{qwhere}: не заполнено поле explain')
+
+        options = question.get('options')
+        if not isinstance(options, list) or len(options) not in QUIZ_OPTIONS_RANGE:
+            error(f'{qwhere}: options должен быть списком из '
+                  f'{QUIZ_OPTIONS_RANGE.start}..{QUIZ_OPTIONS_RANGE.stop - 1} вариантов')
+            continue
+
+        answer = question.get('answer')
+        # bool — подкласс int в Python: без явной проверки true/false
+        # из JSON молча сойдёт за индекс 1/0
+        if isinstance(answer, bool) or not isinstance(answer, int) or not (0 <= answer < len(options)):
+            error(f'{qwhere}: answer должен быть целым индексом варианта '
+                  f'(0..{len(options) - 1})')
+
+    return len(questions)
 
 
 def check_roadmap_and_about(data: dict, title: str) -> None:

@@ -56,6 +56,11 @@ def section_text(section: dict) -> str:
         # подсказка и разбор задания — их тоже ищут по ключевым словам
         parts.append(block.get('hint', ''))
         parts.append(block.get('explain', ''))
+        # викторина: вопрос, варианты и пояснение — тоже часть текста раздела
+        for question in block.get('questions', []):
+            parts.append(question.get('text', ''))
+            parts.extend(question.get('options', []))
+            parts.append(question.get('explain', ''))
 
     return clean(' '.join(p for p in parts if p))[:BODY_LIMIT]
 
@@ -69,8 +74,9 @@ def build() -> list[dict]:
     index = []
 
     for module in manifest['modules']:
-        if module.get('protected'):
-            continue        # защищённый раздел в поиск не попадает
+        if module.get('protected') or not module.get('file'):
+            continue        # защищённый раздел и карточка-заглушка без
+                             # файла (status: planned) в поиск не попадают
 
         data = json.loads((ROOT / module['file']).read_text(encoding='utf-8'))
 
@@ -122,7 +128,7 @@ def main() -> int:
 
     manifest = json.loads((DATA / 'manifest.json').read_text(encoding='utf-8'))
     source_size = sum((ROOT / m['file']).stat().st_size
-                      for m in manifest['modules'] if not m.get('protected'))
+                      for m in manifest['modules'] if not m.get('protected') and m.get('file'))
     index_size = OUTPUT.stat().st_size
 
     print(f'Записей в индексе: {len(index)}')
