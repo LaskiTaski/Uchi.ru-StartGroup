@@ -1,0 +1,4 @@
+<div class="compare-grid">
+  {% with item = block.good, kind = 'good' %}{% include "_compare-card.html" %}{% endwith %}
+  {% with item = block.bad, kind = 'bad' %}{% include "_compare-card.html" %}{% endwith %}
+</div>

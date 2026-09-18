@@ -1,0 +1,37 @@
+{# Панель материалов: два экрана-вида и дерево материалов по группам #}
+<div class="rail-views">
+  <a class="rail-view{{ ' active' if rail.active_view == 'home' }}" href="{{ url('home') }}"
+     aria-current="{{ 'page' if rail.active_view == 'home' else 'false' }}">
+    <span class="rail-view-icon">🏠</span><span>Моё обучение</span>
+  </a>
+  <a class="rail-view{{ ' active' if rail.active_view == 'catalog' }}" href="{{ url('catalog') }}"
+     aria-current="{{ 'page' if rail.active_view == 'catalog' else 'false' }}">
+    <span class="rail-view-icon">📚</span><span>Каталог</span>
+  </a>
+</div>
+
+<nav class="rail-nav" role="navigation" aria-label="Материалы">
+  {% for group in rail.groups %}
+    {% if group.modules %}
+      <div class="rail-group">
+        <span class="rail-group-icon">{{ group.icon }}</span>
+        <span class="rail-group-label">{{ group.label }}</span>
+      </div>
+      {% for meta in group.modules %}
+        {% set planned = meta.status == 'planned' %}
+        {% set active = meta.id == rail.active_mod %}
+        <a class="rail-item{{ ' active' if active }}{{ ' rail-item-planned' if planned }}"
+           href="{{ '#' if planned else url('program', args=[meta.id]) }}"
+           aria-current="{{ 'page' if active else 'false' }}"
+           {% if planned %}aria-disabled="true"{% endif %}>
+          <span class="rail-item-icon">{{ meta.icon }}</span>
+          <span class="rail-item-text">
+            <span class="rail-item-label">{{ meta.label }}</span>
+            {% if meta.sub %}<span class="rail-item-sub">{{ meta.sub }}</span>{% endif %}
+          </span>
+          {% if planned %}<span class="rail-item-soon">скоро</span>{% endif %}
+        </a>
+      {% endfor %}
+    {% endif %}
+  {% endfor %}
+</nav>

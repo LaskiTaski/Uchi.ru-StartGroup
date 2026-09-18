@@ -1,0 +1,12 @@
+{# Пример кода. run: true — с песочницей, иначе просто листинг #}
+{% if block.run %}
+  {% with editor_code = block.code, editor_stdin = block.stdin, editor_title = block.title %}
+    {% include "_sandbox.html" %}
+  {% endwith %}
+{% else %}
+  <div class="code-block">
+    {% if block.title %}<div class="code-title">{{ block.title }}</div>{% endif %}
+    <button class="code-copy" type="button">Копировать</button>
+    <pre><code class="lang-{{ block.lang or 'python' }}">{{ block.code }}</code></pre>
+  </div>
+{% endif %}

@@ -1,0 +1,38 @@
+{#
+  Песочница. Подсветка кода сюда не попадает намеренно: она
+  перерисовывается на каждое нажатие клавиши, поэтому живёт на клиенте
+  и никуда с него не уедет. Сервер кладёт голый текст, interactive.js
+  подсвечивает его при загрузке.
+#}
+<div class="sandbox"
+     data-block-key="{{ editor_key|default('') }}"
+     data-start="{{ editor_code }}"
+     data-stdin="{{ editor_stdin|default('') }}"
+     {% if editor_task %}data-task-id="{{ editor_task }}"{% endif %}
+     {% if editor_check %}data-check="{{ editor_check|tojson_attr }}"{% endif %}>
+
+  <div class="pa-editor">
+    <div class="ed-gutter"><span>1</span></div>
+    <div class="ed-area">
+      <pre class="ed-view" aria-hidden="true"><code>{{ editor_code }}</code></pre>
+      <textarea class="ed-input" spellcheck="false" autocapitalize="off"
+                autocomplete="off" wrap="off" aria-label="Код программы">{{ editor_code }}</textarea>
+    </div>
+  </div>
+
+  <div class="sb-stdin{{ '' if editor_stdin else ' hidden' }}">
+    <label class="sb-label">Ввод <span>— по строке на каждый <code class="ic">input()</code></span></label>
+    <textarea class="sb-stdin-input" spellcheck="false" rows="2"
+              aria-label="Данные для ввода">{{ editor_stdin|default('') }}</textarea>
+  </div>
+
+  <div class="sb-bar">
+    <button class="sb-btn sb-run" type="button">▶ Запустить</button>
+    {% if editor_check %}<button class="sb-btn sb-check" type="button">Проверить</button>{% endif %}
+    <button class="sb-btn sb-ghost sb-reset" type="button">Сбросить</button>
+    <span class="sb-status" role="status"></span>
+  </div>
+
+  <div class="sb-output hidden"><div class="sb-out-label">Вывод</div><pre class="sb-out-body"></pre></div>
+  <div class="sb-report hidden"></div>
+</div>

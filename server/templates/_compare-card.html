@@ -1,0 +1,10 @@
+{% if item %}
+<div class="compare-card compare-{{ kind }}">
+  <div class="compare-title">
+    {{ '✅' if kind == 'good' else '❌' }}
+    {{ item.title or ('Можно' if kind == 'good' else 'Нельзя') }}
+  </div>
+  {% if item.text %}<div class="compare-text">{{ item.text|inline }}</div>{% endif %}
+  {% if item.code %}<pre><code class="lang-python">{{ item.code }}</code></pre>{% endif %}
+</div>
+{% endif %}

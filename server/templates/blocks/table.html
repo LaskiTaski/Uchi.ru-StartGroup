@@ -1,0 +1,10 @@
+<div class="note-table-wrap">
+  <table class="note-table">
+    <thead><tr>{% for cell in block.head %}<th>{{ cell|inline }}</th>{% endfor %}</tr></thead>
+    <tbody>
+      {% for row in block.rows %}
+        <tr>{% for cell in row %}<td>{{ cell|inline }}</td>{% endfor %}</tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>

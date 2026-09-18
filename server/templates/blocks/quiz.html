@@ -1,0 +1,34 @@
+{#
+  Викторина. Настоящие радиокнопки: общее имя не даёт выбрать два
+  варианта разом, стрелки ходят между ними сами. Правильный индекс
+  лежит в data-answer — в этом проекте ответ и так не прячется
+  дальше DOM, задания со скрытыми кейсами для этого есть.
+#}
+<div class="quiz" {% if block.id %}id="ref-{{ block.id }}" data-quiz-id="{{ block.id }}"{% endif %}>
+  <div class="task-head">
+    <span class="task-badge">Викторина</span>
+    {% if block.title %}<span class="task-title">{{ block.title }}</span>{% endif %}
+    <span class="task-state"></span>
+  </div>
+
+  {% for q in block.questions %}
+    <fieldset class="quiz-q" data-answer="{{ q.answer }}">
+      <legend class="quiz-q-text">{{ q.text|inline }}</legend>
+      <div class="quiz-options">
+        {% for option in q['options'] %}
+          <label class="quiz-option">
+            <input type="radio" name="quiz-{{ block.id }}-q{{ loop.parent.loop.index0 }}" value="{{ loop.index0 }}">
+            <span>{{ option }}</span>
+          </label>
+        {% endfor %}
+      </div>
+      <div class="quiz-explain">{{ q.explain|inline }}</div>
+    </fieldset>
+  {% endfor %}
+
+  <div class="sb-bar quiz-bar">
+    <button class="sb-btn quiz-check" type="button">Проверить</button>
+    <button class="sb-btn sb-ghost quiz-retry" type="button">Пройти заново</button>
+    <span class="sb-status" role="status"></span>
+  </div>
+</div>

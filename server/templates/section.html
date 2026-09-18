@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block title %}{{ step.title }}{% endblock %}
+
+{% block content %}
+<button class="sec-back" type="button" onclick="location.href='{{ url('program', args=[meta.id]) }}'">← Программа</button>
+
+<div class="sec-head">
+  <div class="sec-title-row">
+    <span class="lesson-num">{{ section.num }}</span>
+    <span class="lesson-title sec-title">{{ section.title }}</span>
+    {% if section.chip %}<span class="chip">{{ section.chip }}</span>{% endif %}
+  </div>
+
+  {# Полоса шагов: квадратик на каждый шаг раздела #}
+  <div class="step-strip-row">
+    <div class="step-strip">
+      {% for s in steps %}
+        <a class="step-sq{{ ' step-task' if s.graded_type == 'task' }}{{ ' step-quiz' if s.graded_type == 'quiz' }}{{ ' step-current' if s.num == step.num }}"
+           href="{{ url('step', args=[meta.id, section.anchor, s.num]) }}"
+           title="{{ s.title }}"
+           {% if s.num == step.num %}aria-current="step"{% endif %}
+           {% if s.task_id %}data-step-task="{{ s.task_id }}"{% endif %}>{{ '?' if s.graded_type == 'quiz' }}</a>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+<div class="sec-body">
+  {% if step.num == 1 and section.desc %}
+    <p class="lesson-desc">{{ section.desc|inline }}</p>
+  {% endif %}
+
+  {% if step.kind == 'theory' and step.title != section.title %}
+    <div class="section-label">{{ step.title }}</div>
+  {% endif %}
+
+  {# Вот он, весь диспетчер типов блоков. Был switch на двенадцать веток #}
+  {% for block in step.blocks %}
+    {% include "blocks/" ~ block.type ~ ".html" ignore missing %}
+  {% endfor %}
+</div>
+
+<div class="sec-nav">
+  {% if nav.back %}
+    <a class="sec-nav-btn sec-nav-prev" href="{{ url('step', args=[meta.id, nav.back.anchor, nav.back.step]) }}">
+      <span class="sec-nav-dir">← Назад</span>
+    </a>
+  {% else %}
+    <span class="sec-nav-empty"></span>
+  {% endif %}
+
+  {% if nav.forward %}
+    <a class="sec-nav-btn sec-nav-next" href="{{ url('step', args=[meta.id, nav.forward.anchor, nav.forward.step]) }}">
+      <span class="sec-nav-dir">Далее →</span>
+    </a>
+  {% else %}
+    <span class="sec-nav-empty"></span>
+  {% endif %}
+</div>
+{% endblock %}

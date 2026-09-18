@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}Каталог{% endblock %}
+
+{% block content %}
+<h1 class="screen-title">Каталог материалов</h1>
+
+{% for group in groups %}
+  {% if group.modules %}
+    <div class="section-divider"></div>
+    <div class="section-label">{{ group.icon }} {{ group.label }}</div>
+    <div class="catalog-grid">
+      {% for meta in group.modules %}
+        {% set planned = meta.status == 'planned' %}
+        <a class="catalog-card{{ ' catalog-card-planned' if planned }}"
+           href="{{ '#' if planned else url('program', args=[meta.id]) }}">
+          <span class="cc-icon">{{ meta.icon }}</span>
+          <span class="cc-label">{{ meta.label }}</span>
+          {% if meta.sub %}<span class="cc-sub">{{ meta.sub }}</span>{% endif %}
+          {% if meta.level %}<span class="tag">{{ meta.level }}</span>{% endif %}
+          {% if planned %}<span class="rail-item-soon">скоро</span>{% endif %}
+        </a>
+      {% endfor %}
+    </div>
+  {% endif %}
+{% endfor %}
+{% endblock %}

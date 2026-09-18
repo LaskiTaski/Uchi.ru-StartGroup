@@ -1,0 +1,6 @@
+<div class="checklist">
+  {% if block.title %}<div class="checklist-title">{{ block.title }}</div>{% endif %}
+  <ul>
+    {% for item in block['items'] %}<li>{{ item|inline }}</li>{% endfor %}
+  </ul>
+</div>

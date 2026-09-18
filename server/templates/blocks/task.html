@@ -1,0 +1,44 @@
+{#
+  Задание: условие, песочница с автопроверкой, подсказка и разбор.
+  Решённость проставит клиентский JS — он читает localStorage и вешает
+  класс .task-solved. Сервер про прогресс не знает и знать не должен.
+#}
+<div class="task" {% if block.id %}id="ref-{{ block.id }}" data-task-id="{{ block.id }}"{% endif %}>
+  <div class="task-head">
+    <span class="task-badge">Задание</span>
+    {% if not block.check and block.id %}<span class="task-kind">вручную</span>{% endif %}
+    {% if block.title %}<span class="task-title">{{ block.title }}</span>{% endif %}
+    <span class="task-state"></span>
+  </div>
+  <div class="task-text">{{ block.text|inline }}</div>
+
+  {% if block.example %}
+    <div class="code-block">
+      <div class="code-title">Пример работы</div>
+      <pre><code class="lang-python">{{ block.example }}</code></pre>
+    </div>
+  {% endif %}
+
+  {% if block.check %}
+    {% with editor_code = block.starter or '', editor_check = block.check,
+            editor_task = block.id, editor_stdin = block.check.stdin %}
+      {% include "_sandbox.html" %}
+    {% endwith %}
+  {% elif block.id %}
+    <button class="task-done" type="button" aria-pressed="false">Отметить выполненным</button>
+  {% endif %}
+
+  {% if block.hint %}
+    <div class="callout callout-note">💡 <span>{{ block.hint|inline }}</span></div>
+  {% endif %}
+
+  {% if block.solution %}
+    <div class="solution">
+      <button class="solution-toggle" type="button" aria-expanded="false">Показать разбор</button>
+      <div class="solution-body">
+        <div class="code-block"><pre><code class="lang-python">{{ block.solution }}</code></pre></div>
+        {% if block.explain %}<p class="note-text">{{ block.explain|inline }}</p>{% endif %}
+      </div>
+    </div>
+  {% endif %}
+</div>
