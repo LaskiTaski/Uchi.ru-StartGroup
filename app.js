@@ -871,7 +871,7 @@
     if (!data) return null;
     for (const section of data.sections || []) {
       if (section.anchor === anchor) return { section: section.anchor, tab: 'theory' };
-      if ((section.blocks || []).some((b) => b.type === 'task' && b.id === anchor)) {
+      if ((section.blocks || []).some((b) => isGradedBlock(b) && b.id === anchor)) {
         return { section: section.anchor, tab: 'practice' };
       }
     }
@@ -1031,6 +1031,10 @@
       if (block.good) parts.push(block.good.title || '', block.good.code || '');
       if (block.bad) parts.push(block.bad.title || '', block.bad.code || '');
       parts.push(block.hint || '', block.explain || '');    // подсказка и разбор задания
+      // Викторина: вопрос, варианты и пояснение — тоже часть текста раздела
+      (block.questions || []).forEach((q) => {
+        parts.push(q.text || '', (q.options || []).join(' '), q.explain || '');
+      });
     });
     return cleanText(parts.join(' '));
   }
@@ -1255,10 +1259,30 @@
     return renderModuleHeader(data) + h('div', { class: 'prog-list' }, rowsHtml) + renderExtraBlock(data);
   }
 
+  /* Оцениваемый блок — задание или викторина: у обоих есть id, отметка
+     решённости в PA.store и место на вкладке практики. Все, кому важно
+     «считается ли блок» — sectionParts, progressOf, renderTabBody,
+     resolveAnchorTarget — спрашивают здесь, а не перечисляют типы у себя. */
+  function isGradedBlock(block) {
+    return block.type === 'task' || block.type === 'quiz';
+  }
+
+  /* Чем оцениваемые блоки отличаются на виду: значок и подпись шага
+     в программе (renderProgramStep), класс и знак квадратика в полосе
+     шагов (renderStepStrip). Свой вид квадратика у викторины — кружок
+     (см. styles.css): по нему её отличают от задания, не открывая шаг.
+     У задания подпись зависит от режима проверки, поэтому её тут нет
+     (см. taskKindLabel). Новый оцениваемый тип — строка сюда и в
+     isGradedBlock, остальной код о нём знать не должен. */
+  const GRADED_BLOCKS = {
+    task: { icon: '📝', title: 'Задание', square: 'step-task', mark: '' },
+    quiz: { icon: '❓', title: 'Викторина', square: 'step-quiz', mark: '?', kind: 'викторина' }
+  };
+
   /* ── Справочники и курсы: разделы с шагами теории и практики ──
      Разбор блоков на теорию/практику происходит на лету, по типу блока —
-     data/*.json не меняется. heading — шаг теории, task — шаг практики,
-     остальные блоки (текст, код, таблица…) — тело шага теории.
+     data/*.json не меняется. heading — шаг теории, оцениваемый блок —
+     шаг практики, остальные блоки (текст, код, таблица…) — тело шага теории.
 
      Один проход даёт всё, что нужно карточке программы, полосе шагов,
      вкладкам и дереву в панели: шаги (каждый знает, решён ли он), число
@@ -1267,15 +1291,15 @@
   function sectionParts(section) {
     var parts = { steps: [], theory: 0, total: 0, solved: 0 };
     (section.blocks || []).forEach(function (block, index) {
-      var isTask = block.type === 'task';
-      if (!isTask && block.type !== 'heading') return;
-      var solved = isTask && !!block.id && hasPA && window.PA.store.isSolved(block.id);
-      if (!isTask) parts.theory++;
+      var graded = isGradedBlock(block);
+      if (!graded && block.type !== 'heading') return;
+      var solved = graded && !!block.id && hasPA && window.PA.store.isSolved(block.id);
+      if (!graded) parts.theory++;
       else if (block.id) {
         parts.total++;
         if (solved) parts.solved++;
       }
-      parts.steps.push({ block: block, index: index, isTask: isTask, solved: solved });
+      parts.steps.push({ block: block, index: index, isGraded: graded, solved: solved });
     });
     return parts;
   }
@@ -1295,17 +1319,18 @@
   }
 
   function renderProgramStep(modId, section, step) {
-    var inner = step.isTask
-      ? h('span', { class: 'prog-step-icon' }, step.solved ? '✅' : '📝') +
-        h('span', { class: 'prog-step-title' }, esc(step.block.title || 'Задание')) +
-        h('span', { class: 'prog-step-kind' }, taskKindLabel(step.block))
+    var view = GRADED_BLOCKS[step.block.type];
+    var inner = step.isGraded
+      ? h('span', { class: 'prog-step-icon' }, step.solved ? '✅' : view.icon) +
+        h('span', { class: 'prog-step-title' }, esc(step.block.title || view.title)) +
+        h('span', { class: 'prog-step-kind' }, view.kind || taskKindLabel(step.block))
       : h('span', { class: 'prog-step-icon' }, '📖') +
         h('span', { class: 'prog-step-title' }, esc(step.block.text)) +
         h('span', { class: 'prog-step-kind' }, 'теория');
 
     return h('button', {
       class: 'prog-step-btn' + (step.solved ? ' prog-step-done' : ''), type: 'button',
-      'data-mod': modId, 'data-anchor': section.anchor, 'data-tab': step.isTask ? 'practice' : 'theory'
+      'data-mod': modId, 'data-anchor': section.anchor, 'data-tab': step.isGraded ? 'practice' : 'theory'
     }, h('span', { class: 'prog-step' }, inner));
   }
 
@@ -1450,12 +1475,13 @@
 
     var squares = '';
     parts.steps.forEach(function (step) {
+      var view = step.isGraded ? GRADED_BLOCKS[step.block.type] : null;
       squares += h('button', {
-        class: 'step-sq' + (step.isTask ? (step.solved ? ' step-done' : ' step-task') : ''),
+        class: 'step-sq' + (view ? (step.solved ? ' step-done' : ' ' + view.square) : ''),
         type: 'button', title: esc(step.block.title || step.block.text || ''),
-        'data-tab': step.isTask ? 'practice' : 'theory',
-        'data-target': step.isTask ? (step.block.id || '') : ('pa-step-' + step.index)
-      }, step.solved ? '✓' : '');
+        'data-tab': step.isGraded ? 'practice' : 'theory',
+        'data-target': step.isGraded ? (step.block.id || '') : ('pa-step-' + step.index)
+      }, step.solved ? '✓' : (view ? view.mark : ''));
     });
 
     return h('div', { class: 'step-strip-row' },
@@ -1490,7 +1516,7 @@
     var practice = tab === 'practice';
     var html = '';
     (section.blocks || []).forEach(function (block, index) {
-      if ((block.type === 'task') !== practice) return;
+      if (isGradedBlock(block) !== practice) return;
       if (block.type === 'heading') {
         html += '<div id="pa-step-' + index + '" class="section-divider"></div>' +
           '<div class="section-label">' + esc(block.text) + '</div>';
@@ -1586,6 +1612,8 @@
         return renderCompareCard('bad', block);
       case 'task':
         return renderTaskBlock(block, ctx, index);
+      case 'quiz':
+        return renderQuizBlock(block);
       case 'checklist':
         var items = '';
         (block.items || []).forEach(function (it) {
@@ -1666,6 +1694,56 @@
         '</div></div>';
     }
     return html + '</div>';
+  }
+
+  /* Викторина: узнавание без ввода кода — там, где задание с автопроверкой
+     избыточно («что напечатает программа?»). Проверяется мгновенно в
+     браузере (без Pyodide), решённость идёт в тот же PA.store, что и
+     задания (см. checkQuiz), поэтому прогресс и экспорт её не отличают.
+     Заголовок и отметка переиспользуют .task-head/.task-badge/.task-state —
+     заводить для них отдельные стили незачем. */
+  function renderQuizBlock(block) {
+    var solved = hasPA && block.id && window.PA.store.isSolved(block.id);
+    var html = '<div class="quiz' + (solved ? ' quiz-solved' : '') + '"' +
+        (block.id ? ' id="ref-' + esc(block.id) + '" data-quiz-id="' + esc(block.id) + '"' : '') + '>' +
+      '<div class="task-head"><span class="task-badge">Викторина</span>' +
+      (block.title ? '<span class="task-title">' + esc(block.title) + '</span>' : '') +
+      '<span class="task-state">' + (solved ? '✅ решено' : '') + '</span></div>';
+
+    (block.questions || []).forEach(function (q, qi) {
+      html += renderQuizQuestion(block.id, qi, q);
+    });
+
+    // Кнопки и статус — те же классы, что у панели песочницы (.sb-bar
+    // и соседи): одна и та же цветовая логика good/bad, без дублирования
+    html += '<div class="sb-bar quiz-bar">' +
+      '<button class="sb-btn quiz-check" type="button">Проверить</button>' +
+      '<button class="sb-btn sb-ghost quiz-retry" type="button">Пройти заново</button>' +
+      '<span class="sb-status" role="status"></span>' +
+    '</div>';
+    return html + '</div>';
+  }
+
+  /* Один вопрос — fieldset/legend с настоящими радиокнопками (доступность
+     без выдумок: общее имя не даёт выбрать два варианта разом, стрелки
+     ходят между вариантами сами). Правильный индекс кладём в data-answer,
+     как renderSandbox кладёт весь check (включая expect скрытых кейсов)
+     в data-check, — в этом проекте ответ и так не прячется дальше DOM.
+     Варианты — сырой текст из данных («<class 'int'>» и подобное),
+     поэтому esc() обязателен. */
+  function renderQuizQuestion(quizId, qi, q) {
+    var name = 'quiz-' + esc(quizId) + '-q' + qi;
+    var optionsHtml = '';
+    (q.options || []).forEach(function (opt, oi) {
+      optionsHtml += '<label class="quiz-option">' +
+        '<input type="radio" name="' + name + '" value="' + oi + '">' +
+        '<span>' + esc(opt) + '</span></label>';
+    });
+    return '<fieldset class="quiz-q" data-answer="' + esc(q.answer) + '">' +
+      '<legend class="quiz-q-text">' + inlineFmt(q.text) + '</legend>' +
+      '<div class="quiz-options">' + optionsHtml + '</div>' +
+      '<div class="quiz-explain">' + inlineFmt(q.explain) + '</div>' +
+    '</fieldset>';
   }
 
   /**
@@ -2167,48 +2245,104 @@
     var taskId = task && task.getAttribute('data-task-id');
     if (!taskId || !hasPA) return;
 
-    if (window.PA.store.isSolved(taskId)) window.PA.store.set('tasks', taskId, null);
-    else window.PA.store.markTask(taskId, 'solved');
-
-    var solved = window.PA.store.isSolved(taskId);
-    task.classList.toggle('task-solved', solved);
-    var state = task.querySelector('.task-state');
-    if (state) state.textContent = solved ? '✅ решено' : '';
+    var solved = setBlockSolved(task, taskId, window.PA.store.isSolved(taskId) ? null : 'solved');
     button.textContent = solved ? '✓ Выполнено' : 'Отметить выполненным';
     button.setAttribute('aria-pressed', solved ? 'true' : 'false');
-    refreshProgress();
+  }
+
+  /* Проверка викторины: сверяем выбранный радиокнопкой вариант с
+     data-answer каждого вопроса — без запуска Python, вся логика в
+     браузере. Решена только тогда, когда верны все вопросы разом
+     (частичный успех — это «Верно N из M», а не отметка) */
+  function checkQuiz(quiz) {
+    var fieldsets = quiz.querySelectorAll('.quiz-q');
+    var correct = 0;
+
+    fieldsets.forEach(function (fs) {
+      var answer = parseInt(fs.getAttribute('data-answer'), 10);
+      var picked = fs.querySelector('input[type="radio"]:checked');
+      var selected = picked ? parseInt(picked.value, 10) : -1;
+      if (selected === answer) correct++;
+
+      fs.querySelectorAll('.quiz-option').forEach(function (label, oi) {
+        label.classList.toggle('quiz-option-correct', oi === answer);
+        label.classList.toggle('quiz-option-wrong', oi === selected && oi !== answer);
+      });
+      // Пояснение показывает CSS через .quiz-q.checked (см. styles.css) —
+      // оно уже лежит в разметке (renderQuizQuestion), прятать в JS нечего
+      fs.classList.add('checked');
+    });
+
+    var allCorrect = fieldsets.length > 0 && correct === fieldsets.length;
+    if (allCorrect) setBlockSolved(quiz, quiz.getAttribute('data-quiz-id'), 'solved');
+
+    // Статус пишет sbStatus — тот же .sb-status и те же sb-good/sb-bad,
+    // что у панели песочницы (разметка викторины переиспользует .sb-bar)
+    sbStatus(quiz, allCorrect ? 'Все ответы верны' : 'Верно ' + correct + ' из ' + fieldsets.length,
+      allCorrect ? 'good' : 'bad');
+  }
+
+  /* «Пройти заново»: снимает выбор, подсветку и отметку — тот же смысл,
+     что у «Сбросить» в песочнице (вернуть к исходному состоянию), только
+     сбрасывать больше нечего: черновики ответов викторина не хранила */
+  function resetQuiz(quiz) {
+    setBlockSolved(quiz, quiz.getAttribute('data-quiz-id'), null);
+
+    quiz.querySelectorAll('input[type="radio"]').forEach(function (input) { input.checked = false; });
+    quiz.querySelectorAll('.quiz-q').forEach(function (fs) {
+      fs.classList.remove('checked');
+      fs.querySelectorAll('.quiz-option').forEach(function (label) {
+        label.classList.remove('quiz-option-correct', 'quiz-option-wrong');
+      });
+    });
+    sbStatus(quiz, '');
   }
 
   /* ── Прогресс ученика (этап 4) ───────────────────────── */
 
-  function markTask(sb, solved) {
-    var taskId = sb.getAttribute('data-task-id');
-    if (!taskId || !hasPA) return;
-    window.PA.store.markTask(taskId, solved ? 'solved' : 'tried');
+  /* Единственная точка «отметить решённым / снять отметку»: запись
+     в PA.store, вид карточки и пересчёт прогресса. state — 'solved',
+     'tried' или null, чтобы стереть запись (так снимают отметку
+     «Отметить выполненным» и «Пройти заново»). Возвращает итоговую
+     решённость: её спрашивает кнопка, которая показывает своё состояние. */
+  function setBlockSolved(card, id, state) {
+    if (!id || !hasPA) return false;
+    if (state) window.PA.store.markTask(id, state);
+    else window.PA.store.set('tasks', id, null);
 
-    var task = sb.closest('.task');
-    if (task) {
-      task.classList.toggle('task-solved', window.PA.store.isSolved(taskId));
-      var state = task.querySelector('.task-state');
-      if (state) state.textContent = window.PA.store.isSolved(taskId) ? '✅ решено' : '';
+    var solved = window.PA.store.isSolved(id);
+    if (card) {
+      // Класс решённости назван по карточке: .task → .task-solved,
+      // .quiz → .quiz-solved (правило в styles.css у них общее)
+      card.classList.toggle((card.classList.contains('quiz') ? 'quiz' : 'task') + '-solved', solved);
+      var stateEl = card.querySelector('.task-state');
+      if (stateEl) stateEl.textContent = solved ? '✅ решено' : '';
     }
     refreshProgress();
+    return solved;
   }
 
-  /* Сколько заданий с автопроверкой в модуле и сколько решено */
+  function markTask(sb, solved) {
+    setBlockSolved(sb.closest('.task'), sb.getAttribute('data-task-id'), solved ? 'solved' : 'tried');
+  }
+
+  /* Прогресс по всему модулю — те же счётчики раздела (sectionParts),
+     сложенные по всем разделам: что считается решённым, знает только
+     sectionParts. first — id первого нерешённого блока для «Продолжить». */
   function progressOf(data) {
     var total = 0, solved = 0, first = null;
     (data.sections || []).forEach(function (section) {
-      (section.blocks || []).forEach(function (block) {
-        // Задание без автопроверки («на бумаге») тоже считается: ученик
-        // отмечает его сам, иначе четыре задания курса просто не существуют
-        if (block.type !== 'task' || !block.id) return;
-        total++;
-        if (hasPA && window.PA.store.isSolved(block.id)) solved++;
-        // Якорь задания (id="ref-<id>", см. renderTaskBlock) — «Продолжить»
-        // ведёт goToAnchor прямо на него, а тот сам откроет вкладку практики
-        else if (!first) first = { anchor: section.anchor, id: block.id };
+      var parts = sectionParts(section);
+      total += parts.total;
+      solved += parts.solved;
+      if (first) return;
+      // Якорь блока (id="ref-<id>", см. renderTaskBlock и renderQuizBlock) —
+      // «Продолжить» ведёт goToAnchor прямо на него, а тот сам откроет
+      // вкладку практики (см. resolveAnchorTarget)
+      var next = parts.steps.find(function (step) {
+        return step.isGraded && step.block.id && !step.solved;
       });
+      if (next) first = next.block.id;
     });
     return { total: total, solved: solved, first: first };
   }
@@ -2220,7 +2354,7 @@
       '<div class="pb-track"><div class="pb-fill" style="width:' + percentOf(p.solved, p.total) + '%"></div></div>' +
       '<div class="pb-text">Решено ' + p.solved + ' из ' + p.total + '</div>' +
       (p.first
-        ? '<button class="pb-continue" type="button" data-anchor="' + esc(p.first.id) + '">Продолжить</button>'
+        ? '<button class="pb-continue" type="button" data-anchor="' + esc(p.first) + '">Продолжить</button>'
         : '<span class="pb-done">Все задания модуля решены</span>') +
       '<button class="pb-io" type="button" data-io="export" title="Скачать прогресс файлом">⭳</button>' +
       '<button class="pb-io" type="button" data-io="import" title="Загрузить прогресс из файла">⭱</button>' +
@@ -2347,6 +2481,8 @@
     ['.sb-check',         (el) => runSandbox(el.closest('.sandbox'), 'check')],
     ['.sb-reset',         (el) => resetSandbox(el.closest('.sandbox'))],
     ['.task-done',        (el) => toggleManualTask(el)],
+    ['.quiz-check',       (el) => checkQuiz(el.closest('.quiz'))],
+    ['.quiz-retry',       (el) => resetQuiz(el.closest('.quiz'))],
     ['.pb-continue',      (el) => goToAnchor(el.getAttribute('data-anchor'))],
     ['.pb-io',            (el) => el.getAttribute('data-io') === 'export' ? exportProgress() : importProgress()],
     ['.solution-toggle',  (el) => toggleSolution(el)],

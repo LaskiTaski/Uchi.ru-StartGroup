@@ -645,6 +645,84 @@ const ok = (name, cond, extra='') => { cond ? pass++ : fail++; console.log(`${co
   ok('редактор заполнен исходником',
      runBlock !== null && runBlock.querySelector('.ed-input').value === runBlock.getAttribute('data-code'));
 
+  console.log('\nВИКТОРИНА');
+  // Третий тип блока практики наравне с task — проверка на узнавание без
+  // ввода кода. Раздел «map» модуля 6 (data/notes.json, quiz-types-1)
+  await goSection('map', 'practice');
+  const quizBox = q('.quiz[data-quiz-id="quiz-types-1"]');
+  ok('викторина отрисована на вкладке практики', quizBox !== null);
+
+  const quizQuestions = quizBox ? [...quizBox.querySelectorAll('.quiz-q')] : [];
+  ok('в викторине три вопроса', quizQuestions.length === 3, quizQuestions.length + '');
+  const quizRadios = quizBox ? [...quizBox.querySelectorAll('input[type="radio"]')] : [];
+  ok('варианты — радиокнопки', quizRadios.length > 0 && quizRadios.every((r) => r.type === 'radio'));
+  ok('в полосе шагов викторина отличается видом от задания',
+     q('.step-sq.step-quiz') !== null && q('.step-sq.step-task') !== null &&
+     q('.step-sq.step-quiz') !== q('.step-sq.step-task'));
+
+  // Отвечаем неверно на первый вопрос, на остальные — верно: викторина
+  // решённой быть не должна, но пояснения должны появиться у всех
+  quizQuestions.forEach((fs, i) => {
+    const correctIdx = parseInt(fs.getAttribute('data-answer'), 10);
+    const wrongIdx = correctIdx === 0 ? 1 : 0;
+    const pick = i === 0 ? wrongIdx : correctIdx;
+    fs.querySelectorAll('input[type="radio"]')[pick].checked = true;
+  });
+  quizBox.querySelector('.quiz-check').dispatchEvent(new w.MouseEvent('click', {bubbles:true}));
+  await wait(50);
+
+  ok('неверный вариант подсвечен красным', quizBox.querySelector('.quiz-option-wrong') !== null);
+  ok('правильный вариант подсвечен зелёным', quizBox.querySelector('.quiz-option-correct') !== null);
+  ok('под вопросом появилось пояснение',
+     quizQuestions[0].classList.contains('checked') &&
+     quizQuestions[0].querySelector('.quiz-explain').textContent.trim().length > 0);
+  ok('счёт «Верно 2 из 3»', quizBox.querySelector('.sb-status').textContent === 'Верно 2 из 3',
+     quizBox.querySelector('.sb-status').textContent);
+  ok('викторина с ошибкой не отмечена решённой',
+     w.PA.store.isSolved('quiz-types-1') === false && !quizBox.classList.contains('quiz-solved'));
+
+  // Прогресс раздела и материала до полного прохождения — точка отсчёта
+  const stripBefore = q('.step-strip-count')?.textContent || '';
+  q('.sec-back').dispatchEvent(new w.MouseEvent('click', {bubbles:true}));
+  await wait(300);
+  const barBefore = (q('.pb-text')?.textContent || '').match(/Решено (\d+) из (\d+)/);
+
+  // Отвечаем верно на все три вопроса
+  await goSection('map', 'practice');
+  const quizBox2 = q('.quiz[data-quiz-id="quiz-types-1"]');
+  [...quizBox2.querySelectorAll('.quiz-q')].forEach((fs) => {
+    const correctIdx = parseInt(fs.getAttribute('data-answer'), 10);
+    fs.querySelectorAll('input[type="radio"]')[correctIdx].checked = true;
+  });
+  quizBox2.querySelector('.quiz-check').dispatchEvent(new w.MouseEvent('click', {bubbles:true}));
+  await wait(50);
+
+  ok('верные ответы на все вопросы отмечают викторину решённой', w.PA.store.isSolved('quiz-types-1') === true);
+  ok('карточка викторины помечена решённой', quizBox2.classList.contains('quiz-solved'));
+  ok('статус — «Все ответы верны»', quizBox2.querySelector('.sb-status').textContent === 'Все ответы верны');
+  ok('счётчик раздела вырос после решения викторины',
+     (q('.step-strip-count')?.textContent || '') !== stripBefore, q('.step-strip-count')?.textContent);
+
+  q('.sec-back').dispatchEvent(new w.MouseEvent('click', {bubbles:true}));
+  await wait(300);
+  const barAfter = (q('.pb-text')?.textContent || '').match(/Решено (\d+) из (\d+)/);
+  ok('прогресс материала растёт после решения викторины',
+     !!barBefore && !!barAfter && parseInt(barAfter[1], 10) === parseInt(barBefore[1], 10) + 1,
+     `${barBefore && barBefore[0]} -> ${barAfter && barAfter[0]}`);
+
+  // «Пройти заново» сбрасывает ответы и снимает отметку
+  await goSection('map', 'practice');
+  const quizBox3 = q('.quiz[data-quiz-id="quiz-types-1"]');
+  quizBox3.querySelector('.quiz-retry').dispatchEvent(new w.MouseEvent('click', {bubbles:true}));
+  await wait(50);
+  ok('«Пройти заново» снимает отметку', w.PA.store.isSolved('quiz-types-1') === false);
+  ok('«Пройти заново» сбрасывает выбранные варианты',
+     [...quizBox3.querySelectorAll('input[type="radio"]')].every((r) => !r.checked));
+  ok('«Пройти заново» убирает подсветку и пояснение',
+     quizBox3.querySelector('.quiz-option-correct') === null &&
+     quizBox3.querySelector('.quiz-option-wrong') === null &&
+     [...quizBox3.querySelectorAll('.quiz-q')].every((fs) => !fs.classList.contains('checked')));
+
   console.log('\nЗАДАНИЯ БЕЗ КОДА');
   q('.rail-item[data-mod="9"]').dispatchEvent(new w.MouseEvent('click', {bubbles:true}));
   await wait(400);

@@ -887,7 +887,10 @@ code, pre, .ic { font-variant-ligatures: none; font-feature-settings: "liga" 0, 
   font-size: 10px; line-height: 1; font-weight: 700; color: #0B0E16; cursor: pointer;
   transition: filter 0.15s;
 }
-.step-sq.step-task { background: none; border-color: var(--mod-color); }
+.step-sq.step-task, .step-sq.step-quiz { background: none; border-color: var(--mod-color); }
+/* Викторина — кружок вместо квадрата: видно с первого взгляда, не
+   открывая шаг, что это узнавание, а не задание с кодом */
+.step-sq.step-quiz { border-radius: 50%; border-style: dashed; }
 .step-sq.step-done { background: var(--good); border-color: var(--good); }
 .step-sq:hover { filter: brightness(1.25); }
 
@@ -928,7 +931,9 @@ code, pre, .ic { font-variant-ligatures: none; font-feature-settings: "liga" 0, 
 }
 
 /* ── Практическое задание ──────────────────────────────── */
-.task {
+/* Карточка задания и карточка викторины выглядят одинаково: отличается
+   только то, что внутри (см. «Викторина» ниже) */
+.task, .quiz {
   margin: 14px 0; padding: 16px 18px; border-radius: 12px;
   background: rgba(255,255,255,0.02);
   border: 1px solid var(--border);
@@ -1180,9 +1185,43 @@ code, pre, .ic { font-variant-ligatures: none; font-feature-settings: "liga" 0, 
   color: #34D399; border-color: rgba(52,211,153,0.35); background: rgba(52,211,153,0.08);
 }
 
-/* Решённое задание */
+/* Решённое задание или викторина */
 .task-state { font-size: 11px; color: #34D399; margin-left: auto; }
-.task-solved { border-left-color: #34D399; }
+.task-solved, .quiz-solved { border-left-color: #34D399; }
+
+/* ── Викторина ─────────────────────────────────────────────
+   Карточка описана вместе с .task, заголовок переиспользует
+   .task-head/.task-badge/.task-state, кнопки и статус —
+   .sb-bar/.sb-btn/.sb-status песочницы: своих стилей под них не заводим. */
+.quiz-q { border: 0; margin: 16px 0 0; }
+.quiz-q-text {
+  font-size: 13.5px; font-weight: 600; color: var(--text-bright);
+  line-height: 1.6; margin-bottom: 8px;
+}
+
+.quiz-options { display: flex; flex-direction: column; gap: 6px; }
+.quiz-option {
+  display: flex; align-items: baseline; gap: 8px;
+  padding: 8px 10px; border-radius: 8px; cursor: pointer;
+  border: 1px solid var(--border); background: rgba(255,255,255,0.015);
+  font-size: 13px; color: var(--text); transition: border-color 0.15s, background 0.15s;
+}
+.quiz-option:hover { border-color: var(--border-active); }
+.quiz-option input[type="radio"] { accent-color: var(--mod-color); cursor: pointer; flex-shrink: 0; }
+
+.quiz-option-correct { border-color: rgba(52,211,153,0.4); background: rgba(52,211,153,0.08); }
+.quiz-option-wrong   { border-color: rgba(248,113,113,0.4); background: rgba(248,113,113,0.08); }
+
+/* Пояснение лежит в разметке сразу (renderQuizQuestion), но видно только
+   после «Проверить» — класс .checked ставит checkQuiz() в app.js */
+.quiz-explain {
+  display: none; margin-top: 8px; padding: 8px 12px; border-radius: 8px;
+  background: rgba(255,255,255,0.03); font-size: 12.5px;
+  line-height: 1.6; color: var(--text-dim);
+}
+.quiz-q.checked .quiz-explain { display: block; }
+
+.quiz-bar { margin-top: 14px; border-radius: 8px; }
 
 /* ── Прогресс по модулю ────────────────────────────────── */
 .progress-bar {

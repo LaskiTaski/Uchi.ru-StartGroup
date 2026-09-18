@@ -56,6 +56,11 @@ def section_text(section: dict) -> str:
         # подсказка и разбор задания — их тоже ищут по ключевым словам
         parts.append(block.get('hint', ''))
         parts.append(block.get('explain', ''))
+        # викторина: вопрос, варианты и пояснение — тоже часть текста раздела
+        for question in block.get('questions', []):
+            parts.append(question.get('text', ''))
+            parts.extend(question.get('options', []))
+            parts.append(question.get('explain', ''))
 
     return clean(' '.join(p for p in parts if p))[:BODY_LIMIT]
 
