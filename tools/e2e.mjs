@@ -64,15 +64,20 @@ class FakeWorker {
 }
 w.Worker = FakeWorker;
 
-// Заглушка service worker: jsdom его не умеет, а проверить нужно только
-// то, что app.js вызывает register() с правильным относительным путём.
-// Окно создано с url: 'http://localhost/' (см. выше) — протокол http,
-// поэтому регистрация в registerOffline() должна отработать.
-let registeredSw = null;
+// Заглушка service worker: jsdom его не умеет. Офлайн-режим убран,
+// и проверяем ровно одно — страница снимает регистрацию у тех, кто
+// заходил раньше, иначе они навсегда остались бы на старой оболочке.
+let swUnregistered = false;
+const fakeRegistration = { unregister: () => { swUnregistered = true; return Promise.resolve(true); } };
 Object.defineProperty(w.navigator, 'serviceWorker', {
-  value: { register: (url) => { registeredSw = url; return Promise.resolve({}); } },
+  value: { getRegistrations: () => Promise.resolve([fakeRegistration]) },
   configurable: true
 });
+let deletedCaches = [];
+w.caches = {
+  keys: () => Promise.resolve(['pa-shell-v1', 'pa-data-v1', 'чужой-кеш']),
+  delete: (name) => { deletedCaches.push(name); return Promise.resolve(true); }
+};
 
 w.eval(fs.readFileSync(P + 'sandbox.js', 'utf8'));
 w.eval(fs.readFileSync(P + 'app.js', 'utf8'));
@@ -598,38 +603,14 @@ const ok = (name, cond, extra='') => { cond ? pass++ : fail++; console.log(`${co
   ok('в print-блоке .lesson-body раскрывается (display: block)',
      /\.lesson-body\s*\{\s*display:\s*block/.test(cssText));
 
-  console.log('\nОФЛАЙН');
-  ok('service worker регистрируется с ./sw.js', registeredSw === './sw.js', String(registeredSw));
-
-  const manifestLink = q('link[rel="manifest"]');
-  ok('link rel="manifest" указывает на manifest.webmanifest',
-     !!manifestLink && manifestLink.getAttribute('href') === 'manifest.webmanifest');
-
-  let webmanifest = null;
-  try { webmanifest = JSON.parse(fs.readFileSync(P + 'manifest.webmanifest', 'utf8')); } catch (e) { webmanifest = null; }
-  ok('manifest.webmanifest — валидный JSON', webmanifest !== null);
-  ok('start_url — "."', !!webmanifest && webmanifest.start_url === '.');
-  const manifestIcon = webmanifest && Array.isArray(webmanifest.icons) ? webmanifest.icons[0] : null;
-  ok('иконка указана в манифесте', !!manifestIcon && !!manifestIcon.src);
-  ok('файл иконки существует', !!manifestIcon && fs.existsSync(P + manifestIcon.src));
-
-  const swText = fs.readFileSync(P + 'sw.js', 'utf8');
-  let swSyntaxOk = true;
-  try { new w.Function(swText); } catch (e) { swSyntaxOk = false; }
-  ok('sw.js синтаксически корректен', swSyntaxOk);
-  ok('в sw.js нет абсолютных путей от корня', !/["']\/(?!\/)/.test(swText), swText.match(/["']\/(?!\/)[^"']*/)?.[0] || '');
-  ok('sw.js кеширует Pyodide с cdn.jsdelivr.net', swText.includes('cdn.jsdelivr.net') && swText.includes('pyodide'));
-
-  // Оболочка офлайна: всё, что index.html грузит со своего же сайта, обязано
-  // лежать в PRECACHE_SHELL. Забытый там новый файл ломает работу без сети
-  // молча — на сети всё выглядит исправным, поэтому проверяем составом.
-  const localAssets = [...d.querySelectorAll('script[src], link[href]')]
-    .map((el) => el.getAttribute('src') || el.getAttribute('href'))
-    .filter((u) => u && !/^(https?:|data:|#)/.test(u));
-  const notPrecached = localAssets.filter((u) => !swText.includes("'" + u + "'"));
-  ok('всё, что index.html грузит со своего сайта, есть в PRECACHE_SHELL',
-     localAssets.length > 0 && notPrecached.length === 0,
-     notPrecached.length ? 'нет в кеше: ' + notPrecached.join(', ') : localAssets.join(', '));
+  console.log('\nСТАРЫЙ SERVICE WORKER СНИМАЕТСЯ');
+  ok('регистрация снята у тех, кто заходил раньше', swUnregistered === true);
+  ok('наши кеши удалены, чужие не тронуты',
+     deletedCaches.includes('pa-shell-v1') && deletedCaches.includes('pa-data-v1') &&
+     !deletedCaches.includes('чужой-кеш'), deletedCaches.join(', '));
+  ok('манифеста приложения больше нет', q('link[rel="manifest"]') === null);
+  ok('файлов офлайна нет в репозитории',
+     !fs.existsSync(P + 'sw.js') && !fs.existsSync(P + 'manifest.webmanifest'));
 
   console.log('\nВВОД И ВЫВОД');
   // «num-read» и «num-sum» — теперь два разных шага раздела «numbers»,

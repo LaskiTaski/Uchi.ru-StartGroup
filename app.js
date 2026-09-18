@@ -2874,12 +2874,21 @@
   // Подсветка в проекте одна: редактор пользуется той же функцией
   if (hasPA) window.PA.setHighlighter(highlightPy);
 
-  // На file:// воркер не регистрируется (нет http-источника), а ошибку
-  // регистрации ученику показывать незачем — без офлайн-кеша страница
-  // и так работает как обычно, просто без сети не откроется.
-  function registerOffline() {
-    if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) {
-      navigator.serviceWorker.register('./sw.js').catch(function () {});
+  /* Офлайн-режим убран, но у тех, кто заходил раньше, service worker
+     остался установленным и продолжал бы отдавать замороженную оболочку
+     из кеша. Поэтому страница снимает регистрацию и чистит наши кеши
+     сама — один раз у каждого такого ученика. Через месяц после выката
+     эту функцию и её вызов можно удалить. */
+  function dropServiceWorker() {
+    if ('serviceWorker' in navigator && navigator.serviceWorker.getRegistrations) {
+      navigator.serviceWorker.getRegistrations()
+        .then((list) => list.forEach((reg) => reg.unregister()))
+        .catch(() => {});
+    }
+    if (window.caches && caches.keys) {
+      caches.keys()
+        .then((names) => names.forEach((n) => n.indexOf('pa-') === 0 && caches.delete(n)))
+        .catch(() => {});
     }
   }
 
@@ -2914,9 +2923,8 @@
         startPromise = navigate(route || { view: 'home' }, { replace: true });
       }
 
-      // sw.js регистрируем после того, как основной экран отрисован:
-      // его загрузка важнее
-      Promise.resolve(startPromise).then(registerOffline);
+      // Чистку старого service worker делаем после отрисовки: экран важнее
+      Promise.resolve(startPromise).then(dropServiceWorker);
     })
     .catch(function (error) {
       byId('content').innerHTML = h('div', { class: 'empty-state' },

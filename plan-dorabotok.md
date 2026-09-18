@@ -159,9 +159,7 @@
       поиск как `combobox`/`listbox`, skip-link, `:focus-visible`,
       `prefers-reduced-motion` в CSS и в прокрутке
 - [x] Спойлеры разбора — `<button aria-expanded>` (попутно с этапом 2)
-- [x] Офлайн: `sw.js` (network-first для своих файлов, cache-first для Pyodide
-      с CDN, включая opaque-ответы `importScripts`) + `manifest.webmanifest`
-      + `icons/icon.svg`; только относительные URL — сайт живёт в подпапке
+- [~] Офлайн: сделан 11.09, снят 18.09 по решению автора — service worker, веб-манифест и иконка приложения удалены
 - [x] `@media print` (светлая шпаргалка, разборы остаются скрытыми),
       `description`, Open Graph, `theme-color`, SVG-favicon, `youtube-nocookie`
 
