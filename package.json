@@ -7,7 +7,9 @@
     "index": "python tools/build_search_index.py",
     "index:check": "python tools/build_search_index.py --check",
     "e2e": "node tools/e2e.mjs",
-    "test": "npm run validate && npm run index:check && npm run e2e"
+    "test": "npm run validate && npm run index:check && npm run e2e && npm run snapshot",
+    "snapshot": "node tools/snapshot.mjs",
+    "snapshot:update": "node tools/snapshot.mjs --update"
   },
   "devDependencies": {
     "jsdom": "^29.1.1"

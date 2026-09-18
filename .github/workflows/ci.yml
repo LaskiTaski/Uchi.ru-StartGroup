@@ -29,3 +29,6 @@ jobs:
 
       - name: Сквозной тест интерфейса
         run: node tools/e2e.mjs
+
+      - name: Разметка не изменилась
+        run: node tools/snapshot.mjs
