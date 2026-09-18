@@ -18,6 +18,8 @@
   --font: 'Outfit', sans-serif;
   --mono: 'JetBrains Mono', monospace;
   --radius: 12px;
+  /* Единый «зелёный успеха» — решённое задание, кольцо прогресса и т.п. */
+  --good: #34D399;
   /* Высота шапки: от неё пляшет прилипшая панель слева */
   --header-h: 84px;
   --anim: 0.25s ease;
@@ -338,8 +340,8 @@ textarea:focus-visible, select:focus-visible, [tabindex]:focus-visible {
 .rail-sec-num { font-family: var(--mono); font-size: 10px; color: var(--text-muted); flex-shrink: 0; }
 .rail-sec-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
-/* Галочка решённого раздела — тот же приём, что у .qn-chip.qn-solved */
-.rail-sec.rail-sec-done .rail-sec-title::after { content: ' ✓'; color: #34D399; }
+/* Галочка решённого раздела в дереве панели */
+.rail-sec.rail-sec-done .rail-sec-title::after { content: ' ✓'; color: var(--good); }
 
 /* Кнопка-гамбургер: видна только на узком экране (см. медиа-запрос ниже) */
 .rail-toggle {
@@ -746,36 +748,6 @@ code, pre, .ic { font-variant-ligatures: none; font-feature-settings: "liga" 0, 
 .callout-note { color: #93C5FD; background: rgba(96,165,250,0.06); border: 1px solid rgba(96,165,250,0.15); }
 .callout-warn { color: #FCD34D; background: rgba(251,191,36,0.06); border: 1px solid rgba(251,191,36,0.15); }
 
-/* ── Быстрый переход внутри справочника ────────────────── */
-.quick-nav {
-  margin-bottom: 20px; padding: 18px 20px; border-radius: 14px;
-  background: rgba(255,255,255,0.02); border: 1px solid var(--border);
-}
-
-.qn-title {
-  font-family: var(--mono); font-size: 10px; font-weight: 700;
-  text-transform: uppercase; letter-spacing: 0.12em;
-  color: var(--text-dim); margin-bottom: 12px;
-}
-
-.qn-grid { display: flex; flex-wrap: wrap; gap: 8px; }
-
-.qn-chip {
-  display: flex; flex-direction: column; align-items: flex-start; gap: 2px;
-  padding: 9px 14px; border-radius: 10px; cursor: pointer;
-  background: rgba(from var(--mod-color) r g b / 0.06);
-  border: 1px solid rgba(from var(--mod-color) r g b / 0.18);
-  transition: all 0.15s;
-}
-.qn-chip:hover {
-  background: rgba(from var(--mod-color) r g b / 0.14);
-  border-color: rgba(from var(--mod-color) r g b / 0.45);
-  transform: translateY(-2px);
-}
-
-.qn-code { font-family: var(--mono); font-size: 13px; font-weight: 700; color: var(--mod-color); }
-.qn-note { font-family: var(--font); font-size: 10.5px; color: var(--text-muted); }
-
 /* ── Ссылки-якоря внутри текста конспекта ──────────────── */
 .ref-link {
   color: var(--mod-color); cursor: pointer; text-decoration: none;
@@ -804,7 +776,7 @@ code, pre, .ic { font-variant-ligatures: none; font-feature-settings: "liga" 0, 
 
 /* Запасные цвета для браузеров без rgba(from ...) */
 @supports not (color: rgb(from white r g b)) {
-  .qn-code, .ref-link, .sec-chip { color: var(--mod-color); }
+  .ref-link, .sec-chip { color: var(--mod-color); }
 }
 
 @keyframes refFlash {
@@ -833,43 +805,127 @@ code, pre, .ic { font-variant-ligatures: none; font-feature-settings: "liga" 0, 
 }
 .about-value { font-size: 13px; color: var(--text-bright); line-height: 1.45; }
 
-/* ── Курс: дорожная карта ──────────────────────────────── */
-.roadmap {
-  margin-bottom: 20px; padding: 18px 20px; border-radius: 14px;
-  background: rgba(255,255,255,0.02); border: 1px solid var(--border);
+/* ── Экран «Программа» (шаг 3): карточки разделов ────────
+   Карточка — .lesson (тот же аккордеон, что у уроков и разделов на
+   полотне): переиспользуем .lesson-header/.lesson-body и их анимацию,
+   поверх добавляем только то, чего раньше не было — счётчик и шаги. */
+.prog-list { display: flex; flex-direction: column; gap: 6px; margin-top: 4px; }
+
+.prog-card-progress { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+/* «Решено N из M» у карточки программы и у полосы шагов раздела
+   (.step-strip-count, см. ниже) — один и тот же счёт одними цифрами */
+.prog-card-count, .step-strip-count {
+  font-family: var(--mono); font-size: 11px; color: var(--text-dim);
+  font-variant-numeric: tabular-nums; white-space: nowrap;
+}
+.prog-card-steps-count {
+  font-family: var(--mono); font-size: 11px; color: var(--text-muted); white-space: nowrap;
+}
+.prog-card-done .lesson-num { color: var(--good); background: rgba(52,211,153,0.12); }
+
+/* Кольцо прогресса раздела — доля решённых заданий, приём из прототипа:
+   доля передаётся через --p прямо в conic-gradient */
+.prog-ring {
+  --p: 0; width: 26px; height: 26px; border-radius: 50%; flex-shrink: 0;
+  background: conic-gradient(var(--good) calc(var(--p) * 1%), rgba(255,255,255,.12) 0);
+}
+@supports not (background: conic-gradient(red 10%, blue 0%)) {
+  .prog-ring { background: rgba(255,255,255,0.1); border: 2px solid var(--good); }
 }
 
-.rm-track { display: flex; flex-direction: column; gap: 2px; }
-
-.rm-step {
-  display: flex; align-items: center; gap: 14px; width: 100%;
-  padding: 10px 12px; border: none; border-radius: 10px;
-  background: transparent; cursor: pointer; text-align: left;
-  font-family: var(--font); transition: background 0.15s;
-  position: relative;
+/* Список шагов внутри раскрытой карточки — heading (теория) и task (практика) */
+.prog-step-btn {
+  display: block; width: 100%; border: none; background: none; padding: 0;
+  font-family: var(--font); text-align: left; cursor: pointer; border-radius: 8px;
 }
-.rm-step:hover { background: rgba(from var(--mod-color) r g b / 0.07); }
-
-/* Соединительная линия между шагами */
-.rm-step::before {
-  content: ''; position: absolute; left: 27px; top: 34px; bottom: -2px;
-  width: 2px; background: rgba(255,255,255,0.07);
+.prog-step { display: flex; align-items: center; gap: 10px; padding: 7px 10px; border-radius: 8px; }
+.prog-step-btn:hover .prog-step { background: rgba(255,255,255,0.03); }
+.prog-step-icon { flex-shrink: 0; font-size: 13px; }
+.prog-step-title {
+  flex: 1; font-size: 13px; color: var(--text);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
-.rm-step:last-child::before { display: none; }
+.prog-step-kind { font-family: var(--mono); font-size: 10px; color: var(--text-muted); white-space: nowrap; }
+.prog-step-done .prog-step-title { color: var(--text-dim); }
+.prog-step-done .prog-step-kind { color: var(--good); }
 
-.rm-num {
-  flex-shrink: 0; width: 30px; height: 30px; border-radius: 50%;
-  display: flex; align-items: center; justify-content: center;
-  font-family: var(--mono); font-size: 12px; font-weight: 700;
-  color: var(--mod-color); background: rgba(from var(--mod-color) r g b / 0.12);
-  border: 1px solid rgba(from var(--mod-color) r g b / 0.25);
-  position: relative; z-index: 1;
+/* Видеомодуль: занятия простым списком вместо гармошки — делить там
+   нечего на теорию и практику, клик сразу ведёт на экран занятия */
+.prog-lesson {
+  display: flex; align-items: center; gap: 12px; width: 100%;
+  padding: 12px 16px; margin-bottom: 6px; border-radius: var(--radius);
+  background: var(--bg-card); border: 1px solid var(--border);
+  font-family: var(--font); text-align: left; cursor: pointer; transition: all 0.15s;
+}
+.prog-lesson:hover { background: var(--bg-card-open); border-color: var(--border-active); }
+.prog-lesson-arrow { color: var(--text-muted); flex-shrink: 0; }
+
+/* ── Экран «Раздел» (шаг 3) ──────────────────────────────── */
+/* Неброская моноширинная кнопка: «← Программа» на экране раздела
+   и «Открыть» в строке «Прохожу сейчас» (.pi-open) — одна и та же
+   второстепенная кнопка, различие только в раскладке вокруг неё */
+.sec-back, .pi-open {
+  font-family: var(--mono); font-size: 11px; font-weight: 700;
+  color: var(--text-dim); background: rgba(255,255,255,0.03);
+  border: 1px solid var(--border); border-radius: 7px;
+  padding: 6px 12px; cursor: pointer; transition: all 0.15s;
+}
+.sec-back:hover, .pi-open:hover { color: var(--text-bright); border-color: var(--border-active); }
+.sec-back { margin-bottom: 14px; }
+.pi-open { flex-shrink: 0; }
+
+.sec-head { margin-bottom: 16px; }
+.sec-title-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: 10px 0 6px; }
+.sec-title { font-size: 18px; font-weight: 700; color: var(--text-bright); }
+
+/* Полоса шагов раздела: квадратик на heading/task + счётчик «решено N из M» */
+.step-strip-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.step-strip { display: flex; flex-wrap: wrap; gap: 4px; }
+.step-sq {
+  width: 18px; height: 18px; padding: 0; border-radius: 4px;
+  border: 2px solid transparent; background: rgba(255,255,255,0.08);
+  font-size: 10px; line-height: 1; font-weight: 700; color: #0B0E16; cursor: pointer;
+  transition: filter 0.15s;
+}
+.step-sq.step-task { background: none; border-color: var(--mod-color); }
+.step-sq.step-done { background: var(--good); border-color: var(--good); }
+.step-sq:hover { filter: brightness(1.25); }
+
+/* Вкладки «Теория»/«Практика» */
+.sec-tabs { display: flex; gap: 14px; margin-bottom: 16px; border-bottom: 1px solid var(--border); }
+.sec-tab {
+  font-family: var(--font); font-size: 13px; font-weight: 600; color: var(--text-dim);
+  background: none; border: none; border-bottom: 2px solid transparent;
+  padding: 10px 2px; margin-bottom: -1px; cursor: pointer; white-space: nowrap; transition: color 0.15s;
+}
+.sec-tab:hover { color: var(--text); }
+.sec-tab.active { color: var(--mod-color); border-bottom-color: var(--mod-color); }
+
+/* Переходы между разделами/занятиями */
+.sec-nav { display: flex; gap: 10px; margin-top: 24px; }
+.sec-nav-btn, .sec-nav-empty { flex: 1 1 0; min-width: 0; }
+.sec-nav-btn {
+  display: flex; flex-direction: column; gap: 4px; width: 100%;
+  padding: 12px 16px; border-radius: 12px; text-align: left;
+  background: var(--bg-card); border: 1px solid var(--border);
+  font-family: var(--font); cursor: pointer; transition: all 0.15s;
+}
+.sec-nav-btn:hover { background: var(--bg-card-open); border-color: var(--border-active); }
+.sec-nav-next { text-align: right; align-items: flex-end; }
+.sec-nav-dir {
+  font-family: var(--mono); font-size: 10px; text-transform: uppercase;
+  letter-spacing: 0.06em; color: var(--text-muted);
+}
+.sec-nav-title {
+  font-size: 13px; font-weight: 600; color: var(--text-bright);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%;
 }
 
-.rm-body { display: flex; flex-direction: column; gap: 2px; }
-.rm-title { font-size: 13.5px; font-weight: 600; color: var(--text); }
-.rm-step:hover .rm-title { color: var(--text-bright); }
-.rm-note { font-size: 11.5px; color: var(--text-muted); }
+@media (max-width: 640px) {
+  .sec-tabs { overflow-x: auto; }
+  .sec-nav { flex-direction: column; }
+  .sec-nav-next { text-align: left; align-items: flex-start; }
+}
 
 /* ── Практическое задание ──────────────────────────────── */
 .task {
@@ -1161,10 +1217,6 @@ code, pre, .ic { font-variant-ligatures: none; font-feature-settings: "liga" 0, 
 }
 .pb-io:hover { color: var(--text-bright); border-color: var(--border-active); }
 
-/* Галочка на плитке решённого раздела (та же — у .rail-sec-done, см. выше) */
-.qn-chip.qn-solved { border-color: rgba(52,211,153,0.35); }
-.qn-chip.qn-solved .qn-code::after { content: ' ✓'; color: #34D399; }
-
 /* ── Экран «Моё обучение» и каталог (шаг 2) ──────────────
    Общая «плитка»: цветная иконка + название/подпись. Ей пользуются
    карточка «Продолжить», строки «Прохожу сейчас»/«Дальше в программе»
@@ -1268,13 +1320,7 @@ code, pre, .ic { font-variant-ligatures: none; font-feature-settings: "liga" 0, 
 }
 .planned-item { opacity: 0.7; }
 
-.pi-open {
-  font-family: var(--mono); font-size: 11px; font-weight: 700;
-  color: var(--text-dim); background: rgba(255,255,255,0.03);
-  border: 1px solid var(--border); border-radius: 7px;
-  padding: 6px 12px; cursor: pointer; flex-shrink: 0; transition: all 0.15s;
-}
-.pi-open:hover { color: var(--text-bright); border-color: var(--border-active); }
+/* .pi-open набран вместе с .sec-back — см. «Экран Раздел» выше */
 
 .planned-soon {
   font-family: var(--mono); font-size: 9.5px; font-weight: 700;
@@ -1447,7 +1493,8 @@ code, pre, .ic { font-variant-ligatures: none; font-feature-settings: "liga" 0, 
   .rail, .rail-toggle, .rail-scrim, .search-box, .contacts, .footer,
   .lightbox, .skip-link, .code-copy, .code-actions,
   .sb-bar, .sb-stdin, .sb-hint, .pb-io, .pb-continue,
-  .solution-toggle, .quick-nav, .roadmap, .video-play, .task-done {
+  .solution-toggle, .video-play, .task-done,
+  .sec-back, .sec-nav, .sec-tabs, .step-strip-row {
     display: none !important;
   }
 

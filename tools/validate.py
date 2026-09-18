@@ -224,6 +224,13 @@ def check_content(modules: list[dict]) -> None:
         lesson_total += l
         video_total += v
 
+    # Раздел и задание рисуются с одинаковым префиксом id="ref-…", поэтому
+    # совпадение якоря раздела с id задания молча уводит переход не туда
+    for task_id, where in task_ids.items():
+        if task_id in anchors:
+            error(f'{where}: id задания «{task_id}» совпадает с якорем '
+                  f'раздела ({anchors[task_id]}) — переход по нему уведёт не туда')
+
     for link, where in links.items():
         if link not in anchors:
             error(f'{where}: ссылка на несуществующий якорь #{link}')

@@ -78,6 +78,18 @@ w.eval(fs.readFileSync(P + 'sandbox.js', 'utf8'));
 w.eval(fs.readFileSync(P + 'app.js', 'utf8'));
 const wait = ms => new Promise(r => setTimeout(r, ms));
 const q = s => d.querySelector(s), qa = s => [...d.querySelectorAll(s)];
+const click = s => q(s).dispatchEvent(new w.MouseEvent('click', {bubbles:true}));
+
+/* Шаг 3: песочница, задания и блоки кода живут только на экране раздела,
+   поэтому путь «дерево разделов в панели → вкладка» повторяется почти
+   в каждой проверке ниже. Здесь он записан один раз. */
+const goSection = async (anchor, tab) => {
+  click('.rail-sec[data-anchor="' + anchor + '"]');
+  await wait(400);
+  if (!tab) return;
+  click('.sec-tab[data-tab="' + tab + '"]');
+  await wait(200);
+};
 let pass = 0, fail = 0;
 const ok = (name, cond, extra='') => { cond ? pass++ : fail++; console.log(`${cond?'  ✓':'  ✗'} ${name}${extra?' — '+extra:''}`); };
 
@@ -167,7 +179,9 @@ const ok = (name, cond, extra='') => { cond ? pass++ : fail++; console.log(`${co
   ok('дерево разделов активного материала показано', q('.rail-sec[data-anchor="refs"]') !== null);
   q('.rail-sec[data-anchor="refs"]').dispatchEvent(new w.MouseEvent('click', {bubbles:true}));
   await wait(700);
-  ok('переход к #refs', d.getElementById('ref-refs')?.classList.contains('open'));
+  ok('переход к #refs открывает раздел', d.getElementById('ref-refs') !== null);
+  ok('открылась вкладка теории (якорь раздела, не задания)',
+     q('.sec-tab[data-tab="theory"]')?.classList.contains('active'));
   ok('адрес обновлён', w.location.hash === '#refs');
 
   console.log('\nКРОСС-МОДУЛЬНАЯ ССЫЛКА');
@@ -175,7 +189,7 @@ const ok = (name, cond, extra='') => { cond ? pass++ : fail++; console.log(`${co
   const target = cross.dataset.anchor;
   cross.dispatchEvent(new w.MouseEvent('click', {bubbles:true, cancelable:true}));
   await wait(900);
-  ok('переход по ссылке в тексте (#' + target + ')', d.getElementById('ref-' + target)?.classList.contains('open'));
+  ok('переход по ссылке в тексте (#' + target + ') открывает раздел', d.getElementById('ref-' + target) !== null);
 
   console.log('\nПОИСК');
   const inp = d.getElementById('search-input');
@@ -201,7 +215,8 @@ const ok = (name, cond, extra='') => { cond ? pass++ : fail++; console.log(`${co
   await wait(800);
   ok('активный пункт — видеомодуль', ['1','2','3','4'].includes(q('.rail-item.active')?.getAttribute('data-mod')),
      q('.rail-item.active')?.getAttribute('data-mod'));
-  ok('урок раскрыт', q('.lesson.open') !== null);
+  ok('занятие открыто на экране раздела', q('.sec-head') !== null && q('.sec-head').id.startsWith('ref-l'),
+     q('.sec-head')?.id);
 
   console.log('\nЗАЩИЩЁННЫЙ РАЗДЕЛ');
   q('.rail-item[data-mod="5"]').dispatchEvent(new w.MouseEvent('click', {bubbles:true}));
@@ -229,8 +244,11 @@ const ok = (name, cond, extra='') => { cond ? pass++ : fail++; console.log(`${co
   ok('повторных запросов нет', dupes.length === 0, dupes.join(',') || 'ни одного');
 
   console.log('\nКОПИРОВАНИЕ КОДА');
+  // Код теперь виден только внутри конкретного раздела на вкладке теории —
+  // на экране программы блоков с кодом нет вовсе (там только шаги-заголовки)
   q('.rail-item[data-mod="6"]').dispatchEvent(new w.MouseEvent('click', {bubbles:true}));
-  await wait(500);
+  await wait(400);
+  await goSection('refs');
   const withCode = qa('.code-block[data-code]');
   ok('исходник лежит в data-code', withCode.length > 0, withCode.length + ' блоков');
   const copyBtn = q('.code-copy');
@@ -244,6 +262,8 @@ const ok = (name, cond, extra='') => { cond ? pass++ : fail++; console.log(`${co
   ok('подпись меняется на «Скопировано»', copyBtn.textContent === 'Скопировано');
 
   console.log('\nПЕСОЧНИЦА');
+  // Задания — на вкладке практики того же раздела «numbers»
+  await goSection('numbers', 'practice');
   const runnable = qa('.sandbox');
   ok('песочницы отрисованы', runnable.length > 0, runnable.length + ' шт');
   // Берём задание со скрытым кейсом: на нём проверяется и это тоже
@@ -280,8 +300,10 @@ const ok = (name, cond, extra='') => { cond ? pass++ : fail++; console.log(`${co
   ok('верное решение — зелёный результат', box.querySelector('.sb-report').classList.contains('good'));
   ok('задание отмечено решённым', w.PA.store.isSolved(taskId) === true);
   ok('карточка задания помечена', box.closest('.task').classList.contains('task-solved'));
-  ok('полоса прогресса обновилась', /Решено [1-9]/.test(q('.pb-text').textContent),
-     q('.pb-text').textContent);
+  // На экране раздела нет .pb-text (это только программа) — прогресс
+  // раздела виден в счётчике полосы шагов
+  ok('полоса шагов раздела обновилась', /решено [1-9]/.test(q('.step-strip-count')?.textContent || ''),
+     q('.step-strip-count')?.textContent);
 
   console.log('\nСОСТОЯНИЕ ПЕРЕЖИВАЕТ ПЕРЕРИСОВКУ');
   const key = box.getAttribute('data-block-key');
@@ -293,9 +315,12 @@ const ok = (name, cond, extra='') => { cond ? pass++ : fail++; console.log(`${co
   await wait(400);
   q('.rail-item[data-mod="6"]').dispatchEvent(new w.MouseEvent('click', {bubbles:true}));
   await wait(400);
+  // Клик по пункту материала теперь всегда ведёт на экран программы —
+  // до раздела с песочницей нужно снова дойти через дерево разделов
+  await goSection('numbers', 'practice');
   const back = d.querySelector('.sandbox[data-block-key="' + key + '"] .ed-input');
-  ok('код вернулся после переключения вкладки', back.value === 'print("черновик ученика")',
-     JSON.stringify(back.value));
+  ok('код вернулся после переключения модуля и возврата', back !== null && back.value === 'print("черновик ученика")',
+     JSON.stringify(back && back.value));
   ok('черновик записан в хранилище', w.PA.store.get('drafts', key).code === 'print("черновик ученика")');
 
   const sb2 = back.closest('.sandbox');
@@ -367,6 +392,10 @@ const ok = (name, cond, extra='') => { cond ? pass++ : fail++; console.log(`${co
      inactiveItems.length + ' шт');
 
   console.log('  Аккордеон');
+  // .lesson-header живёт и на экране программы — карточки разделов
+  // раскрываются той же кнопкой; на экране раздела аккордеона уже нет
+  q('.rail-item[data-mod="6"]').dispatchEvent(new w.MouseEvent('click', {bubbles:true}));
+  await wait(400);
   const firstHeader = q('.lesson-header');
   ok('.lesson-header — BUTTON с aria-expanded', firstHeader.tagName === 'BUTTON' && firstHeader.hasAttribute('aria-expanded'));
   const firstLesson = firstHeader.parentElement;
@@ -400,18 +429,14 @@ const ok = (name, cond, extra='') => { cond ? pass++ : fail++; console.log(`${co
   await wait(100);
 
   console.log('  Лайтбокс');
+  // Скриншоты живут на экране раздела конкретного занятия — программа
+  // видеомодуля их не показывает вовсе (см. renderLessonsProgram).
+  // У занятия 1.1 модуля 1 точно есть один скриншот (data/module1.json)
   q('.rail-item[data-mod="1"]').dispatchEvent(new w.MouseEvent('click', {bubbles:true}));
   await wait(400);
-
-  // Скриншоты лежат внутри свёрнутых уроков — раскрываем по очереди,
-  // пока не найдём карточку (номер урока со скриншотами не хотим хардкодить)
-  let card = q('.screenshot-card');
-  for (const header of qa('.lesson-header')) {
-    if (card) break;
-    header.dispatchEvent(new w.MouseEvent('click', {bubbles:true}));
-    await wait(30);
-    card = q('.screenshot-card');
-  }
+  q('.prog-lesson[data-anchor="l1-1-1"]').dispatchEvent(new w.MouseEvent('click', {bubbles:true}));
+  await wait(400);
+  const card = q('.screenshot-card');
   ok('карточка скриншота — BUTTON', card !== null && card.tagName === 'BUTTON');
 
   card.dispatchEvent(new w.MouseEvent('click', {bubbles:true}));
@@ -452,11 +477,10 @@ const ok = (name, cond, extra='') => { cond ? pass++ : fail++; console.log(`${co
 
   numbersItem.dispatchEvent(new w.MouseEvent('click', {bubbles:true}));
   await wait(700);
-  const numbersLesson = d.getElementById('ref-numbers');
-  ok('переход по дереву разделов раскрывает раздел', !!numbersLesson && numbersLesson.classList.contains('open'));
-  const numbersHeader = numbersLesson && numbersLesson.querySelector('.lesson-header');
-  ok('aria-expanded синхронизирован после перехода по якорю',
-     !!numbersHeader && numbersHeader.getAttribute('aria-expanded') === 'true');
+  const numbersSectionEl = d.getElementById('ref-numbers');
+  ok('переход по дереву разделов открывает раздел', numbersSectionEl !== null);
+  ok('вкладка теории выбрана после перехода по дереву разделов (aria-selected)',
+     q('.sec-tab[data-tab="theory"]')?.getAttribute('aria-selected') === 'true');
 
   console.log('  Панель на узком экране');
   ok('кнопка-гамбургер есть в разметке', q('#rail-toggle') !== null);
@@ -487,8 +511,11 @@ const ok = (name, cond, extra='') => { cond ? pass++ : fail++; console.log(`${co
   ok('meta og:title есть', q('meta[property="og:title"]') !== null);
 
   // Плеер появляется только по клику: до этого страница не делает
-  // ни одного запроса к YouTube, даже из свёрнутых уроков
+  // ни одного запроса к YouTube. Видео — на экране раздела занятия
+  // (у занятия 1.0 модуля 1 их два, см. data/module1.json)
   q('.rail-item[data-mod="1"]').dispatchEvent(new w.MouseEvent('click', {bubbles:true}));
+  await wait(400);
+  q('.prog-lesson[data-anchor="l1-1-0"]').dispatchEvent(new w.MouseEvent('click', {bubbles:true}));
   await wait(400);
   const facades = qa('.video-facade');
   ok('до клика ни одного iframe нет', qa('iframe').length === 0, qa('iframe').length + ' шт');
@@ -518,9 +545,11 @@ const ok = (name, cond, extra='') => { cond ? pass++ : fail++; console.log(`${co
   ok('ни один плеер не ведёт на www.youtube.com/embed/',
      !qa('iframe').some(f => (f.getAttribute('src') || '').includes('www.youtube.com/embed/')));
 
-  // Честная подсказка песочницы: упоминает интернет/сеть и pip
+  // Честная подсказка песочницы: упоминает интернет/сеть и pip.
+  // Песочница — на вкладке практики раздела «numbers»
   q('.rail-item[data-mod="6"]').dispatchEvent(new w.MouseEvent('click', {bubbles:true}));
   await wait(400);
+  await goSection('numbers', 'practice');
   const hintEl = q('.sb-hint');
   const hintTitle = hintEl ? hintEl.getAttribute('title') || '' : '';
   ok('подсказка песочницы упоминает pip', hintEl !== null && hintTitle.includes('pip'), hintTitle);
@@ -560,7 +589,8 @@ const ok = (name, cond, extra='') => { cond ? pass++ : fail++; console.log(`${co
 
   console.log('\nВВОД И ВЫВОД');
   q('.rail-item[data-mod="6"]').dispatchEvent(new w.MouseEvent('click', {bubbles:true}));
-  await wait(500);
+  await wait(400);
+  await goSection('numbers', 'practice');
   const readBox = q('.sandbox[data-task-id="num-read"]');
   const sumBox = q('.sandbox[data-task-id="num-sum"]');
   ok('у задания без input() поле «Ввод» скрыто', readBox.querySelector('.sb-stdin').classList.contains('hidden'));
@@ -602,6 +632,10 @@ const ok = (name, cond, extra='') => { cond ? pass++ : fail++; console.log(`${co
      readBox.querySelector('.sb-stdin-input').value === '');
 
   console.log('\nИСПОЛНЯЕМЫЙ ПРИМЕР БЕЗ ДУБЛЯ');
+  // Исполняемые примеры — часть теории; переключаемся на вкладку теории
+  // того же раздела «numbers» (сейчас открыта вкладка практики)
+  q('.sec-tab[data-tab="theory"]').dispatchEvent(new w.MouseEvent('click', {bubbles:true}));
+  await wait(200);
   const runBlock = q('.code-block.runnable');
   ok('исполняемый пример — сразу редактор', runBlock !== null && runBlock.querySelector('.sandbox .ed-input') !== null);
   ok('статичной копии кода над редактором нет',
@@ -613,15 +647,18 @@ const ok = (name, cond, extra='') => { cond ? pass++ : fail++; console.log(`${co
 
   console.log('\nЗАДАНИЯ БЕЗ КОДА');
   q('.rail-item[data-mod="9"]').dispatchEvent(new w.MouseEvent('click', {bubbles:true}));
-  await wait(500);
+  await wait(400);
+  ok('в прогрессе курса все пять заданий', /Решено 0 из 5/.test(q('.pb-text')?.textContent || ''),
+     q('.pb-text')?.textContent);
+
+  // Задание «plan-understand» — на вкладке практики раздела «understand»
+  await goSection('understand', 'practice');
   const paper = q('.task[data-task-id="plan-understand"]');
   ok('задание без автопроверки помечено «без кода»',
      paper !== null && paper.querySelector('.task-kind') !== null);
   ok('у него нет песочницы, но есть отметка',
      paper !== null && paper.querySelector('.sandbox') === null &&
      paper.querySelector('.task-done') !== null);
-  ok('в прогрессе курса все пять заданий', /Решено 0 из 5/.test(q('.pb-text').textContent),
-     q('.pb-text').textContent);
 
   const doneBtn = paper.querySelector('.task-done');
   doneBtn.dispatchEvent(new w.MouseEvent('click', {bubbles:true}));
@@ -629,15 +666,41 @@ const ok = (name, cond, extra='') => { cond ? pass++ : fail++; console.log(`${co
   ok('отметка ставится', w.PA.store.isSolved('plan-understand') === true &&
      doneBtn.getAttribute('aria-pressed') === 'true');
   ok('карточка помечена решённой', paper.classList.contains('task-solved'));
-  ok('полоса прогресса пересчиталась', /Решено 1 из 5/.test(q('.pb-text').textContent),
-     q('.pb-text').textContent);
+  ok('полоса шагов раздела обновилась', /решено 1 из 1/.test(q('.step-strip-count')?.textContent || ''),
+     q('.step-strip-count')?.textContent);
 
+  q('.sec-back').dispatchEvent(new w.MouseEvent('click', {bubbles:true}));
+  await wait(300);
+  ok('общий прогресс курса пересчитался', /Решено 1 из 5/.test(q('.pb-text')?.textContent || ''),
+     q('.pb-text')?.textContent);
+
+  await goSection('understand', 'practice');
   q('.task[data-task-id="plan-understand"] .task-done')
     .dispatchEvent(new w.MouseEvent('click', {bubbles:true}));
   await wait(100);
-  ok('отметку можно снять — случайный клик не навсегда',
-     w.PA.store.isSolved('plan-understand') === false &&
-     /Решено 0 из 5/.test(q('.pb-text').textContent), q('.pb-text').textContent);
+  ok('отметку можно снять — случайный клик не навсегда', w.PA.store.isSolved('plan-understand') === false);
+
+  q('.sec-back').dispatchEvent(new w.MouseEvent('click', {bubbles:true}));
+  await wait(300);
+  ok('курс возвращается к «Решено 0 из 5»', /Решено 0 из 5/.test(q('.pb-text')?.textContent || ''),
+     q('.pb-text')?.textContent);
+
+  console.log('\n«ПРОДОЛЖИТЬ» ВЕДЁТ НА ПЕРВОЕ НЕРЕШЁННОЕ ЗАДАНИЕ');
+  // Раньше «Продолжить» вело на раздел с первым нерешённым заданием —
+  // теперь ведёт прямо на само задание (якорь id="ref-<id>", см.
+  // renderTaskBlock) и сразу открывает вкладку практики (модуль 10
+  // ещё нигде не трогали в этом прогоне — гарантированно ничего не решено)
+  q('.rail-item[data-mod="10"]').dispatchEvent(new w.MouseEvent('click', {bubbles:true}));
+  await wait(400);
+  const continueBtn = q('.pb-continue');
+  ok('кнопка «Продолжить» есть, пока ничего не решено', continueBtn !== null);
+  const firstTaskId = continueBtn.getAttribute('data-anchor');
+  continueBtn.dispatchEvent(new w.MouseEvent('click', {bubbles:true}));
+  await wait(700);
+  ok('«Продолжить» открывает вкладку практики',
+     q('.sec-tab[data-tab="practice"]')?.classList.contains('active'));
+  ok('«Продолжить» приводит к тому самому заданию', d.getElementById('ref-' + firstTaskId) !== null,
+     firstTaskId);
 
   console.log('\nЭКРАНЫ: ПРОГРЕСС НА ГЛАВНОЙ');
   // markTask пишет напрямую в хранилище, минуя рендер — «Моё обучение»
@@ -652,15 +715,16 @@ const ok = (name, cond, extra='') => { cond ? pass++ : fail++; console.log(`${co
 
   console.log('\nВОЗВРАТ НА СТРАНИЦУ');
   q('.rail-item[data-mod="8"]').dispatchEvent(new w.MouseEvent('click', {bubbles:true}));
-  await wait(600);
-  const readSection = q('.ref-section[id^="ref-"]');
-  readSection.querySelector('.lesson-header').dispatchEvent(new w.MouseEvent('click', {bubbles:true}));
-  await wait(150);
-  const openAnchor = readSection.id.slice(4);
+  await wait(400);
+  const firstSec = q('.rail-sec');
+  const openAnchor = firstSec.dataset.anchor;
+  firstSec.dispatchEvent(new w.MouseEvent('click', {bubbles:true}));
+  await wait(400);
   w.PA.store.flush();
   const place = w.PA.store.get('ui', 'place', null);
-  ok('место запомнено: модуль и раскрытый раздел',
-     !!place && place.mod === 8 && place.open.includes(openAnchor), JSON.stringify(place));
+  ok('место запомнено: модуль, раздел и вкладка',
+     !!place && place.mod === 8 && place.view === 'section' && place.section === openAnchor && place.tab === 'theory',
+     JSON.stringify(place));
 
   // Настоящая перезагрузка: новое окно, тот же localStorage
   const dom2 = new JSDOM(fs.readFileSync(P + 'index.html', 'utf8'),
@@ -690,9 +754,7 @@ const ok = (name, cond, extra='') => { cond ? pass++ : fail++; console.log(`${co
      !!groupHeading && groupHeading.textContent.includes('Справочник'),
      groupHeading ? groupHeading.textContent : 'нет заголовка группы');
 
-  ok('раскрытый раздел остался раскрытым',
-     !!d2.getElementById('ref-' + openAnchor) &&
-     d2.getElementById('ref-' + openAnchor).classList.contains('open'));
+  ok('после перезагрузки открыт тот же раздел', d2.getElementById('ref-' + openAnchor) !== null);
 
   console.log('\nЭКРАНЫ: ВОЗВРАТ НА СОХРАНЁННЫЙ ВИД');
   // Сохранённое место — это не только модуль, но и сам экран (шаг 2):
@@ -723,6 +785,90 @@ const ok = (name, cond, extra='') => { cond ? pass++ : fail++; console.log(`${co
   ok('в панели активен пункт «Каталог», не материал',
      d3.querySelector('.rail-view[data-view="catalog"]')?.classList.contains('active') === true &&
      d3.querySelector('.rail-item.active') === null);
+
+  console.log('\nПРОГРАММА И РАЗДЕЛ');
+  // Шаг 3: выбор материала открывает программу (список разделов),
+  // а не сразу разворачивает полотно со всеми разделами гармошками
+  q('.rail-item[data-mod="7"]').dispatchEvent(new w.MouseEvent('click', {bubbles:true}));
+  await wait(400);
+  const notes2Data = JSON.parse(fs.readFileSync(P + 'data/notes2.json', 'utf8'));
+  ok('выбор материала открывает программу, а не полотно',
+     q('.prog-card') !== null && q('.sec-head') === null);
+  ok('в программе столько карточек, сколько разделов',
+     qa('.prog-card').length === notes2Data.sections.length,
+     qa('.prog-card').length + ' карточек, ' + notes2Data.sections.length + ' разделов');
+
+  // Раскрытие карточки показывает список шагов: теория и практика вперемешку
+  const cardWithBoth = qa('.prog-card').find((card) => {
+    const kinds = [...card.querySelectorAll('.prog-step-btn')].map((b) => b.dataset.tab);
+    return kinds.includes('theory') && kinds.includes('practice');
+  });
+  ok('нашёлся раздел с шагами теории и практики', cardWithBoth !== undefined);
+  cardWithBoth.querySelector('.prog-card-head').dispatchEvent(new w.MouseEvent('click', {bubbles:true}));
+  await wait(100);
+  ok('раскрытие карточки показывает список шагов', cardWithBoth.classList.contains('open'));
+  const steps = [...cardWithBoth.querySelectorAll('.prog-step-btn')];
+  ok('среди шагов есть теория', steps.some((b) => b.dataset.tab === 'theory'));
+  ok('среди шагов есть задания', steps.some((b) => b.dataset.tab === 'practice'));
+
+  // Клик по шагу-заданию открывает раздел сразу на вкладке практики
+  const taskStep = steps.find((b) => b.dataset.tab === 'practice');
+  taskStep.dispatchEvent(new w.MouseEvent('click', {bubbles:true}));
+  await wait(400);
+  ok('клик по шагу-заданию открывает раздел на вкладке практики',
+     q('.sec-tab[data-tab="practice"]')?.classList.contains('active'));
+  ok('на вкладке практики есть песочница', q('.sec-body .sandbox') !== null);
+  ok('на вкладке практики нет блоков теории (.section-label)', q('.sec-body .section-label') === null);
+
+  q('.sec-tab[data-tab="theory"]').dispatchEvent(new w.MouseEvent('click', {bubbles:true}));
+  await wait(150);
+  ok('на вкладке теории нет блоков-заданий (.task)', q('.sec-body .task') === null);
+
+  // «Следующий раздел» переключает раздел, оставаясь в том же материале
+  const beforeNav = q('.sec-head').id;
+  const nextBtn = q('.sec-nav-next');
+  ok('кнопка «Следующий раздел» есть', nextBtn !== null);
+  if (nextBtn) {
+    nextBtn.dispatchEvent(new w.MouseEvent('click', {bubbles:true}));
+    await wait(300);
+    ok('переход «Следующий раздел» меняет раздел', q('.sec-head').id !== beforeNav);
+  } else {
+    ok('переход «Следующий раздел» меняет раздел', false, 'кнопки не было');
+  }
+
+  // Переход по якорю из поиска ведёт в нужный раздел на нужную вкладку —
+  // якорь раздела (не задания) приземляется на вкладку теории
+  inp.value = 'наследование'; inp.dispatchEvent(new w.Event('input', {bubbles:true}));
+  await wait(500);
+  const searchTarget = q('.sr-item');
+  ok('есть результат поиска для проверки перехода', searchTarget !== null);
+  searchTarget.dispatchEvent(new w.MouseEvent('click', {bubbles:true}));
+  await wait(700);
+  ok('переход по якорю из поиска открывает раздел',
+     q('.sec-head') !== null && w.location.hash.length > 1);
+  ok('переход по якорю из поиска ведёт на вкладку теории (якорь раздела)',
+     !q('.sec-tabs') || q('.sec-tab[data-tab="theory"]')?.classList.contains('active'));
+
+  // Черновик кода на вкладке практики переживает уход на другой раздел
+  // ТОГО ЖЕ материала (не смену модуля) и возврат
+  q('.rail-item[data-mod="6"]').dispatchEvent(new w.MouseEvent('click', {bubbles:true}));
+  await wait(400);
+  await goSection('numbers', 'practice');
+  const draftBox = q('.sandbox[data-task-id="num-sum"]');
+  const draftKey = draftBox.getAttribute('data-block-key');
+  const draftEditor = draftBox.querySelector('.ed-input');
+  draftEditor.value = 'print("другой раздел и назад")';
+  draftEditor.dispatchEvent(new w.Event('input', {bubbles:true}));
+  await wait(50);
+
+  await goSection('refs');
+  ok('ушли на другой раздел того же материала', q('.sec-head')?.id === 'ref-refs');
+
+  await goSection('numbers', 'practice');
+  const draftBack = q('.sandbox[data-block-key="' + draftKey + '"] .ed-input');
+  ok('черновик практики пережил уход на другой раздел и возврат',
+     draftBack !== null && draftBack.value === 'print("другой раздел и назад")',
+     JSON.stringify(draftBack && draftBack.value));
 
   console.log(`\nИТОГ: ${pass} пройдено, ${fail} провалено`);
   process.exit(fail ? 1 : 0);
