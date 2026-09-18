@@ -1,93 +1,12 @@
-import { JSDOM } from 'jsdom';
 import fs from 'fs';
-import path from 'path';
-import { fileURLToPath } from 'url';
-// Корень проекта — от расположения скрипта, а не от текущего каталога
-const P = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..') + '/';
-const dom = new JSDOM(fs.readFileSync(P + 'index.html', 'utf8'),
-  { runScripts: 'outside-only', pretendToBeVisual: true, url: 'http://localhost/' });
-const w = dom.window, d = w.document;
-['scrollBy','scrollTo','scrollIntoView'].forEach(m => w.Element.prototype[m] = function(){});
-w.scrollTo = () => {};
-// Синтетическая запись для проверки подсветки: слово в кавычках и амперсанд
-// в заголовке — раньше некорректное экранирование резало <mark> не там
-// (см. tools/e2e.mjs → «ПОИСК: СТЕММИНГ И ПОДСВЕТКА»)
-const SEARCH_INDEX_FILE = 'data/search-index.json';
-const SYNTHETIC_ENTRY = {
-  mod: 6, anchor: 'numbers', icon: '🧪',
-  title: 'Амперсанд & кавычки "тест" подсветки', chip: '', module: 'Тест',
-  body: 'служебная запись: амперсанд & и кавычки "тест" в теле'
-};
-let fetched = [];
-w.fetch = (f) => { fetched.push(f); return Promise.resolve({
-  ok: true, json: () => {
-    const data = JSON.parse(fs.readFileSync(P + f, 'utf8'));
-    if (f === SEARCH_INDEX_FILE) data.push(SYNTHETIC_ENTRY);
-    return Promise.resolve(data);
-  } }); };
+import { ROOT as P, createApp } from './dom-harness.mjs';
 
-/* Настоящий Pyodide в jsdom не поднять — подменяем исполнитель заглушкой.
-   Питоновскую часть проверяет tools/validate.py на эталонных решениях,
-   здесь нас интересует только обвязка интерфейса. */
-w.__verdict = true;      // каким «Python» посчитает следующий запуск
-w.__lastRun = null;
-class FakeWorker {
-  constructor(url) { this.url = url; }
-  postMessage(msg) {
-    w.__lastRun = msg;
-    const reply = (data) => setTimeout(() => this.onmessage({ data }), 0);
-    reply({ type: 'ready' });
-    if (msg.type === 'boot') return;
-    if (msg.type === 'run') {
-      // Как настоящий исполнитель: input() без строк ввода — PA_NO_INPUT,
-      // одни пустые print() — только переводы строк
-      if (/\binput\s*\(/.test(msg.code) && !msg.stdin) {
-        reply({ type: 'error', id: msg.id, error: { kind: 'PA_NO_INPUT', message: '', line: 1 } });
-        return;
-      }
-      const onlyEmptyPrints = msg.code.split('\n').every(
-        (l) => !l.trim() || l.trim().startsWith('#') || l.trim() === 'print()');
-      reply({ type: 'out', id: msg.id, stream: 'stdout', text: onlyEmptyPrints ? '\n' : 'вывод программы\n' });
-      reply({ type: 'done', id: msg.id, ok: true });
-      return;
-    }
-    const cases = (msg.check && msg.check.cases) || [];
-    reply({ type: 'checked', id: msg.id, report: {
-      output: '',
-      results: cases.map((c, i) => ({
-        ok: w.__verdict, got: w.__verdict ? String(c.expect) : 'не то',
-        label: msg.check.entry ? msg.check.entry + '(...)' : null, case: c
-      }))
-    }});
-  }
-  terminate() {}
-}
-w.Worker = FakeWorker;
-
-// Заглушка service worker: jsdom его не умеет. Офлайн-режим убран,
-// и проверяем ровно одно — страница снимает регистрацию у тех, кто
-// заходил раньше, иначе они навсегда остались бы на старой оболочке.
-let swUnregistered = false;
-const fakeRegistration = { unregister: () => { swUnregistered = true; return Promise.resolve(true); } };
-Object.defineProperty(w.navigator, 'serviceWorker', {
-  value: { getRegistrations: () => Promise.resolve([fakeRegistration]) },
-  configurable: true
-});
-let deletedCaches = [];
-w.caches = {
-  keys: () => Promise.resolve(['pa-shell-v1', 'pa-data-v1', 'чужой-кеш']),
-  delete: (name) => { deletedCaches.push(name); return Promise.resolve(true); }
-};
-
-w.eval(fs.readFileSync(P + 'sandbox.js', 'utf8'));
-w.eval(fs.readFileSync(P + 'app.js', 'utf8'));
-const wait = ms => new Promise(r => setTimeout(r, ms));
-const q = s => d.querySelector(s), qa = s => [...d.querySelectorAll(s)];
-/* Клик: по найденному элементу (clickEl) или сразу по селектору (click).
-   Раньше полная форма dispatchEvent(new MouseEvent(...)) была выписана
-   в файле семь десятков раз — и одинаковые клики выглядели по-разному. */
-const clickEl = el => el.dispatchEvent(new w.MouseEvent('click', {bubbles:true}));
-const click = s => clickEl(q(s));
+/* Окно, подмены браузера и заглушка исполнителя живут в общем стенде
+   (tools/dom-harness.mjs): им же пользуется tools/snapshot.mjs. */
+const app = createApp({ synthetic: true });
+const { w, d, sw } = app;
+const { wait, q, qa } = app;
+const { click, clickEl } = app;
 
 /* Раздел — последовательность шагов, у каждого свой адрес (#/m/<id>/<anchor>
    или #/m/<id>/<anchor>/<n>); песочница и блоки кода живут на экране
@@ -110,22 +29,9 @@ const setHash = async (hash) => {
 };
 /* «Перезагрузка страницы»: новое окно с тем же localStorage — единственный
    способ проверить восстановление места и прогресса после закрытия вкладки.
-   Обвязка (заглушки прокрутки, fetch из файлов, подменённый исполнитель)
-   собрана здесь, чтобы следующая такая проверка стоила одну строку. */
-const reloadPage = () => {
-  const box = new JSDOM(fs.readFileSync(P + 'index.html', 'utf8'),
-    { runScripts: 'outside-only', pretendToBeVisual: true, url: 'http://localhost/' });
-  const rw = box.window;
-  ['scrollBy','scrollTo','scrollIntoView'].forEach(m => rw.Element.prototype[m] = function(){});
-  rw.scrollTo = () => {};
-  rw.fetch = (f) => Promise.resolve({
-    ok: true, json: () => Promise.resolve(JSON.parse(fs.readFileSync(P + f, 'utf8'))) });
-  rw.Worker = FakeWorker;
-  rw.localStorage.setItem('pa_progress_v1', w.localStorage.getItem('pa_progress_v1'));
-  rw.eval(fs.readFileSync(P + 'sandbox.js', 'utf8'));
-  rw.eval(fs.readFileSync(P + 'app.js', 'utf8'));
-  return rw;
-};
+   Само окно собирает общий стенд, здесь остаётся только перенос хранилища. */
+const reloadPage = () =>
+  createApp({ storage: { pa_progress_v1: w.localStorage.getItem('pa_progress_v1') } }).w;
 
 let pass = 0, fail = 0;
 const ok = (name, cond, extra='') => { cond ? pass++ : fail++; console.log(`${cond?'  ✓':'  ✗'} ${name}${extra?' — '+extra:''}`); };
@@ -183,7 +89,7 @@ const ok = (name, cond, extra='') => { cond ? pass++ : fail++; console.log(`${co
      q('.catalog-view') !== null && q('.module-header') === null);
 
   console.log('\nНАВИГАЦИЯ');
-  ok('манифест загружен первым', fetched[0] === 'data/manifest.json');
+  ok('манифест загружен первым', app.reqs[0] === 'data/manifest.json');
   // Панель — не лента: все группы и их материалы видны в ней сразу,
   // без промежуточного клика по группе
   ok('заголовков групп в панели: 4', qa('.rail-group').length === 4);
@@ -230,11 +136,11 @@ const ok = (name, cond, extra='') => { cond ? pass++ : fail++; console.log(`${co
 
   console.log('\nПОИСК');
   const inp = d.getElementById('search-input');
-  fetched = [];
+  app.resetReqs();
   inp.dispatchEvent(new w.Event('focus', {bubbles:true}));
   await wait(400);
-  ok('индекс берётся предсобранный', fetched.includes('data/search-index.json'));
-  ok('модули ради поиска не грузятся', !fetched.some(f => f.includes('notes')), fetched.join(','));
+  ok('индекс берётся предсобранный', app.reqs.includes('data/search-index.json'));
+  ok('модули ради поиска не грузятся', !app.reqs.some(f => f.includes('notes')), app.reqs.join(','));
   inp.value = 'наследование'; inp.dispatchEvent(new w.Event('input', {bubbles:true}));
   await wait(500);
   ok('результаты найдены', qa('.sr-item').length > 0, qa('.sr-item').length+' шт');
@@ -269,7 +175,7 @@ const ok = (name, cond, extra='') => { cond ? pass++ : fail++; console.log(`${co
   ok('верный пароль открывает раздел', q('.course-card') !== null);
 
   console.log('\nДЕДУПЛИКАЦИЯ ЗАПРОСОВ');
-  fetched = [];
+  app.resetReqs();
   // Модуль 6 уже загружен (см. «МЕНЮ И ЯКОРЯ») — повторный клик не должен
   // ничего запрашивать; переход по разделу дозагрузит только то, что
   // ещё не в кэше, но одно и то же имя файла не встретится дважды
@@ -277,7 +183,7 @@ const ok = (name, cond, extra='') => { cond ? pass++ : fail++; console.log(`${co
   await wait(300);
   click('.rail-sec[data-anchor="refs"]');
   await wait(300);
-  const dupes = fetched.filter((f,i) => fetched.indexOf(f) !== i);
+  const dupes = app.reqs.filter((f,i) => app.reqs.indexOf(f) !== i);
   ok('повторных запросов нет', dupes.length === 0, dupes.join(',') || 'ни одного');
 
   console.log('\nКОПИРОВАНИЕ КОДА');
@@ -604,10 +510,10 @@ const ok = (name, cond, extra='') => { cond ? pass++ : fail++; console.log(`${co
      /\.lesson-body\s*\{\s*display:\s*block/.test(cssText));
 
   console.log('\nСТАРЫЙ SERVICE WORKER СНИМАЕТСЯ');
-  ok('регистрация снята у тех, кто заходил раньше', swUnregistered === true);
+  ok('регистрация снята у тех, кто заходил раньше', sw.unregistered === true);
   ok('наши кеши удалены, чужие не тронуты',
-     deletedCaches.includes('pa-shell-v1') && deletedCaches.includes('pa-data-v1') &&
-     !deletedCaches.includes('чужой-кеш'), deletedCaches.join(', '));
+     sw.deletedCaches.includes('pa-shell-v1') && sw.deletedCaches.includes('pa-data-v1') &&
+     !sw.deletedCaches.includes('чужой-кеш'), sw.deletedCaches.join(', '));
   ok('манифеста приложения больше нет', q('link[rel="manifest"]') === null);
   ok('файлов офлайна нет в репозитории',
      !fs.existsSync(P + 'sw.js') && !fs.existsSync(P + 'manifest.webmanifest'));
