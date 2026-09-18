@@ -80,15 +80,24 @@ const wait = ms => new Promise(r => setTimeout(r, ms));
 const q = s => d.querySelector(s), qa = s => [...d.querySelectorAll(s)];
 const click = s => q(s).dispatchEvent(new w.MouseEvent('click', {bubbles:true}));
 
-/* Шаг 3: песочница, задания и блоки кода живут только на экране раздела,
-   поэтому путь «дерево разделов в панели → вкладка» повторяется почти
-   в каждой проверке ниже. Здесь он записан один раз. */
-const goSection = async (anchor, tab) => {
+/* Раздел — последовательность шагов, у каждого свой адрес (#/m/<id>/<anchor>
+   или #/m/<id>/<anchor>/<n>); песочница и блоки кода живут на экране
+   конкретного шага, а не всего раздела разом. Два пути туда используются
+   почти в каждой проверке ниже, поэтому записаны один раз:
+   openSection — клик по дереву разделов панели (открывает первый шаг);
+   setHash — прямой переход по адресу (в т.ч. по старому голому якорю
+   задания/раздела — так надёжнее всего попасть на шаг с конкретным
+   заданием, не пересчитывая номер шага вручную). Если адрес уже такой,
+   как нужно, hashchange не случится — на этот случай сначала уходим
+   в сторону, чтобы событие гарантированно сработало. */
+const openSection = async (anchor) => {
   click('.rail-sec[data-anchor="' + anchor + '"]');
   await wait(400);
-  if (!tab) return;
-  click('.sec-tab[data-tab="' + tab + '"]');
-  await wait(200);
+};
+const setHash = async (hash) => {
+  if (w.location.hash === hash) { w.location.hash = '#/'; await wait(50); }
+  w.location.hash = hash;
+  await wait(500);
 };
 let pass = 0, fail = 0;
 const ok = (name, cond, extra='') => { cond ? pass++ : fail++; console.log(`${cond?'  ✓':'  ✗'} ${name}${extra?' — '+extra:''}`); };
@@ -180,9 +189,9 @@ const ok = (name, cond, extra='') => { cond ? pass++ : fail++; console.log(`${co
   q('.rail-sec[data-anchor="refs"]').dispatchEvent(new w.MouseEvent('click', {bubbles:true}));
   await wait(700);
   ok('переход к #refs открывает раздел', d.getElementById('ref-refs') !== null);
-  ok('открылась вкладка теории (якорь раздела, не задания)',
-     q('.sec-tab[data-tab="theory"]')?.classList.contains('active'));
-  ok('адрес обновлён', w.location.hash === '#refs');
+  ok('открылся первый шаг раздела (вкладок теории/практики больше нет)',
+     q('.sec-tabs') === null && q('.step-strip .step-sq') === q('.step-sq.step-current'));
+  ok('адрес обновлён на маршрут раздела', w.location.hash === '#/m/6/refs', w.location.hash);
 
   console.log('\nКРОСС-МОДУЛЬНАЯ ССЫЛКА');
   const cross = qa('.ref-link').find(a => a.dataset.anchor && a.dataset.anchor !== 'refs');
@@ -244,11 +253,11 @@ const ok = (name, cond, extra='') => { cond ? pass++ : fail++; console.log(`${co
   ok('повторных запросов нет', dupes.length === 0, dupes.join(',') || 'ни одного');
 
   console.log('\nКОПИРОВАНИЕ КОДА');
-  // Код теперь виден только внутри конкретного раздела на вкладке теории —
-  // на экране программы блоков с кодом нет вовсе (там только шаги-заголовки)
+  // Код теперь виден только внутри конкретного шага раздела — на экране
+  // программы блоков с кодом нет вовсе (там только шаги-заголовки)
   q('.rail-item[data-mod="6"]').dispatchEvent(new w.MouseEvent('click', {bubbles:true}));
   await wait(400);
-  await goSection('refs');
+  await openSection('refs');
   const withCode = qa('.code-block[data-code]');
   ok('исходник лежит в data-code', withCode.length > 0, withCode.length + ' блоков');
   const copyBtn = q('.code-copy');
@@ -262,8 +271,10 @@ const ok = (name, cond, extra='') => { cond ? pass++ : fail++; console.log(`${co
   ok('подпись меняется на «Скопировано»', copyBtn.textContent === 'Скопировано');
 
   console.log('\nПЕСОЧНИЦА');
-  // Задания — на вкладке практики того же раздела «numbers»
-  await goSection('numbers', 'practice');
+  // Задания раздела «numbers» — у каждого свой шаг; переходим прямо на
+  // него старым адресом задания (id="num-sum") — заодно проверяет, что
+  // старые адреса продолжают работать (подробнее — «АДРЕСА И ШАГИ» ниже)
+  await setHash('#num-sum');
   const runnable = qa('.sandbox');
   ok('песочницы отрисованы', runnable.length > 0, runnable.length + ' шт');
   // Берём задание со скрытым кейсом: на нём проверяется и это тоже
@@ -316,8 +327,8 @@ const ok = (name, cond, extra='') => { cond ? pass++ : fail++; console.log(`${co
   q('.rail-item[data-mod="6"]').dispatchEvent(new w.MouseEvent('click', {bubbles:true}));
   await wait(400);
   // Клик по пункту материала теперь всегда ведёт на экран программы —
-  // до раздела с песочницей нужно снова дойти через дерево разделов
-  await goSection('numbers', 'practice');
+  // до шага с песочницей нужно снова дойти, на этот раз прямым адресом
+  await setHash('#num-sum');
   const back = d.querySelector('.sandbox[data-block-key="' + key + '"] .ed-input');
   ok('код вернулся после переключения модуля и возврата', back !== null && back.value === 'print("черновик ученика")',
      JSON.stringify(back && back.value));
@@ -479,8 +490,9 @@ const ok = (name, cond, extra='') => { cond ? pass++ : fail++; console.log(`${co
   await wait(700);
   const numbersSectionEl = d.getElementById('ref-numbers');
   ok('переход по дереву разделов открывает раздел', numbersSectionEl !== null);
-  ok('вкладка теории выбрана после перехода по дереву разделов (aria-selected)',
-     q('.sec-tab[data-tab="theory"]')?.getAttribute('aria-selected') === 'true');
+  ok('открылся именно первый шаг раздела (адрес без номера шага)',
+     w.location.hash === '#/m/6/numbers' && q('.step-strip .step-sq') === q('.step-sq.step-current'),
+     w.location.hash);
 
   console.log('  Панель на узком экране');
   ok('кнопка-гамбургер есть в разметке', q('#rail-toggle') !== null);
@@ -546,10 +558,8 @@ const ok = (name, cond, extra='') => { cond ? pass++ : fail++; console.log(`${co
      !qa('iframe').some(f => (f.getAttribute('src') || '').includes('www.youtube.com/embed/')));
 
   // Честная подсказка песочницы: упоминает интернет/сеть и pip.
-  // Песочница — на вкладке практики раздела «numbers»
-  q('.rail-item[data-mod="6"]').dispatchEvent(new w.MouseEvent('click', {bubbles:true}));
-  await wait(400);
-  await goSection('numbers', 'practice');
+  // Песочница — на шаге задания «num-sum» раздела «numbers»
+  await setHash('#num-sum');
   const hintEl = q('.sb-hint');
   const hintTitle = hintEl ? hintEl.getAttribute('title') || '' : '';
   ok('подсказка песочницы упоминает pip', hintEl !== null && hintTitle.includes('pip'), hintTitle);
@@ -588,17 +598,12 @@ const ok = (name, cond, extra='') => { cond ? pass++ : fail++; console.log(`${co
   ok('sw.js кеширует Pyodide с cdn.jsdelivr.net', swText.includes('cdn.jsdelivr.net') && swText.includes('pyodide'));
 
   console.log('\nВВОД И ВЫВОД');
-  q('.rail-item[data-mod="6"]').dispatchEvent(new w.MouseEvent('click', {bubbles:true}));
-  await wait(400);
-  await goSection('numbers', 'practice');
+  // «num-read» и «num-sum» — теперь два разных шага раздела «numbers»,
+  // не два блока одной вкладки практики; проверка каждого — на его адресе
+  await setHash('#num-read');
   const readBox = q('.sandbox[data-task-id="num-read"]');
-  const sumBox = q('.sandbox[data-task-id="num-sum"]');
   ok('у задания без input() поле «Ввод» скрыто', readBox.querySelector('.sb-stdin').classList.contains('hidden'));
   ok('кнопки «Нужен ввод» нет', readBox.querySelector('.sb-stdin-toggle') === null);
-  ok('у задания с input() поле открыто и заполнено первым кейсом',
-     !sumBox.querySelector('.sb-stdin').classList.contains('hidden') &&
-     sumBox.querySelector('.sb-stdin-input').value === '3\n4',
-     JSON.stringify(sumBox.querySelector('.sb-stdin-input').value));
 
   readBox.querySelector('.sb-run').dispatchEvent(new w.MouseEvent('click', {bubbles:true}));
   await wait(200);
@@ -631,11 +636,17 @@ const ok = (name, cond, extra='') => { cond ? pass++ : fail++; console.log(`${co
      w.PA.editor.value(readBox.querySelector('.pa-editor')) === readBox.getAttribute('data-start') &&
      readBox.querySelector('.sb-stdin-input').value === '');
 
+  await setHash('#num-sum');
+  const sumBox = q('.sandbox[data-task-id="num-sum"]');
+  ok('у задания с input() поле открыто и заполнено первым кейсом',
+     !sumBox.querySelector('.sb-stdin').classList.contains('hidden') &&
+     sumBox.querySelector('.sb-stdin-input').value === '3\n4',
+     JSON.stringify(sumBox.querySelector('.sb-stdin-input').value));
+
   console.log('\nИСПОЛНЯЕМЫЙ ПРИМЕР БЕЗ ДУБЛЯ');
-  // Исполняемые примеры — часть теории; переключаемся на вкладку теории
-  // того же раздела «numbers» (сейчас открыта вкладка практики)
-  q('.sec-tab[data-tab="theory"]').dispatchEvent(new w.MouseEvent('click', {bubbles:true}));
-  await wait(200);
+  // Исполняемые примеры — часть теории; шаг 2 раздела «numbers» («Арифметические
+  // операции») содержит сразу несколько — прямой переход по адресу шага
+  await setHash('#/m/6/numbers/2');
   const runBlock = q('.code-block.runnable');
   ok('исполняемый пример — сразу редактор', runBlock !== null && runBlock.querySelector('.sandbox .ed-input') !== null);
   ok('статичной копии кода над редактором нет',
@@ -646,11 +657,13 @@ const ok = (name, cond, extra='') => { cond ? pass++ : fail++; console.log(`${co
      runBlock !== null && runBlock.querySelector('.ed-input').value === runBlock.getAttribute('data-code'));
 
   console.log('\nВИКТОРИНА');
-  // Третий тип блока практики наравне с task — проверка на узнавание без
-  // ввода кода. Раздел «map» модуля 6 (data/notes.json, quiz-types-1)
-  await goSection('map', 'practice');
+  // Третий тип оцениваемого блока наравне с task — проверка на узнавание
+  // без ввода кода. Раздел «map» модуля 6 (data/notes.json, quiz-types-1) —
+  // у викторины, как и у задания, свой шаг; переходим на него старым
+  // адресом самой викторины
+  await setHash('#quiz-types-1');
   const quizBox = q('.quiz[data-quiz-id="quiz-types-1"]');
-  ok('викторина отрисована на вкладке практики', quizBox !== null);
+  ok('викторина отрисована на своём шаге', quizBox !== null);
 
   const quizQuestions = quizBox ? [...quizBox.querySelectorAll('.quiz-q')] : [];
   ok('в викторине три вопроса', quizQuestions.length === 3, quizQuestions.length + '');
@@ -688,7 +701,7 @@ const ok = (name, cond, extra='') => { cond ? pass++ : fail++; console.log(`${co
   const barBefore = (q('.pb-text')?.textContent || '').match(/Решено (\d+) из (\d+)/);
 
   // Отвечаем верно на все три вопроса
-  await goSection('map', 'practice');
+  await setHash('#quiz-types-1');
   const quizBox2 = q('.quiz[data-quiz-id="quiz-types-1"]');
   [...quizBox2.querySelectorAll('.quiz-q')].forEach((fs) => {
     const correctIdx = parseInt(fs.getAttribute('data-answer'), 10);
@@ -711,7 +724,7 @@ const ok = (name, cond, extra='') => { cond ? pass++ : fail++; console.log(`${co
      `${barBefore && barBefore[0]} -> ${barAfter && barAfter[0]}`);
 
   // «Пройти заново» сбрасывает ответы и снимает отметку
-  await goSection('map', 'practice');
+  await setHash('#quiz-types-1');
   const quizBox3 = q('.quiz[data-quiz-id="quiz-types-1"]');
   quizBox3.querySelector('.quiz-retry').dispatchEvent(new w.MouseEvent('click', {bubbles:true}));
   await wait(50);
@@ -729,8 +742,8 @@ const ok = (name, cond, extra='') => { cond ? pass++ : fail++; console.log(`${co
   ok('в прогрессе курса все пять заданий', /Решено 0 из 5/.test(q('.pb-text')?.textContent || ''),
      q('.pb-text')?.textContent);
 
-  // Задание «plan-understand» — на вкладке практики раздела «understand»
-  await goSection('understand', 'practice');
+  // Задание «plan-understand» — свой шаг раздела «understand»
+  await setHash('#plan-understand');
   const paper = q('.task[data-task-id="plan-understand"]');
   ok('задание без автопроверки помечено «без кода»',
      paper !== null && paper.querySelector('.task-kind') !== null);
@@ -752,7 +765,7 @@ const ok = (name, cond, extra='') => { cond ? pass++ : fail++; console.log(`${co
   ok('общий прогресс курса пересчитался', /Решено 1 из 5/.test(q('.pb-text')?.textContent || ''),
      q('.pb-text')?.textContent);
 
-  await goSection('understand', 'practice');
+  await setHash('#plan-understand');
   q('.task[data-task-id="plan-understand"] .task-done')
     .dispatchEvent(new w.MouseEvent('click', {bubbles:true}));
   await wait(100);
@@ -764,10 +777,9 @@ const ok = (name, cond, extra='') => { cond ? pass++ : fail++; console.log(`${co
      q('.pb-text')?.textContent);
 
   console.log('\n«ПРОДОЛЖИТЬ» ВЕДЁТ НА ПЕРВОЕ НЕРЕШЁННОЕ ЗАДАНИЕ');
-  // Раньше «Продолжить» вело на раздел с первым нерешённым заданием —
-  // теперь ведёт прямо на само задание (якорь id="ref-<id>", см.
-  // renderTaskBlock) и сразу открывает вкладку практики (модуль 10
-  // ещё нигде не трогали в этом прогоне — гарантированно ничего не решено)
+  // «Продолжить» ведёт прямо на само задание (якорь id="ref-<id>", см.
+  // renderTaskBlock) и сразу открывает его шаг (модуль 10 ещё нигде не
+  // трогали в этом прогоне — гарантированно ничего не решено)
   q('.rail-item[data-mod="10"]').dispatchEvent(new w.MouseEvent('click', {bubbles:true}));
   await wait(400);
   const continueBtn = q('.pb-continue');
@@ -775,8 +787,8 @@ const ok = (name, cond, extra='') => { cond ? pass++ : fail++; console.log(`${co
   const firstTaskId = continueBtn.getAttribute('data-anchor');
   continueBtn.dispatchEvent(new w.MouseEvent('click', {bubbles:true}));
   await wait(700);
-  ok('«Продолжить» открывает вкладку практики',
-     q('.sec-tab[data-tab="practice"]')?.classList.contains('active'));
+  ok('«Продолжить» открывает шаг с самим заданием, не теорией',
+     q('.sec-body .task') !== null);
   ok('«Продолжить» приводит к тому самому заданию', d.getElementById('ref-' + firstTaskId) !== null,
      firstTaskId);
 
@@ -800,9 +812,8 @@ const ok = (name, cond, extra='') => { cond ? pass++ : fail++; console.log(`${co
   await wait(400);
   w.PA.store.flush();
   const place = w.PA.store.get('ui', 'place', null);
-  ok('место запомнено: модуль, раздел и вкладка',
-     !!place && place.mod === 8 && place.view === 'section' && place.section === openAnchor && place.tab === 'theory',
-     JSON.stringify(place));
+  ok('место запомнено как маршрут-строка (модуль и раздел)',
+     place === '#/m/8/' + openAnchor, JSON.stringify(place));
 
   // Настоящая перезагрузка: новое окно, тот же localStorage
   const dom2 = new JSDOM(fs.readFileSync(P + 'index.html', 'utf8'),
@@ -835,15 +846,15 @@ const ok = (name, cond, extra='') => { cond ? pass++ : fail++; console.log(`${co
   ok('после перезагрузки открыт тот же раздел', d2.getElementById('ref-' + openAnchor) !== null);
 
   console.log('\nЭКРАНЫ: ВОЗВРАТ НА СОХРАНЁННЫЙ ВИД');
-  // Сохранённое место — это не только модуль, но и сам экран (шаг 2):
-  // уходим в каталог, перезагружаем страницу тем же приёмом — второе
-  // окно с тем же localStorage — и проверяем, что открылся каталог,
-  // а не последний открытый материал
+  // Сохранённое место — это не только модуль, но и сам экран: уходим
+  // в каталог, перезагружаем страницу тем же приёмом — второе окно с тем
+  // же localStorage — и проверяем, что открылся каталог, а не последний
+  // открытый материал
   q('.rail-view[data-view="catalog"]').dispatchEvent(new w.MouseEvent('click', {bubbles:true}));
   await wait(200);
   w.PA.store.flush();
   const catalogPlace = w.PA.store.get('ui', 'place', null);
-  ok('вид «каталог» записан в место', !!catalogPlace && catalogPlace.view === 'catalog',
+  ok('вид «каталог» записан в место как маршрут-строка', catalogPlace === '#/catalog',
      JSON.stringify(catalogPlace));
 
   const dom3 = new JSDOM(fs.readFileSync(P + 'index.html', 'utf8'),
@@ -876,46 +887,52 @@ const ok = (name, cond, extra='') => { cond ? pass++ : fail++; console.log(`${co
      qa('.prog-card').length === notes2Data.sections.length,
      qa('.prog-card').length + ' карточек, ' + notes2Data.sections.length + ' разделов');
 
-  // Раскрытие карточки показывает список шагов: теория и практика вперемешку
+  // Раскрытие карточки показывает список шагов: теория и оцениваемые
+  // блоки вперемешку — data-kind различает их (см. renderProgramStep),
+  // вкладок больше нет: раздел стал последовательностью адресуемых шагов
   const cardWithBoth = qa('.prog-card').find((card) => {
-    const kinds = [...card.querySelectorAll('.prog-step-btn')].map((b) => b.dataset.tab);
-    return kinds.includes('theory') && kinds.includes('practice');
+    const kinds = [...card.querySelectorAll('.prog-step-btn')].map((b) => b.dataset.kind);
+    return kinds.includes('theory') && kinds.includes('graded');
   });
   ok('нашёлся раздел с шагами теории и практики', cardWithBoth !== undefined);
   cardWithBoth.querySelector('.prog-card-head').dispatchEvent(new w.MouseEvent('click', {bubbles:true}));
   await wait(100);
   ok('раскрытие карточки показывает список шагов', cardWithBoth.classList.contains('open'));
   const steps = [...cardWithBoth.querySelectorAll('.prog-step-btn')];
-  ok('среди шагов есть теория', steps.some((b) => b.dataset.tab === 'theory'));
-  ok('среди шагов есть задания', steps.some((b) => b.dataset.tab === 'practice'));
+  ok('среди шагов есть теория', steps.some((b) => b.dataset.kind === 'theory'));
+  ok('среди шагов есть задания', steps.some((b) => b.dataset.kind === 'graded'));
 
-  // Клик по шагу-заданию открывает раздел сразу на вкладке практики
-  const taskStep = steps.find((b) => b.dataset.tab === 'practice');
+  // Клик по шагу-заданию открывает раздел сразу на этом шаге (не на первом)
+  const taskStep = steps.find((b) => b.dataset.kind === 'graded' &&
+    b.querySelector('.prog-step-kind').textContent !== 'викторина');
   taskStep.dispatchEvent(new w.MouseEvent('click', {bubbles:true}));
   await wait(400);
-  ok('клик по шагу-заданию открывает раздел на вкладке практики',
-     q('.sec-tab[data-tab="practice"]')?.classList.contains('active'));
-  ok('на вкладке практики есть песочница', q('.sec-body .sandbox') !== null);
-  ok('на вкладке практики нет блоков теории (.section-label)', q('.sec-body .section-label') === null);
+  ok('клик по шагу-заданию открывает раздел на шаге с самим заданием', q('.sec-body .task') !== null);
+  ok('на шаге задания есть песочница', q('.sec-body .sandbox') !== null);
+  ok('на шаге задания нет посторонней теории (.section-label)', q('.sec-body .section-label') === null);
 
-  q('.sec-tab[data-tab="theory"]').dispatchEvent(new w.MouseEvent('click', {bubbles:true}));
-  await wait(150);
-  ok('на вкладке теории нет блоков-заданий (.task)', q('.sec-body .task') === null);
+  // Первый квадратик полосы шагов — всегда вступление раздела, теория
+  q('.step-sq[data-step="1"]').dispatchEvent(new w.MouseEvent('click', {bubbles:true}));
+  await wait(300);
+  ok('первый шаг раздела — теория, без блоков-заданий',
+     q('.sec-body .task') === null && q('.sec-body .quiz') === null);
 
-  // «Следующий раздел» переключает раздел, оставаясь в том же материале
-  const beforeNav = q('.sec-head').id;
+  // «Далее» продвигает по шагам того же раздела (полный переход в соседний
+  // раздел на границе проверяется прицельно в «АДРЕСА И ШАГИ» ниже)
+  const beforeStep = q('.sec-step-count')?.textContent;
   const nextBtn = q('.sec-nav-next');
-  ok('кнопка «Следующий раздел» есть', nextBtn !== null);
+  ok('кнопка «Далее» есть', nextBtn !== null);
   if (nextBtn) {
     nextBtn.dispatchEvent(new w.MouseEvent('click', {bubbles:true}));
     await wait(300);
-    ok('переход «Следующий раздел» меняет раздел', q('.sec-head').id !== beforeNav);
+    ok('переход «Далее» меняет шаг', q('.sec-step-count')?.textContent !== beforeStep,
+       q('.sec-step-count')?.textContent);
   } else {
-    ok('переход «Следующий раздел» меняет раздел', false, 'кнопки не было');
+    ok('переход «Далее» меняет шаг', false, 'кнопки не было');
   }
 
-  // Переход по якорю из поиска ведёт в нужный раздел на нужную вкладку —
-  // якорь раздела (не задания) приземляется на вкладку теории
+  // Переход по якорю из поиска ведёт в нужный раздел на первый его шаг —
+  // якорь раздела (не задания) приземляется на вступление, не куда-то вглубь
   inp.value = 'наследование'; inp.dispatchEvent(new w.Event('input', {bubbles:true}));
   await wait(500);
   const searchTarget = q('.sr-item');
@@ -924,14 +941,12 @@ const ok = (name, cond, extra='') => { cond ? pass++ : fail++; console.log(`${co
   await wait(700);
   ok('переход по якорю из поиска открывает раздел',
      q('.sec-head') !== null && w.location.hash.length > 1);
-  ok('переход по якорю из поиска ведёт на вкладку теории (якорь раздела)',
-     !q('.sec-tabs') || q('.sec-tab[data-tab="theory"]')?.classList.contains('active'));
+  ok('переход по якорю из поиска ведёт на первый шаг раздела (якорь раздела)',
+     q('.step-sq.step-current') === q('.step-strip .step-sq'));
 
-  // Черновик кода на вкладке практики переживает уход на другой раздел
-  // ТОГО ЖЕ материала (не смену модуля) и возврат
-  q('.rail-item[data-mod="6"]').dispatchEvent(new w.MouseEvent('click', {bubbles:true}));
-  await wait(400);
-  await goSection('numbers', 'practice');
+  // Черновик кода на шаге задания переживает уход на другой раздел ТОГО ЖЕ
+  // материала (не смену модуля) и возврат
+  await setHash('#num-sum');
   const draftBox = q('.sandbox[data-task-id="num-sum"]');
   const draftKey = draftBox.getAttribute('data-block-key');
   const draftEditor = draftBox.querySelector('.ed-input');
@@ -939,14 +954,100 @@ const ok = (name, cond, extra='') => { cond ? pass++ : fail++; console.log(`${co
   draftEditor.dispatchEvent(new w.Event('input', {bubbles:true}));
   await wait(50);
 
-  await goSection('refs');
+  await openSection('refs');
   ok('ушли на другой раздел того же материала', q('.sec-head')?.id === 'ref-refs');
 
-  await goSection('numbers', 'practice');
+  await setHash('#num-sum');
   const draftBack = q('.sandbox[data-block-key="' + draftKey + '"] .ed-input');
-  ok('черновик практики пережил уход на другой раздел и возврат',
+  ok('черновик задания пережил уход на другой раздел и возврат',
      draftBack !== null && draftBack.value === 'print("другой раздел и назад")',
      JSON.stringify(draftBack && draftBack.value));
+
+  console.log('\nАДРЕСА И ШАГИ');
+
+  // Пять видов адреса — каждый получается обычным переходом по интерфейсу
+  click('.rail-view[data-view="catalog"]');
+  await wait(200);
+  ok('адрес «Каталог»', w.location.hash === '#/catalog', w.location.hash);
+
+  click('.rail-view[data-view="home"]');
+  await wait(200);
+  ok('адрес «Моё обучение»', w.location.hash === '#/', w.location.hash);
+
+  click('.rail-item[data-mod="6"]');
+  await wait(400);
+  ok('адрес программы материала', w.location.hash === '#/m/6', w.location.hash);
+
+  click('.rail-sec[data-anchor="map"]');
+  await wait(400);
+  ok('адрес раздела — первый шаг, без номера', w.location.hash === '#/m/6/map', w.location.hash);
+
+  click('.step-sq[data-step="2"]');
+  await wait(400);
+  ok('адрес конкретного шага', w.location.hash === '#/m/6/map/2', w.location.hash);
+  ok('клик по квадратику полосы шагов открыл именно этот шаг',
+     q('.sec-body .section-label')?.textContent === 'Простые типы: одно значение',
+     q('.sec-body .section-label')?.textContent);
+
+  // Прямой переход по адресу шага (минуя интерфейс) — раздел «numbers», шаг 3
+  await setHash('#/m/6/numbers/3');
+  ok('прямой переход по адресу шага открывает именно его',
+     q('.sec-body .section-label')?.textContent === 'Приоритет операций',
+     q('.sec-body .section-label')?.textContent);
+  ok('это шаг теории — песочницы на нём нет', q('.sec-body .sandbox') === null);
+
+  // Старый адрес раздела (#list) заменяется на новый маршрут
+  await setHash('#list');
+  ok('старый адрес раздела открывает его', d.getElementById('ref-list') !== null);
+  ok('старый адрес заменён новым маршрутом', w.location.hash === '#/m/6/list', w.location.hash);
+
+  // Старый адрес задания открывает шаг с этим заданием
+  await setHash('#num-sum');
+  ok('старый адрес задания открывает шаг с этим заданием', q('.sandbox[data-task-id="num-sum"]') !== null);
+  ok('шаг с заданием содержит песочницу', q('.sec-body .sandbox') !== null);
+  ok('адрес задания заменён маршрутом его шага', w.location.hash === '#/m/6/numbers/11', w.location.hash);
+
+  // «Далее»/«Назад»: в пределах раздела и на его границах
+  await setHash('#/m/6/map');
+  click('.sec-nav-next');
+  await wait(300);
+  ok('«Далее» с первого шага ведёт на второй шаг того же раздела',
+     w.location.hash === '#/m/6/map/2', w.location.hash);
+
+  click('.sec-nav-prev');
+  await wait(300);
+  ok('«Назад» со второго шага возвращает на первый', w.location.hash === '#/m/6/map', w.location.hash);
+
+  click('.sec-nav-prev');
+  await wait(300);
+  ok('«Назад» с первого шага ведёт на программу материала', w.location.hash === '#/m/6', w.location.hash);
+
+  await setHash('#num-time');   // последнее задание раздела «numbers» — последний его шаг
+  ok('num-time — действительно последний шаг раздела', w.location.hash === '#/m/6/numbers/12', w.location.hash);
+  click('.sec-nav-next');
+  await wait(300);
+  ok('«Далее» с последнего шага раздела ведёт в первый шаг следующего раздела',
+     w.location.hash === '#/m/6/str', w.location.hash);
+
+  // Черновик кода, введённый на шаге с заданием, переживает уход на другой
+  // шаг и возврат (сам шаг, не соседний раздел — тот случай уже выше)
+  await setHash('#num-sum');
+  const stepDraftBox = q('.sandbox[data-task-id="num-sum"]');
+  const stepDraftKey = stepDraftBox.getAttribute('data-block-key');
+  const stepDraftEditor = stepDraftBox.querySelector('.ed-input');
+  stepDraftEditor.value = 'print("черновик на шаге")';
+  stepDraftEditor.dispatchEvent(new w.Event('input', {bubbles:true}));
+  await wait(50);
+
+  click('.sec-nav-prev');   // на шаг num-read (шаг 10)
+  await wait(300);
+  ok('ушли на соседний шаг того же раздела', q('.sandbox[data-task-id="num-sum"]') === null);
+
+  await setHash('#num-sum');
+  const stepDraftBack = q('.sandbox[data-block-key="' + stepDraftKey + '"] .ed-input');
+  ok('черновик задания пережил уход на другой шаг и возврат',
+     stepDraftBack !== null && stepDraftBack.value === 'print("черновик на шаге")',
+     JSON.stringify(stepDraftBack && stepDraftBack.value));
 
   console.log(`\nИТОГ: ${pass} пройдено, ${fail} провалено`);
   process.exit(fail ? 1 : 0);

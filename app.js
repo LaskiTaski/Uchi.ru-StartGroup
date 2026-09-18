@@ -12,8 +12,7 @@
     headerExpandAt: 40,      // и на которой возвращается (гистерезис)
     searchDebounce: 120,     // пауза перед поиском, мс
     searchMinLength: 2,
-    searchLimit: 8,
-    scrollOffset: 14         // зазор под липкой шапкой при переходе по якорю
+    searchLimit: 8
   };
 
   // Уважаем системную настройку «меньше анимации» (этап 5): в jsdom
@@ -62,10 +61,13 @@
     // 'home' | 'catalog' | 'material' | 'program' | 'section' — какой экран сейчас.
     // 'material' — старое единое полотно, оставлено только для модуля «Доп. курсы»
     // (data.type === 'courses'): у него нет ни секций-с-блоками, ни занятий,
-    // делить там нечего на теорию/практику. Всё остальное — 'program'/'section'.
+    // делить там нечего на шаги. Всё остальное — 'program'/'section'.
+    // Источник истины — адрес (location.hash, см. «Маршруты» ниже): state
+    // только зеркалит то, что уже отрисовано, ради renderRail/refreshProgress —
+    // сами переходы всегда идут через navigate(), а не через прямую мутацию.
     view: 'home',
     section: null,         // якорь раздела (или занятия) — только для view 'section'
-    tab: 'theory',         // 'theory' | 'practice' — вкладка раздела (только для view 'section')
+    step: null,            // номер текущего шага (с единицы) — только для view 'section'
     authToken: localStorage.getItem(REMEMBER_KEY) === '1' ? '1' : null
   };
 
@@ -130,11 +132,11 @@
   /* Материал, на который указывает элемент разметки (data-mod) */
   const modOf = (el) => parseInt(el.getAttribute('data-mod'), 10);
 
-  /* ── Состояние блоков переживает перерисовку (этап 0.2) ─
-     loadModule заменяет весь innerHTML, поэтому введённый
+  /* ── Состояние блоков переживает перерисовку ─────────────
+     setContent заменяет весь innerHTML, поэтому введённый
      учеником код обязан жить вне разметки. Реестром служит
      PA.store: он же дублирует данные в localStorage, так что
-     код переживает и переключение вкладки, и перезагрузку.   */
+     код переживает и переход на другой шаг, и перезагрузку.   */
 
   const hasPA = typeof window.PA !== 'undefined';
 
@@ -192,30 +194,40 @@
     });
   }
 
-  /* ── Где ученик остановился (этап 5, шаг 2; шаг 3 — плюс раздел/вкладка)
-     Возврат на сайт не должен стоить четырёх кликов: помним не только
-     модуль, но и сам экран — «Моё обучение», каталог, программа или
-     конкретный раздел на нужной вкладке. Хранится отдельно от прогресса,
-     в экспорт не идёт. Старое поле place.open (список раскрытых секций
-     единого полотна) сюда больше не пишется — читать его не нужно:
-     аккордеона на весь материал больше нет. */
+  /* ── Где ученик остановился ──────────────────────────────
+     Возврат на сайт не должен стоить нескольких кликов: помним адрес —
+     он и так однозначно описывает экран, материал, раздел и шаг. Хранится
+     отдельно от прогресса, в экспорт не идёт. Старый формат записи —
+     объект { view, mod, section, tab } из этапа до перехода на адреса —
+     распознаёт routeFromPlace() ниже, падать на нём нельзя: у учеников,
+     не открывавших сайт с этого обновления, в PA.store лежит именно он. */
 
   function savePlace() {
     if (!hasPA) return;
-    const place = { view: state.view };
-    if (isModuleScreen(state.view)) {
-      if (!state.activeModule) return;
-      place.mod = state.activeModule;
-      if (state.view === 'section') {
-        place.section = state.section;
-        place.tab = state.tab;
-      }
-    }
-    window.PA.store.set('ui', 'place', place);
+    window.PA.store.set('ui', 'place', location.hash || '#/');
   }
 
   function savedPlace() {
     return hasPA ? window.PA.store.get('ui', 'place', null) : null;
+  }
+
+  /* Сохранённое место → маршрут. Строка — уже сам адрес (новый формат,
+     см. parseRoute). Объект — запись до перехода на адреса: раздел там
+     помнился без номера шага, поэтому открываем его с первого шага —
+     точнее не восстановить, а падать нельзя. */
+  function routeFromPlace(raw) {
+    if (!raw) return null;
+    if (typeof raw === 'string') {
+      const route = parseRoute(raw);
+      return route.view === 'legacy' ? null : route;
+    }
+    if (raw.view === 'catalog') return { view: 'catalog' };
+    if (isModuleScreen(raw.view) && raw.mod) {
+      return raw.view === 'section' && raw.section
+        ? { view: 'section', mod: raw.mod, section: raw.section, step: 1 }
+        : { view: 'program', mod: raw.mod };
+    }
+    return null;
   }
 
   /* ── Конфигурация из манифеста ───────────────────────── */
@@ -291,7 +303,10 @@
     const targets = state.modules.filter((m) => !isPlanned(m) && !m.protected && !loaded.has(m.id));
     if (!targets.length) return;
 
-    loadAllModules(targets).then(repaintView);
+    // Перерисовываем с адреса — если ученик к этому моменту ушёл с «Моего
+    // обучения»/каталога на материал, перерисуется уже он, что не страшно:
+    // данные всё равно закешированы, лишний проход дёшев
+    loadAllModules(targets).then(() => renderRoute(currentRoute()));
   }
 
   /* ── Панель материалов: постоянная левая колонка ───────
@@ -329,11 +344,11 @@
       // Активный раздел подсвечивается, только когда открыт именно экран
       // раздела (шаг 3) — на экране программы ни один пункт не выбран
       const active = state.view === 'section' && state.section === section.anchor;
-      items += h('button', {
+      items += h('button', modAttrs(modId, {
         class: 'rail-sec' + (allSolved(sectionParts(section)) ? ' rail-sec-done' : '') + (active ? ' active' : ''),
         'data-anchor': section.anchor,
         'aria-current': active ? 'page' : 'false'
-      },
+      }),
         h('span', { class: 'rail-sec-num' }, esc(section.num)) +
         h('span', { class: 'rail-sec-title' }, esc(section.title))
       );
@@ -423,7 +438,7 @@
   /* Материал, на который указывает кликнутый элемент, — или null, если
      открывать нечего. Единственный рубеж для запланированных: карточка
      и пункт панели нарисованы, но файла с контентом у них ещё нет,
-     поэтому глубже (switchModule, loadModule) про planned не знают. */
+     поэтому глубже (renderModuleRoute) про planned не знают. */
   function openableModule(el) {
     const modId = modOf(el);
     const meta = getModuleMeta(modId);
@@ -431,120 +446,187 @@
   }
 
   /* Открыть материал, на который указывает кликнутый элемент: пункт
-     панели и карточку каталога ведёт один и тот же путь. Возвращает
-     false, если открывать нечего (материал запланирован) — панель
-     на узком экране в этом случае остаётся открытой. */
+     панели и карточку каталога ведёт один и тот же путь — на экран
+     программы, даже если материал уже открыт глубоко в разделе (адрес
+     всё равно меняется на «/m/<id>», а значит и перерисуется).
+     Возвращает false, если открывать нечего (материал запланирован) —
+     панель на узком экране в этом случае остаётся открытой. */
   function openModuleFrom(el) {
     const modId = openableModule(el);
     if (modId === null) return false;
-    goAndScrollTop(() => {
-      // Тот же материал уже открыт — клик всегда ведёт на экран
-      // программы (шаг 3), даже если ученик сейчас глубоко в разделе
-      if (modId === state.activeModule) reopenModule(modId);
-      else switchModule(modId);
-    });
+    navigate({ view: 'program', mod: modId });
     return true;
   }
 
-  /* ── Экраны и переключение модуля ───────────────────────
-     Три вида делит один и тот же контейнер #content: showView рисует
-     «Моё обучение»/каталог сразу (данные уже в браузере), а материал —
-     дело switchModule/loadModule, у которых своя загрузка и свой кэш. */
+  /* ── Маршруты: один разбор, одна сборка ──────────────────
+     #/                      «Моё обучение»
+     #/catalog               «Каталог»
+     #/m/<id>                программа материала
+     #/m/<id>/<anchor>       раздел, первый шаг
+     #/m/<id>/<anchor>/<n>   шаг n раздела (n с единицы)
 
-  /* Экраны, которым хватает уже загруженных данных: вид → чем рисовать.
-     Экранов материала здесь нет — их рисуют switchModule/loadModule,
-     дождавшись своей загрузки. Через repaintView() ими пользуются
-     и showView, и фоновая догрузка модулей. */
-  const VIEW_RENDERERS = { home: renderHome, catalog: renderCatalog };
+     Старые адреса (голый якорь без ведущего «/» — раздел справочника или
+     задание из перекрёстной ссылки/поискового индекса/закладки) разбираются
+     в { view: 'legacy' } — resolveLegacyRoute ниже находит, куда они ведут
+     сейчас, и заменяет адрес на канонический через replaceState. */
+  const ROUTE_RE = /^\/m\/(\d+)(?:\/([A-Za-z0-9_-]+)(?:\/(\d+))?)?$/;
 
-  function repaintView() {
-    const render = VIEW_RENDERERS[state.view];
-    if (render) setContent(render());
+  function parseRoute(hash) {
+    let raw = String(hash || '');
+    if (raw.charAt(0) === '#') raw = raw.slice(1);
+    if (raw === '' || raw === '/') return { view: 'home' };
+    if (raw === '/catalog') return { view: 'catalog' };
+    if (raw.charAt(0) === '/') {
+      const m = ROUTE_RE.exec(raw);
+      if (!m) return { view: 'home' };   // незнакомый новый маршрут — безопасный запасной вариант
+      const mod = parseInt(m[1], 10);
+      if (!m[2]) return { view: 'program', mod: mod };
+      return { view: 'section', mod: mod, section: m[2], step: m[3] ? parseInt(m[3], 10) : 1 };
+    }
+    return { view: 'legacy', anchor: raw };
   }
 
-  function showView(view) {
-    state.view = view;
-    preloadModulesInBackground();   // цифрам экранов нужны данные модулей — тянем их в фоне
+  function buildRoute(route) {
+    switch (route.view) {
+      case 'catalog': return '#/catalog';
+      case 'program': return '#/m/' + route.mod;
+      case 'section':
+        return '#/m/' + route.mod + '/' + route.section + (route.step > 1 ? '/' + route.step : '');
+      default: return '#/';
+    }
+  }
+
+  /* Переход по маршруту — единственное место, что трогает location.hash.
+     Разный адрес (обычный переход) меняет хеш и НИЧЕГО не рисует сам —
+     отрисовку запускает обработчик hashchange (см. низ файла), поэтому
+     «назад»/«вперёд» браузера работают бесплатно. Тот же адрес или
+     opts.replace — рендерить придётся отсюда: одинаковый хеш и
+     history.replaceState хешchange не порождают. */
+  function navigate(route, opts) {
+    const replace = !!(opts && opts.replace);
+    const hash = buildRoute(route);
+    if (replace) {
+      if (location.hash !== hash) history.replaceState(null, '', hash);
+      return renderRoute(route);
+    }
+    if (location.hash === hash) return renderRoute(route);
+    location.hash = hash;
+    return undefined;
+  }
+
+  function currentRoute() {
+    return parseRoute(location.hash);
+  }
+
+  /* Общий финал любой отрисованной страницы: панель, содержимое, память
+     места, прокрутка наверх (после смены шага она и должна уходить наверх —
+     внутристраничная прокрутка больше не нужна, шаги короткие) и закрытие
+     выезжающей панели на узком экране. */
+  function commitView(html) {
     renderRail();
-    repaintView();
+    setContent(html);
     savePlace();
     window.scrollTo({ top: 0, behavior: scrollBehavior() });
     setRailOpen(false);
   }
 
-  function switchModule(modId) {
-    state.activeModule = modId;
-    state.view = 'material';   // временная метка на время загрузки — openMaterialTop уточнит экран
-    renderRail();
-
-    // Запоминаем уже после отрисовки: до неё в DOM ещё прошлый модуль
-    return loadModule(modId).then(function (data) {
-      savePlace();
-      return data;
-    });
+  /* ── Разбор адреса на экран ──────────────────────────────
+     Единственная точка, откуда рисуется страница: и обработчик hashchange,
+     и navigate() (для replace/повторного адреса) зовут только её. */
+  function renderRoute(route) {
+    switch (route.view) {
+      case 'home':
+        state.view = 'home'; state.activeModule = null; state.section = null; state.step = null;
+        preloadModulesInBackground();   // цифрам экрана нужны данные модулей — тянем их в фоне
+        commitView(renderHome());
+        return undefined;
+      case 'catalog':
+        state.view = 'catalog'; state.activeModule = null; state.section = null; state.step = null;
+        preloadModulesInBackground();
+        commitView(renderCatalog());
+        return undefined;
+      case 'program':
+      case 'section':
+        return renderModuleRoute(route);
+      case 'legacy':
+        return resolveLegacyRoute(route.anchor);
+      default:
+        return navigate({ view: 'home' }, { replace: true });
+    }
   }
 
-  /**
-   * Показывает модуль и возвращает промис, который выполнится
-   * после отрисовки. Именно это убрало ожидание рендера опросом.
-   */
-  function loadModule(modId) {
+  /* Материал по адресу: программа или раздел. Данные могут быть ещё
+     не загружены — тогда показываем «Загрузка…» и, дождавшись фетча,
+     просто пересчитываем маршрут заново (currentRoute() читает адрес
+     на тот момент — если ученик успел уйти, отрисуется уже новое место). */
+  function renderModuleRoute(route) {
+    const modId = route.mod;
     const meta = getModuleMeta(modId);
-    if (meta && meta.protected && !state.authToken) {
-      setContent(renderLoginForm());
-      return Promise.resolve();
+    if (!meta || isPlanned(meta)) return navigate({ view: 'home' }, { replace: true });
+
+    state.activeModule = modId;
+
+    if (meta.protected && !state.authToken) {
+      state.view = 'material'; state.section = null; state.step = null;
+      commitView(renderLoginForm());
+      return undefined;
     }
 
     if (loaded.has(modId)) {
-      openMaterialTop(modId, loaded.get(modId));
-      return Promise.resolve(loaded.get(modId));
+      showModuleRoute(modId, loaded.get(modId), route);
+      return undefined;
     }
 
-    setContent(h('div', { class: 'empty-state' }, 'Загрузка…'));
+    state.view = 'material';
+    commitView(h('div', { class: 'empty-state' }, 'Загрузка…'));
 
-    return fetchModuleCached(modId).then((data) => {
-      if (state.activeModule === modId) openMaterialTop(modId, data);
-      return data;
-    }).catch(() => {
-      setContent(h('div', { class: 'empty-state' },
-        '⚠️ Не удалось загрузить модуль. Проверьте, что файл ' +
-        esc(meta ? meta.file : '') + ' на месте.'));
+    return fetchModuleCached(modId).then(() => renderRoute(currentRoute())).catch(() => {
+      commitView(h('div', { class: 'empty-state' },
+        '⚠️ Не удалось загрузить модуль. Проверьте, что файл ' + esc(meta.file) + ' на месте.'));
     });
   }
 
-  /* ── Верхний уровень материала: «Программа» или старое полотно ──
-     (шаг 3). Модуль «Доп. курсы» (data.type === 'courses') — единственный,
-     где нет ни секций-с-блоками, ни занятий; для него ничего не меняем.
-     Всё остальное получает экран «Программа» вместо мгновенного полотна. */
-  function openMaterialTop(modId, data) {
+  /* Материал уже загружен — решаем, что именно показать: старое полотно
+     «Доп. курсов» (у него нет ни разделов-с-шагами, ни занятий, делить
+     нечего), программу или конкретный шаг раздела/занятия. Битый или
+     устаревший адрес (раздел/шаг не существует) чиним через replaceState,
+     не показывая ученику пустой экран. */
+  function showModuleRoute(modId, data, route) {
     state.activeModule = modId;
-    state.view = data.type === 'courses' ? 'material' : 'program';
-    state.section = null;
-    renderRail();   // дерево разделов и счётчик панели ждали именно этих данных
-    setContent(state.view === 'material' ? renderCoursesModule(data) : renderProgramScreen(data));
-    savePlace();
-  }
 
-  /* Открыть уже загруженный материал заново (пункт панели/карточка,
-     кнопка «Программа») — без повторной загрузки данных */
-  function reopenModule(modId) {
-    const data = loaded.get(modId);
-    if (data) openMaterialTop(modId, data);
-    else switchModule(modId);
-  }
+    if (data.type === 'courses') {
+      state.view = 'material'; state.section = null; state.step = null;
+      commitView(renderCoursesModule(data));
+      return;
+    }
 
-  /* ── Экран «Раздел» (шаг 3): один раздел (или занятие видеомодуля)
-     на весь экран, на нужной вкладке. Данные уже должны быть загружены —
-     до сюда доходят только через уже открытый материал. */
-  function openSection(modId, anchor, tab) {
-    state.activeModule = modId;
-    state.view = 'section';
-    state.section = anchor;
-    state.tab = tab === 'practice' ? 'practice' : 'theory';
-    renderRail();
-    const data = loaded.get(modId);
-    setContent(data ? renderSectionScreen(data, anchor, state.tab) : h('div', { class: 'empty-state' }, 'Загрузка…'));
-    savePlace();
+    if (route.view === 'program') {
+      state.view = 'program'; state.section = null; state.step = null;
+      commitView(renderProgramScreen(data));
+      return;
+    }
+
+    const anchor = route.section;
+
+    if (data.lessons) {
+      const lessons = data.lessons.filter((l) => !l.attestation);
+      const found = lessons.some((l) => lessonAnchorOf(modId, l.num) === anchor);
+      if (!found) { navigate({ view: 'program', mod: modId }, { replace: true }); return; }
+      if (route.step !== 1) { navigate({ view: 'section', mod: modId, section: anchor, step: 1 }, { replace: true }); return; }
+      state.view = 'section'; state.section = anchor; state.step = 1;
+      commitView(renderSectionScreen(data, anchor, 1));
+      return;
+    }
+
+    const section = (data.sections || []).find((s) => s.anchor === anchor);
+    if (!section) { navigate({ view: 'program', mod: modId }, { replace: true }); return; }
+
+    const total = sectionSteps(section).length;
+    const step = Math.min(Math.max(route.step || 1, 1), total);
+    if (step !== route.step) { navigate({ view: 'section', mod: modId, section: anchor, step: step }, { replace: true }); return; }
+
+    state.view = 'section'; state.section = anchor; state.step = step;
+    commitView(renderSectionScreen(data, anchor, step));
   }
 
   /* ── Экран «Моё обучение» (шаг 2) ───────────────────────
@@ -591,15 +673,15 @@
   function renderContinueCard() {
     // Куда вести: на сохранённое место, а если ученик ещё ничего не открывал —
     // на первый материал справочника (бесплатный и доступен без пароля)
-    const place = savedPlace();
-    const savedMeta = place && isModuleScreen(place.view) ? getModuleMeta(place.mod) : null;
+    const route = routeFromPlace(savedPlace());
+    const savedMeta = route && route.mod ? getModuleMeta(route.mod) : null;
     const fromPlace = !!savedMeta && !isPlanned(savedMeta);
     const meta = fromPlace ? savedMeta : modulesOfGroup('ref')[0];
     if (!meta) return '';
 
     // Раздел известен, только если в прошлый раз ушли именно с экрана
     // раздела — на экране программы «место» не более точное, чем модуль
-    const anchor = fromPlace && place.view === 'section' ? place.section : null;
+    const anchor = fromPlace && route.view === 'section' ? route.section : null;
 
     // Карточке нужны слова, а не якорь: у справочников и курсов заголовок
     // берётся из разделов (data.sections), у видеомодулей — из занятий
@@ -686,10 +768,10 @@
      место: ученик мог открыть материал и ещё не решить в нём ничего.
      Пока такого нет — вместо списка приглашение в каталог. */
   function renderInProgress() {
-    const place = savedPlace();
     // Любой экран материала считается «последним открытым»: программа,
     // раздел и полотно «Доп. курсов» — это всё тот же материал
-    const placeModId = place && isModuleScreen(place.view) ? place.mod : null;
+    const route = routeFromPlace(savedPlace());
+    const placeModId = route ? route.mod || null : null;
 
     let rows = '';
     state.modules.forEach((meta) => {
@@ -826,28 +908,13 @@
 
     state.authToken = '1';
     if (remember && remember.checked) localStorage.setItem(REMEMBER_KEY, '1');
-    loadModule(state.activeModule);
+    renderRoute(currentRoute());   // тот же адрес — теперь уже с пройденной проверкой
   }
 
   /* ── Якоря ───────────────────────────────────────────── */
 
   function lessonAnchorOf(modId, num) {
     return 'l' + modId + '-' + String(num).replace(/\./g, '-');
-  }
-
-  function headerOffset() {
-    const header = document.querySelector('.header');
-    return (header ? header.offsetHeight : 0) + CONFIG.scrollOffset;
-  }
-
-  /* Прокрутка к элементу с подсветкой-вспышкой: общая часть перехода
-     по якорю (goToAnchor) и клика по квадратику полосы шагов */
-  function scrollToElement(element) {
-    const top = element.getBoundingClientRect().top + window.pageYOffset - headerOffset();
-    window.scrollTo({ top: top, behavior: scrollBehavior() });
-    element.classList.remove('flash');
-    void element.offsetWidth;
-    element.classList.add('flash');
   }
 
   /* В каком модуле живёт якорь — якорь раздела, задания или занятия.
@@ -863,57 +930,62 @@
     return null;
   }
 
-  /* Куда именно ведёт якорь внутри уже загруженных данных модуля:
-     якорь раздела — сам раздел на вкладке теории; якорь задания —
-     раздел, где оно лежит, на вкладке практики; у видеомодулей якорь
-     занятия ведёт на экран этого занятия, вкладок там нет вовсе */
+  /* Куда именно ведёт якорь внутри уже загруженных данных модуля: якорь
+     раздела — сам раздел, первый шаг; якорь задания/викторины — раздел,
+     где лежит блок, и номер того самого шага (каждый оцениваемый блок —
+     свой отдельный шаг, см. sectionSteps); у видеомодулей якорь занятия
+     ведёт на экран этого занятия (у него всегда один шаг). */
   function resolveAnchorTarget(data, anchor) {
     if (!data) return null;
     for (const section of data.sections || []) {
-      if (section.anchor === anchor) return { section: section.anchor, tab: 'theory' };
-      if ((section.blocks || []).some((b) => isGradedBlock(b) && b.id === anchor)) {
-        return { section: section.anchor, tab: 'practice' };
+      if (!section.anchor) continue;
+      if (section.anchor === anchor) return { section: section.anchor, step: 1 };
+      const steps = sectionSteps(section);
+      for (let i = 0; i < steps.length; i++) {
+        if (steps[i].kind === 'graded' && steps[i].block.id === anchor) {
+          return { section: section.anchor, step: i + 1 };
+        }
       }
     }
-    return data.lessons ? { section: anchor, tab: null } : null;
+    return data.lessons ? { section: anchor, step: 1 } : null;
   }
 
-  function goToAnchor(anchor, updateHash) {
-    setRailOpen(false);   // на узком экране панель закрывает то, к чему прыгаем
+  /* Маршрут, на который ведёт якорь, — промисом: находим модуль (у занятий
+     номер модуля зашит в сам якорь, у остальных ищем среди оглавлений),
+     догружаем его данные и разбираем якорь внутри них. null — якорь никуда
+     не ведёт (устарел, опечатка в ссылке). Общая точка для goToAnchor
+     (обычный переход) и resolveLegacyRoute (замена старого адреса). */
+  function anchorRoute(anchor) {
+    const lessonMatch = /^l(\d+)-/.exec(anchor);
+    const modIdPromise = lessonMatch
+      ? Promise.resolve(parseInt(lessonMatch[1], 10))
+      : loadAllModules(menuModules()).then(() => { renderRail(); return findModuleForAnchor(anchor); });
 
-    function jump() {
-      const element = byId('ref-' + anchor);
-      if (!element) return;
-
-      // Ниже порога шапка свернётся — сворачиваем до замера позиции
-      const absoluteTop = element.getBoundingClientRect().top + window.pageYOffset;
-      if (absoluteTop > CONFIG.headerCollapseAt) {
-        document.querySelector('.header').classList.add('compact');
-      }
-
-      scrollToElement(element);
-
-      if (updateHash !== false && history.replaceState) {
-        history.replaceState(null, '', '#' + anchor);
-      }
-    }
-
-    // Открыть раздел (или занятие) на нужной вкладке и прыгнуть к якорю —
-    // данные модуля к этому моменту уже загружены
-    function openAndJump(modId) {
-      const target = resolveAnchorTarget(loaded.get(modId), anchor);
-      if (target) openSection(modId, target.section, target.tab);
-      jump();
-    }
-
-    // Загружаем оглавления, находим модуль, переключаемся и только потом прыгаем
-    loadAllModules(menuModules()).then(() => {
-      renderRail();   // разделы только что загружены — дерево в панели могло быть неполным
-      const modId = findModuleForAnchor(anchor);
-      if (modId === null) return;
-      if (state.activeModule === modId && loaded.has(modId)) { openAndJump(modId); return; }
-      return switchModule(modId).then(() => openAndJump(modId));
+    return modIdPromise.then((modId) => {
+      if (modId === null || modId === undefined) return null;
+      return fetchModuleCached(modId).then((data) => {
+        const target = resolveAnchorTarget(data, anchor);
+        return target
+          ? { view: 'section', mod: modId, section: target.section, step: target.step }
+          : { view: 'program', mod: modId };
+      }).catch(() => null);
     });
+  }
+
+  /* Точка входа для поиска, плиток быстрого перехода, ссылок [текст](#якорь)
+     и кнопки «Продолжить»: вычисляет маршрут и переходит по нему (обычный
+     переход — адрес меняется, попадает в историю). */
+  function goToAnchor(anchor) {
+    setRailOpen(false);   // на узком экране панель закрывает то, к чему переходим
+    anchorRoute(anchor).then((route) => { if (route) navigate(route); });
+  }
+
+  /* Старый адрес (голый якорь без ведущего «/») — заменяем на канонический
+     маршрут через replaceState и показываем то, на что он указывает.
+     Ничего не нашли — не оставлять же ученика на пустом экране: «Моё
+     обучение», как при заходе без всякого адреса. */
+  function resolveLegacyRoute(anchor) {
+    return anchorRoute(anchor).then((route) => navigate(route || { view: 'home' }, { replace: true }));
   }
 
   /* ── Поиск ───────────────────────────────────────────── */
@@ -1260,8 +1332,8 @@
   }
 
   /* Оцениваемый блок — задание или викторина: у обоих есть id, отметка
-     решённости в PA.store и место на вкладке практики. Все, кому важно
-     «считается ли блок» — sectionParts, progressOf, renderTabBody,
+     решённости в PA.store и место в шагах раздела. Все, кому важно
+     «считается ли блок» — sectionParts, sectionSteps, progressOf,
      resolveAnchorTarget — спрашивают здесь, а не перечисляют типы у себя. */
   function isGradedBlock(block) {
     return block.type === 'task' || block.type === 'quiz';
@@ -1279,29 +1351,75 @@
     quiz: { icon: '❓', title: 'Викторина', square: 'step-quiz', mark: '?', kind: 'викторина' }
   };
 
-  /* ── Справочники и курсы: разделы с шагами теории и практики ──
-     Разбор блоков на теорию/практику происходит на лету, по типу блока —
-     data/*.json не меняется. heading — шаг теории, оцениваемый блок —
-     шаг практики, остальные блоки (текст, код, таблица…) — тело шага теории.
-
-     Один проход даёт всё, что нужно карточке программы, полосе шагов,
-     вкладкам и дереву в панели: шаги (каждый знает, решён ли он), число
-     тем теории и «решено из всего» в границах раздела — как progressOf,
-     но по одному разделу. Задание без id в счёт не идёт: отмечать негде. */
+  /* Счётчики раздела — сколько тем теории, сколько заданий/викторин решено
+     из скольких. Задание без id в счёт не идёт: отмечать негде. От нарезки
+     на шаги (sectionSteps, ниже) счётчики не зависят и не меняют смысла:
+     индекс блока всегда берётся от исходного (не нарезанного) section.blocks —
+     на нём держатся ключи черновиков (blockKeyOf) и отметки решённости. */
   function sectionParts(section) {
-    var parts = { steps: [], theory: 0, total: 0, solved: 0 };
-    (section.blocks || []).forEach(function (block, index) {
+    var parts = { theory: 0, total: 0, solved: 0 };
+    (section.blocks || []).forEach(function (block) {
       var graded = isGradedBlock(block);
       if (!graded && block.type !== 'heading') return;
-      var solved = graded && !!block.id && hasPA && window.PA.store.isSolved(block.id);
-      if (!graded) parts.theory++;
-      else if (block.id) {
-        parts.total++;
-        if (solved) parts.solved++;
-      }
-      parts.steps.push({ block: block, index: index, isGraded: graded, solved: solved });
+      if (!graded) { parts.theory++; return; }
+      if (!block.id) return;
+      parts.total++;
+      if (hasPA && window.PA.store.isSolved(block.id)) parts.solved++;
     });
     return parts;
+  }
+
+  /* ── Справочники и курсы: раздел — последовательность шагов ──────
+     Раньше теория и практика раздела были двумя вкладками. Теперь раздел —
+     цепочка экранов-шагов, как в Stepik: у каждого свой адрес (см.
+     «Маршруты»), вперёд идут по кнопке «Далее», а не переключением.
+
+     Разбор одинаков для всех разделов и не зависит от данных: блоки до
+     первого heading — шаг вступления (вместе с section.desc, добавляется
+     при отрисовке — см. renderStepContent), каждый heading начинает новый
+     шаг теории и держит все блоки до следующего heading или до первого
+     оцениваемого блока, а каждый оцениваемый блок (задание, викторина) —
+     отдельный шаг целиком. Порядок шагов — порядок данных, один проход.
+     Индексы блоков — из исходного section.blocks (см. sectionParts). */
+  function sectionSteps(section) {
+    var steps = [];
+    var theory = { kind: 'theory', heading: null, blocks: [] };
+    steps.push(theory);
+
+    (section.blocks || []).forEach(function (block, index) {
+      if (isGradedBlock(block)) {
+        steps.push({ kind: 'graded', block: block, index: index });
+        theory = null;   // до следующего heading блоков теории не бывает
+        return;
+      }
+      if (block.type === 'heading') {
+        theory = { kind: 'theory', heading: block, blocks: [] };
+        steps.push(theory);
+        return;
+      }
+      if (!theory) { theory = { kind: 'theory', heading: null, blocks: [] }; steps.push(theory); }
+      theory.blocks.push({ block: block, index: index });
+    });
+
+    // Раздел может начинаться сразу с подзаголовка (так устроены
+    // «Аргументы» в «Функциях») — тогда шаг вступления пуст, и на нём
+    // нечего читать, кроме описания. Описание и так покажет первый шаг,
+    // каким бы он ни был, поэтому пустой отбрасываем.
+    if (steps.length > 1 && !steps[0].heading && !steps[0].blocks.length) steps.shift();
+
+    return steps;
+  }
+
+  /* Название шага — для подписи в шаге-навигации («Назад»/«Далее») и
+     подсказки квадратика полосы шагов: у оцениваемого блока — его
+     заголовок (или общее «Задание»/«Викторина»), у теории — текст
+     заголовка или «Вступление» для самого первого, безымянного шага. */
+  function stepLabel(step, section) {
+    if (step.kind === 'graded') {
+      var view = GRADED_BLOCKS[step.block.type];
+      return step.block.title || view.title;
+    }
+    return step.heading ? step.heading.text : (section.title || 'Вступление');
   }
 
   /* Кольцо прогресса — доля решённых заданий раздела через conic-gradient,
@@ -1318,33 +1436,38 @@
     return TASK_KIND_LABELS[block.check.mode] || 'проверки';
   }
 
-  function renderProgramStep(modId, section, step) {
-    var view = GRADED_BLOCKS[step.block.type];
-    var inner = step.isGraded
-      ? h('span', { class: 'prog-step-icon' }, step.solved ? '✅' : view.icon) +
-        h('span', { class: 'prog-step-title' }, esc(step.block.title || view.title)) +
-        h('span', { class: 'prog-step-kind' }, view.kind || taskKindLabel(step.block))
+  /* Строка шага в раскрытой карточке программы — клик ведёт прямо на его
+     адрес (данные для шага в точности те же, что и у полосы шагов внутри
+     самого раздела, см. renderStepStrip: номер шага — позиция в
+     sectionSteps, с единицы). */
+  function renderProgramStep(modId, section, step, stepNum) {
+    var solved = step.kind === 'graded' && !!step.block.id && hasPA && window.PA.store.isSolved(step.block.id);
+    var inner = step.kind === 'graded'
+      ? h('span', { class: 'prog-step-icon' }, solved ? '✅' : GRADED_BLOCKS[step.block.type].icon) +
+        h('span', { class: 'prog-step-title' }, esc(step.block.title || GRADED_BLOCKS[step.block.type].title)) +
+        h('span', { class: 'prog-step-kind' }, GRADED_BLOCKS[step.block.type].kind || taskKindLabel(step.block))
       : h('span', { class: 'prog-step-icon' }, '📖') +
-        h('span', { class: 'prog-step-title' }, esc(step.block.text)) +
+        h('span', { class: 'prog-step-title' }, esc(stepLabel(step, section))) +
         h('span', { class: 'prog-step-kind' }, 'теория');
 
-    return h('button', {
-      class: 'prog-step-btn' + (step.solved ? ' prog-step-done' : ''), type: 'button',
-      'data-mod': modId, 'data-anchor': section.anchor, 'data-tab': step.isGraded ? 'practice' : 'theory'
-    }, h('span', { class: 'prog-step' }, inner));
+    return h('button', modAttrs(modId, {
+      class: 'prog-step-btn' + (solved ? ' prog-step-done' : ''), type: 'button',
+      'data-anchor': section.anchor, 'data-step': stepNum, 'data-kind': step.kind
+    }), h('span', { class: 'prog-step' }, inner));
   }
 
   function renderProgramSectionCard(modId, section) {
     var parts = sectionParts(section);
+    var steps = sectionSteps(section);
     var chip = section.chip ? h('span', { class: 'sec-chip' }, esc(section.chip)) : '';
     var counterHtml = parts.total
       ? h('div', { class: 'prog-card-progress' },
           progressRingHtml(parts.solved, parts.total) +
           h('span', { class: 'prog-card-count' }, parts.solved + ' из ' + parts.total))
-      : h('span', { class: 'prog-card-steps-count' }, parts.steps.length + ' шагов');
+      : h('span', { class: 'prog-card-steps-count' }, steps.length + ' шагов');
 
     var stepsHtml = '';
-    parts.steps.forEach(function (step) { stepsHtml += renderProgramStep(modId, section, step); });
+    steps.forEach(function (step, i) { stepsHtml += renderProgramStep(modId, section, step, i + 1); });
 
     return hOpen('div', modAttrs(modId, {
       class: 'lesson prog-card' + (allSolved(parts) ? ' prog-card-done' : '')
@@ -1420,13 +1543,13 @@
     return renderModuleHeader(data) + sectionsHtml;
   }
 
-  /* ── Экран «Раздел» (шаг 3) ──────────────────────────────
-     Один раздел (или одно занятие видеомодуля) на весь экран вместо
-     аккордеона в общем полотне. У раздела с заданиями — вкладки
-     «Теория»/«Практика» (блок task — практика, всё остальное — теория);
-     без заданий вкладок нет вовсе, сразу показывается тело раздела. */
-  function renderSectionScreen(data, anchor, tab) {
-    return data.lessons ? renderLessonSection(data, anchor) : renderNotesSection(data, anchor, tab);
+  /* ── Экран «Раздел»: один шаг раздела на весь экран ──────
+     Раньше раздел (или занятие видеомодуля) показывался целиком, поделённый
+     вкладками «Теория»/«Практика». Теперь виден один шаг из sectionSteps
+     (у занятия шаг всегда один — делить там нечего, см. sectionSteps),
+     а движение вперёд — кнопками «Назад»/«Далее» и полосой шагов сверху. */
+  function renderSectionScreen(data, anchor, step) {
+    return data.lessons ? renderLessonSection(data, anchor) : renderNotesSection(data, anchor, step);
   }
 
   function renderSectionBack(modId) {
@@ -1442,46 +1565,46 @@
       extra + '</div>';
   }
 
-  /* Переходы «Предыдущий/Следующий» — общий рендер для разделов и занятий:
-     items — список { anchor, title } в порядке данных, tab — вкладка,
-     на которую вести (для видеомодулей не нужна — там передаём null) */
-  function renderSectionNav(modId, items, idx, tab) {
-    var prev = items[idx - 1], next = items[idx + 1];
-    if (!prev && !next) return '';
-
-    function navBtn(item, dir, label) {
-      if (!item) return '<span class="sec-nav-empty"></span>';
+  /* Кнопки «Назад»/«Далее»: back и forward — либо null (кнопки нет, только
+     пустая заглушка для сетки), либо { view: 'program', mod, title } на
+     программу материала, либо { view: 'section', mod, section, step, title }
+     на конкретный шаг (соседний в разделе или первый шаг соседнего раздела/
+     занятия — см. renderNotesSection/renderLessonSection). */
+  function renderStepNav(modId, back, forward) {
+    function navBtn(dir, arrow, target) {
+      if (!target) return '<span class="sec-nav-empty"></span>';
       return hOpen('button', modAttrs(modId, {
         class: 'sec-nav-btn sec-nav-' + dir, type: 'button',
-        'data-anchor': item.anchor, 'data-tab': tab || ''
+        'data-route-view': target.view,
+        'data-anchor': target.section || null,
+        'data-step': target.step || null
       })) +
-        '<span class="sec-nav-dir">' + label + '</span>' +
-        '<span class="sec-nav-title">' + esc(item.title) + '</span>' +
+        '<span class="sec-nav-dir">' + arrow + '</span>' +
+        '<span class="sec-nav-title">' + esc(target.title) + '</span>' +
       '</button>';
     }
-
-    return h('div', { class: 'sec-nav' },
-      navBtn(prev, 'prev', '← Предыдущий раздел') + navBtn(next, 'next', 'Следующий раздел →')
-    );
+    return h('div', { class: 'sec-nav' }, navBtn('prev', '← Назад', back) + navBtn('next', 'Далее →', forward));
   }
 
-  /* Полоса шагов раздела: квадратик на каждый шаг (heading/task, см.
-     sectionParts). Клик ведёт на нужную вкладку и прокручивает к шагу —
-     к самому блоку задания (id="ref-<id>", см. renderTaskBlock) или
-     к месту темы теории (id="pa-step-<index>", см. renderTabBody). */
-  function renderStepStrip(section) {
-    var parts = sectionParts(section);
-    if (!parts.steps.length) return '';
+  /* Полоса шагов раздела: квадратик на каждый шаг из sectionSteps (первый —
+     вступление, дальше темы теории и оцениваемые блоки по порядку данных).
+     Клик открывает адрес этого шага целиком — прокрутки внутри страницы
+     больше нет, шаги короткие. Текущий шаг подсвечен отдельным классом. */
+  function renderStepStrip(modId, section, currentStep) {
+    var steps = sectionSteps(section);
+    var parts = sectionParts(section);   // только для счётчика «решено N из M» — смысл тот же, что и раньше
 
     var squares = '';
-    parts.steps.forEach(function (step) {
-      var view = step.isGraded ? GRADED_BLOCKS[step.block.type] : null;
-      squares += h('button', {
-        class: 'step-sq' + (view ? (step.solved ? ' step-done' : ' ' + view.square) : ''),
-        type: 'button', title: esc(step.block.title || step.block.text || ''),
-        'data-tab': step.isGraded ? 'practice' : 'theory',
-        'data-target': step.isGraded ? (step.block.id || '') : ('pa-step-' + step.index)
-      }, step.solved ? '✓' : (view ? view.mark : ''));
+    steps.forEach(function (step, i) {
+      var n = i + 1;
+      var view = step.kind === 'graded' ? GRADED_BLOCKS[step.block.type] : null;
+      var solved = step.kind === 'graded' && !!step.block.id && hasPA && window.PA.store.isSolved(step.block.id);
+      squares += h('button', modAttrs(modId, {
+        class: 'step-sq' + (view ? (solved ? ' step-done' : ' ' + view.square) : '') + (n === currentStep ? ' step-current' : ''),
+        type: 'button', title: esc(stepLabel(step, section)),
+        'data-anchor': section.anchor, 'data-step': n,
+        'aria-current': n === currentStep ? 'step' : null
+      }), solved ? '✓' : (view ? view.mark : ''));
     });
 
     return h('div', { class: 'step-strip-row' },
@@ -1490,69 +1613,61 @@
     );
   }
 
-  function renderSectionTabs(section, activeTab) {
-    var parts = sectionParts(section);
-
-    function tabBtn(tab, label) {
-      var active = activeTab === tab;
-      return h('button', {
-        class: 'sec-tab' + (active ? ' active' : ''), type: 'button', role: 'tab',
-        'data-tab': tab, 'aria-selected': active ? 'true' : 'false'
-      }, label);
+  /* Содержимое одного шага: вступление (только на первом шаге) добавляет
+     section.desc перед своими блоками, тема теории — подпись заголовка
+     и блоки до следующего заголовка, оцениваемый блок — сам блок целиком.
+     renderNoteBlock и индексы блоков те же, что были на едином полотне —
+     ключи черновиков (blockKeyOf) и отметки решённости не меняются. */
+  function renderStepContent(section, step, isIntro) {
+    var html = isIntro && section.desc ? '<p class="lesson-desc">' + inlineFmt(section.desc) + '</p>' : '';
+    if (step.kind === 'graded') {
+      html += renderNoteBlock(step.block, { anchor: section.anchor }, step.index);
+    } else {
+      if (step.heading) html += '<div class="section-label">' + esc(step.heading.text) + '</div>';
+      step.blocks.forEach(function (b) { html += renderNoteBlock(b.block, { anchor: section.anchor }, b.index); });
     }
-
-    return h('div', { class: 'sec-tabs', role: 'tablist' },
-      tabBtn('theory', 'Теория' + (parts.theory ? ' (' + parts.theory + ')' : '')) +
-      tabBtn('practice', 'Практика (' + parts.total + ')')
-    );
-  }
-
-  /* Тело вкладки: практика — блоки task, теория — все остальные. Рисует
-     их тот же renderNoteBlock, что и раньше (у task внутри он зовёт
-     renderTaskBlock — ту же песочницу с автопроверкой). Индекс блока —
-     из исходного (не отфильтрованного) массива: так ключи черновиков
-     (blockKeyOf) остаются теми же, что были на едином полотне */
-  function renderTabBody(section, tab) {
-    var practice = tab === 'practice';
-    var html = '';
-    (section.blocks || []).forEach(function (block, index) {
-      if (isGradedBlock(block) !== practice) return;
-      if (block.type === 'heading') {
-        html += '<div id="pa-step-' + index + '" class="section-divider"></div>' +
-          '<div class="section-label">' + esc(block.text) + '</div>';
-      } else {
-        html += renderNoteBlock(block, { anchor: section.anchor }, index);
-      }
-    });
     return h('div', { class: 'sec-body' }, html);
   }
 
-  function renderNotesSection(data, anchor, tab) {
+  function renderNotesSection(data, anchor, stepNum) {
     var sections = data.sections || [];
     var idx = sections.findIndex(function (s) { return s.anchor === anchor; });
     if (idx === -1) return h('div', { class: 'empty-state' }, 'Раздел не найден.');
     var section = sections[idx];
-    var hasTasks = sectionParts(section).total > 0;
-    var activeTab = hasTasks && tab === 'practice' ? 'practice' : 'theory';
+    var steps = sectionSteps(section);
+    var stepIdx = Math.min(Math.max((stepNum || 1) - 1, 0), steps.length - 1);
+    var step = steps[stepIdx];
 
     var chip = section.chip ? h('span', { class: 'sec-chip' }, esc(section.chip)) : '';
 
-    var headHtml = hOpen('div', modAttrs(data.id, { class: 'sec-head ref-section', id: 'ref-' + section.anchor })) +
-      renderStepStrip(section) +
+    var headHtml = hOpen('div', modAttrs(data.id, { class: 'sec-head sec-head-note', id: 'ref-' + section.anchor })) +
+      renderStepStrip(data.id, section, stepIdx + 1) +
       secTitleRow(section.num, section.title, chip) +
-      (section.desc ? '<p class="lesson-desc">' + inlineFmt(section.desc) + '</p>' : '') +
+      h('div', { class: 'sec-step-count' }, 'Шаг ' + (stepIdx + 1) + ' из ' + steps.length) +
     '</div>';
 
-    var tabsHtml = hasTasks ? renderSectionTabs(section, activeTab) : '';
-    var bodyHtml = renderTabBody(section, activeTab);
-    var navHtml = renderSectionNav(data.id,
-      sections.map(function (s) { return { anchor: s.anchor, title: s.title }; }), idx, 'theory');
+    var bodyHtml = renderStepContent(section, step, stepIdx === 0);
 
-    return renderModuleHeader(data) + renderSectionBack(data.id) + headHtml + tabsHtml + bodyHtml + navHtml;
+    var back = stepIdx > 0
+      ? { view: 'section', section: section.anchor, step: stepIdx, title: stepLabel(steps[stepIdx - 1], section) }
+      : { view: 'program', title: 'Программа материала' };
+
+    var forward = null;
+    if (stepIdx < steps.length - 1) {
+      forward = { view: 'section', section: section.anchor, step: stepIdx + 2, title: stepLabel(steps[stepIdx + 1], section) };
+    } else if (sections[idx + 1]) {
+      forward = { view: 'section', section: sections[idx + 1].anchor, step: 1, title: sections[idx + 1].title };
+    }
+
+    var navHtml = renderStepNav(data.id, back, forward);
+
+    return renderModuleHeader(data) + renderSectionBack(data.id) + headHtml + bodyHtml + navHtml;
   }
 
   /* Занятие видеомодуля целиком — как раньше внутри аккордеона, но
-     на отдельном экране: без заданий и вкладок делить там нечего */
+     на отдельном экране: у занятия всегда один шаг, делить нечего.
+     «Назад» с него — всегда на программу, «Далее» — на следующее занятие,
+     тем же правилом границы, что и у раздела с несколькими шагами. */
   function renderLessonSection(data, anchor) {
     var lessons = (data.lessons || []).filter(function (l) { return !l.attestation; });
     var idx = lessons.findIndex(function (l) { return lessonAnchorOf(data.id, l.num) === anchor; });
@@ -1574,8 +1689,10 @@
       bodyParts +
     '</div>';
 
-    var navHtml = renderSectionNav(data.id,
-      lessons.map(function (l) { return { anchor: lessonAnchorOf(data.id, l.num), title: l.title }; }), idx, null);
+    var back = { view: 'program', title: 'Программа материала' };
+    var next = lessons[idx + 1];
+    var forward = next ? { view: 'section', section: lessonAnchorOf(data.id, next.num), step: 1, title: next.title } : null;
+    var navHtml = renderStepNav(data.id, back, forward);
 
     return renderModuleHeader(data) + renderSectionBack(data.id) + headHtml + navHtml;
   }
@@ -1641,9 +1758,9 @@
     // нечем, поэтому ученик отмечает его сам, а не остаётся без отметки
     var manual = !block.check && !!block.id;
 
-    // id="ref-<id задания>" — новый, отдельный от якорей раздела: по нему
+    // id="ref-<id задания>" — отдельный от якорей раздела: по нему
     // «Продолжить» (см. progressOf/renderProgressBar) и goToAnchor находят
-    // именно это задание и открывают вкладку практики (см. resolveAnchorTarget)
+    // именно это задание и открывают его шаг (см. resolveAnchorTarget)
     var html = '<div class="task' + (solved ? ' task-solved' : '') + '"' +
         (block.id ? ' id="ref-' + esc(block.id) + '" data-task-id="' + esc(block.id) + '"' : '') + '>' +
       '<div class="task-head"><span class="task-badge">Задание</span>' +
@@ -2337,12 +2454,11 @@
       solved += parts.solved;
       if (first) return;
       // Якорь блока (id="ref-<id>", см. renderTaskBlock и renderQuizBlock) —
-      // «Продолжить» ведёт goToAnchor прямо на него, а тот сам откроет
-      // вкладку практики (см. resolveAnchorTarget)
-      var next = parts.steps.find(function (step) {
-        return step.isGraded && step.block.id && !step.solved;
+      // «Продолжить» ведёт goToAnchor прямо на его шаг (см. resolveAnchorTarget)
+      var next = (section.blocks || []).find(function (block) {
+        return isGradedBlock(block) && block.id && !(hasPA && window.PA.store.isSolved(block.id));
       });
-      if (next) first = next.block.id;
+      if (next) first = next.id;
     });
     return { total: total, solved: solved, first: first };
   }
@@ -2382,10 +2498,7 @@
 
     if (state.view === 'section' && data.sections) {
       var section = data.sections.find(function (s) { return s.anchor === state.section; });
-      if (section) {
-        replaceNode('.step-strip-row', renderStepStrip(section));
-        replaceNode('.sec-tabs', renderSectionTabs(section, state.tab));
-      }
+      if (section) replaceNode('.step-strip-row', renderStepStrip(state.activeModule, section, state.step));
     }
 
     renderRail();   // галочка у раздела в дереве панели — тоже часть прогресса
@@ -2410,7 +2523,7 @@
       file.text().then(function (text) {
         try {
           window.PA.store.import(text);
-          loadModule(state.activeModule);
+          renderRoute(currentRoute());
         } catch (e) {
           alert('Не удалось прочитать файл прогресса: ' + e.message);
         }
@@ -2486,55 +2599,47 @@
     ['.pb-continue',      (el) => goToAnchor(el.getAttribute('data-anchor'))],
     ['.pb-io',            (el) => el.getAttribute('data-io') === 'export' ? exportProgress() : importProgress()],
     ['.solution-toggle',  (el) => toggleSolution(el)],
-    ['.ref-link, .rail-sec',
-                          (el, e) => { e.preventDefault(); goToAnchor(el.getAttribute('data-anchor')); }],
-    ['.rail-item',        (el) => { if (openModuleFrom(el)) setRailOpen(false); }],
-    ['.rail-view',        (el) => showView(el.getAttribute('data-view'))],
+    ['.ref-link',         (el, e) => { e.preventDefault(); goToAnchor(el.getAttribute('data-anchor')); }],
+    ['.rail-item',        (el) => openModuleFrom(el)],
+    ['.rail-view',        (el) => navigate({ view: el.getAttribute('data-view') === 'catalog' ? 'catalog' : 'home' })],
     ['.catalog-card',     (el) => openModuleFrom(el)],
     ['.home-continue',    (el) => {
       const anchor = el.getAttribute('data-anchor');
       if (anchor) goToAnchor(anchor);
-      else switchModule(modOf(el));
+      else navigate({ view: 'program', mod: modOf(el) });
     }],
-    ['.pi-open',          (el) => switchModule(modOf(el))],
-    ['.home-open-catalog', () => showView('catalog')],
+    ['.pi-open',          (el) => navigate({ view: 'program', mod: modOf(el) })],
+    ['.home-open-catalog', () => navigate({ view: 'catalog' })],
     ['#rail-toggle',      () => toggleRail()],
     ['.lesson-header',    (el) => setLessonOpen(el.parentElement, !el.parentElement.classList.contains('open'))],
-    // Шаг 3: программа и раздел материала — навигация между экранами.
-    // Шаг программы, занятие видеомодуля и «предыдущий/следующий»
-    // открывают раздел одинаково — по data-mod/data-anchor/data-tab
-    ['.prog-step-btn, .prog-lesson, .sec-nav-btn',
-                          (el) => goAndScrollTop(() =>
-                            openSection(modOf(el), el.getAttribute('data-anchor'), el.getAttribute('data-tab')))],
-    ['.sec-tab',          (el) => goAndScrollTop(() => openSection(state.activeModule, state.section, el.getAttribute('data-tab')))],
-    ['.sec-back',         (el) => goAndScrollTop(() => reopenModule(modOf(el)))],
-    ['.step-sq',          (el) => stepSquareClick(el)],
+    // Дерево разделов панели и шаг в раскрытой карточке программы уже
+    // знают точный адрес цели (модуль известен из контекста, раздел и
+    // номер шага — из data-anchor/data-step, см. renderProgramStep) —
+    // переходим напрямую, без круга через поиск по всем материалам
+    ['.rail-sec, .prog-step-btn, .prog-lesson',
+                          (el) => navigate({
+                            view: 'section', mod: modOf(el),
+                            section: el.getAttribute('data-anchor'),
+                            step: parseInt(el.getAttribute('data-step'), 10) || 1
+                          })],
+    // «Назад»/«Далее» под шагом и квадратик полосы шагов несут в data- уже
+    // готовый маршрут (см. renderStepNav/renderStepStrip)
+    ['.sec-nav-btn',      (el) => navigate({
+                            view: el.getAttribute('data-route-view'), mod: modOf(el),
+                            section: el.getAttribute('data-anchor') || undefined,
+                            step: el.getAttribute('data-step') ? parseInt(el.getAttribute('data-step'), 10) : undefined
+                          })],
+    ['.step-sq',          (el) => navigate({
+                            view: 'section', mod: modOf(el),
+                            section: el.getAttribute('data-anchor'),
+                            step: parseInt(el.getAttribute('data-step'), 10)
+                          })],
+    ['.sec-back',         (el) => navigate({ view: 'program', mod: modOf(el) })],
     ['#cert-submit',      () => handleLogin()],
     ['.screenshot-card',  (el) => openLightbox(el.querySelector('img').src, el)],
     ['.lightbox',         () => closeLightbox()],
     ['.video-facade',     (el) => openVideo(el)]
   ];
-
-  /* Навигация между экранами материала всегда возвращает к верху страницы —
-     общая обвязка вместо повтора window.scrollTo в каждом обработчике */
-  function goAndScrollTop(action) {
-    action();
-    window.scrollTo({ top: 0, behavior: scrollBehavior() });
-  }
-
-  /* Клик по квадратику полосы шагов (см. renderStepStrip): переключает
-     вкладку, если нужно, и прокручивает к самому шагу */
-  function stepSquareClick(el) {
-    var tab = el.getAttribute('data-tab') === 'practice' ? 'practice' : 'theory';
-    var target = el.getAttribute('data-target');
-    if (state.tab !== tab) openSection(state.activeModule, state.section, tab);
-    scrollToStepTarget(target);
-  }
-
-  function scrollToStepTarget(target) {
-    var el = byId(/^pa-step-/.test(target) ? target : 'ref-' + target);
-    if (el) scrollToElement(el);
-  }
 
   /* Плеер вставляем вместо фасада только по клику — до этого момента
      страница не делает ни одного запроса к YouTube (см. renderVideoGrid) */
@@ -2711,9 +2816,11 @@
     });
   }, { passive: true });
 
+  // Единственный источник отрисовки для обычных переходов (см. navigate()) —
+  // отсюда работают «назад»/«вперёд» браузера бесплатно: они меняют адрес,
+  // адрес порождает hashchange, а дальше всё как после любого другого перехода
   window.addEventListener('hashchange', function () {
-    const anchor = (location.hash || '').replace('#', '');
-    if (anchor) goToAnchor(anchor, false);
+    renderRoute(currentRoute());
   });
 
   /* ── Запуск: сначала манифест, потом всё остальное ───── */
@@ -2737,41 +2844,33 @@
       state.modules = manifest.modules;
       state.searchIndexFile = (manifest.search && manifest.search.index) || 'data/search-index.json';
 
-      const startAnchor = (location.hash || '').replace('#', '');
+      const rawHash = location.hash || '';
+      let startPromise;
 
-      if (startAnchor) {
-        // Прямая ссылка на раздел важнее сохранённого места — сразу в материал
-        state.view = 'material';
-        renderRail();
-        goToAnchor(startAnchor, false);
-        registerOffline();
-        return;
-      }
-
-      // Без якоря возвращаем туда, где ученик закрыл вкладку: в материал
-      // (программу или конкретный раздел — шаг 3), в каталог или на
-      // «Моё обучение» (по умолчанию для первого визита). Защищённый без
-      // запомненного пароля и запланированный материал пропускаем —
-      // открыть их всё равно нечем. place.view === 'material' встречается
-      // и у записей до этого шага — такой материал просто откроется на
-      // экране программы (или полотном, если это «Доп. курсы»)
-      const place = savedPlace();
-      const placeMeta = place && isModuleScreen(place.view) ? getModuleMeta(place.mod) : null;
-      const canReturnToMaterial = placeMeta && !isPlanned(placeMeta) &&
-        !(placeMeta.protected && !state.authToken);
-
-      if (canReturnToMaterial) {
-        // sw.js регистрируем после материала: его загрузка важнее
-        switchModule(place.mod).then(function (data) {
-          if (data && place.view === 'section' && place.section) {
-            openSection(place.mod, place.section, place.tab);
-          }
-          registerOffline();
-        });
+      if (rawHash && rawHash !== '#') {
+        // В адресе уже что-то есть (новый маршрут или старый голый якорь) —
+        // он важнее сохранённого места, разбираем и рисуем прямо его
+        startPromise = renderRoute(parseRoute(rawHash));
       } else {
-        showView(place && place.view === 'catalog' ? 'catalog' : 'home');
-        registerOffline();
+        // Без адреса возвращаем туда, где ученик закрыл вкладку: в материал
+        // (программу или конкретный шаг раздела), в каталог или на «Моё
+        // обучение» (по умолчанию для первого визита). Защищённый без
+        // запомненного пароля и запланированный материал пропускаем —
+        // открыть их всё равно нечем.
+        let route = routeFromPlace(savedPlace());
+        if (route && route.mod) {
+          const placeMeta = getModuleMeta(route.mod);
+          const canReturn = placeMeta && !isPlanned(placeMeta) && !(placeMeta.protected && !state.authToken);
+          if (!canReturn) route = null;
+        }
+        // Адрес выставляем через replaceState — это восстановление места,
+        // а не переход, в историю попадать не должно
+        startPromise = navigate(route || { view: 'home' }, { replace: true });
       }
+
+      // sw.js регистрируем после того, как основной экран отрисован:
+      // его загрузка важнее
+      Promise.resolve(startPromise).then(registerOffline);
     })
     .catch(function (error) {
       byId('content').innerHTML = h('div', { class: 'empty-state' },

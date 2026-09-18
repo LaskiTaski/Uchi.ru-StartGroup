@@ -765,11 +765,9 @@ code, pre, .ic { font-variant-ligatures: none; font-feature-settings: "liga" 0, 
   padding: 3px 9px; border-radius: 5px;
 }
 
-/* Подсветка раздела, к которому только что перешли */
-.ref-section { scroll-margin-top: 140px; }
-
-/* В справочниках и курсах номер раздела — иконка, а не индекс */
-.ref-section .lesson-num {
+/* В справочниках и курсах номер раздела — иконка, а не индекс (у занятий
+   видеомодуля номер обычный, x.y — там просто .sec-head без этого класса) */
+.sec-head-note .lesson-num {
   font-size: 15px; line-height: 1; padding: 5px 8px;
   min-width: 32px; text-align: center;
 }
@@ -778,12 +776,6 @@ code, pre, .ic { font-variant-ligatures: none; font-feature-settings: "liga" 0, 
 @supports not (color: rgb(from white r g b)) {
   .ref-link, .sec-chip { color: var(--mod-color); }
 }
-
-@keyframes refFlash {
-  0%   { border-color: rgba(from var(--mod-color) r g b / 0.75); box-shadow: 0 0 0 3px rgba(from var(--mod-color) r g b / 0.14); }
-  100% { border-color: var(--border-active); box-shadow: 0 0 0 0 rgba(from var(--mod-color) r g b / 0); }
-}
-.ref-section.flash { animation: refFlash 1.4s ease-out; }
 
 /* ── Курс: вводная карточка ────────────────────────────── */
 .course-about {
@@ -878,7 +870,16 @@ code, pre, .ic { font-variant-ligatures: none; font-feature-settings: "liga" 0, 
 .sec-title-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: 10px 0 6px; }
 .sec-title { font-size: 18px; font-weight: 700; color: var(--text-bright); }
 
-/* Полоса шагов раздела: квадратик на heading/task + счётчик «решено N из M» */
+/* «Шаг N из M» под названием раздела — тот же приём, что «решено N из M»
+   у карточки программы и полосы шагов, одним начертанием */
+.sec-step-count {
+  font-family: var(--mono); font-size: 11px; color: var(--text-dim);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Полоса шагов раздела: квадратик на каждый шаг (см. sectionSteps) +
+   счётчик «решено N из M». Клик открывает шаг целиком — весь раздел
+   больше не на одной странице, вкладок теории/практики тоже нет. */
 .step-strip-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
 .step-strip { display: flex; flex-wrap: wrap; gap: 4px; }
 .step-sq {
@@ -892,19 +893,12 @@ code, pre, .ic { font-variant-ligatures: none; font-feature-settings: "liga" 0, 
    открывая шаг, что это узнавание, а не задание с кодом */
 .step-sq.step-quiz { border-radius: 50%; border-style: dashed; }
 .step-sq.step-done { background: var(--good); border-color: var(--good); }
+/* Текущий шаг — кольцо цветом модуля, поверх любого другого состояния */
+.step-sq.step-current { box-shadow: 0 0 0 2px var(--mod-color); }
 .step-sq:hover { filter: brightness(1.25); }
 
-/* Вкладки «Теория»/«Практика» */
-.sec-tabs { display: flex; gap: 14px; margin-bottom: 16px; border-bottom: 1px solid var(--border); }
-.sec-tab {
-  font-family: var(--font); font-size: 13px; font-weight: 600; color: var(--text-dim);
-  background: none; border: none; border-bottom: 2px solid transparent;
-  padding: 10px 2px; margin-bottom: -1px; cursor: pointer; white-space: nowrap; transition: color 0.15s;
-}
-.sec-tab:hover { color: var(--text); }
-.sec-tab.active { color: var(--mod-color); border-bottom-color: var(--mod-color); }
-
-/* Переходы между разделами/занятиями */
+/* Переходы между шагами («Назад»/«Далее»): на границе раздела ведут
+   на программу материала или на первый шаг соседнего раздела/занятия */
 .sec-nav { display: flex; gap: 10px; margin-top: 24px; }
 .sec-nav-btn, .sec-nav-empty { flex: 1 1 0; min-width: 0; }
 .sec-nav-btn {
@@ -925,7 +919,6 @@ code, pre, .ic { font-variant-ligatures: none; font-feature-settings: "liga" 0, 
 }
 
 @media (max-width: 640px) {
-  .sec-tabs { overflow-x: auto; }
   .sec-nav { flex-direction: column; }
   .sec-nav-next { text-align: left; align-items: flex-start; }
 }
@@ -1533,7 +1526,7 @@ code, pre, .ic { font-variant-ligatures: none; font-feature-settings: "liga" 0, 
   .lightbox, .skip-link, .code-copy, .code-actions,
   .sb-bar, .sb-stdin, .sb-hint, .pb-io, .pb-continue,
   .solution-toggle, .video-play, .task-done,
-  .sec-back, .sec-nav, .sec-tabs, .step-strip-row {
+  .sec-back, .sec-nav, .step-strip-row {
     display: none !important;
   }
 
