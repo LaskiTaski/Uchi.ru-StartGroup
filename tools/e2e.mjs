@@ -291,17 +291,18 @@ const ok = (name, cond, extra='') => { cond ? pass++ : fail++; console.log(`${co
   // «функций» должно находить раздел из справочника «Функции»
   inp.value = 'функций'; inp.dispatchEvent(new w.Event('input', {bubbles:true}));
   await wait(500);
-  let modules = qa('.sr-item .sr-module').map(m => m.textContent);
-  ok('стемминг: «функций» находит модуль «Функции»', modules.includes('Функции'), modules.join(' | '));
+  let where = qa('.sr-item .sr-where').map(m => m.textContent);
+  ok('стемминг: «функций» находит модуль «Функции»',
+     where.some(t => t.startsWith('Функции')), where.join(' | '));
 
   // Синтетическая запись с амперсандом и кавычками в заголовке — раньше
   // highlight() резал экранированную строку не по тем позициям
   inp.value = 'кавычки'; inp.dispatchEvent(new w.Event('input', {bubbles:true}));
   await wait(500);
   const items = qa('.sr-item');
-  const testItem = items.find(it => it.querySelector('.sr-module')?.textContent === 'Тест');
+  const testItem = items.find(it => it.querySelector('.sr-title')?.textContent.includes('Амперсанд'));
   ok('синтетическая запись найдена', testItem !== undefined,
-     items.map(it => it.querySelector('.sr-module')?.textContent).join(' | '));
+     items.map(it => it.querySelector('.sr-title')?.textContent).join(' | '));
 
   // Битая сущность — это либо двойное экранирование (&amp;amp;), либо '&',
   // за которым сразу без ';' идёт открывающий тег (&am<mark> — старый баг
@@ -319,6 +320,22 @@ const ok = (name, cond, extra='') => { cond ? pass++ : fail++; console.log(`${co
   await wait(500);
   const firstTitle = q('.sr-item .sr-title')?.textContent.toLowerCase() || '';
   ok('точное слово впереди', firstTitle.includes('цикл'), firstTitle || 'нет результатов');
+
+  // Раньше записью индекса был раздел целиком и обрезался на двух тысячах
+  // символов. Раздел «Списки» весит одиннадцать тысяч — его хвост не искался
+  // вообще: слова reversed в старом индексе не было ни в одной записи.
+  inp.value = 'reversed'; inp.dispatchEvent(new w.Event('input', {bubbles:true}));
+  await wait(500);
+  const deep = qa('.sr-item').find(it => it.querySelector('.sr-where')?.textContent.includes('Списки'));
+  ok('глубина длинного раздела попала в индекс', deep !== undefined,
+     qa('.sr-item .sr-where').map(t => t.textContent).join(' | ') || 'нет результатов');
+
+  // И ведёт результат на свой шаг, а не в начало огромного раздела
+  clickEl(deep);
+  await wait(400);
+  const deepHash = w.location.hash.match(/^#\/m\/6\/list\/(\d+)$/);
+  ok('результат открывает свой шаг, а не начало раздела',
+     !!deepHash && Number(deepHash[1]) > 1, w.location.hash);
 
   console.log('\nДОСТУПНОСТЬ');
 

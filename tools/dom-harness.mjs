@@ -22,8 +22,9 @@ const SEARCH_INDEX_FILE = 'data/search-index.json';
 /* Запись с амперсандом и кавычками в заголовке: на ней проверяется
    подсветка совпадения, которая когда-то резала HTML-сущности пополам. */
 const SYNTHETIC_ENTRY = {
-  mod: 6, anchor: 'numbers', icon: '🧪',
-  title: 'Амперсанд & кавычки "тест" подсветки', chip: '', module: 'Тест',
+  mod: 6, anchor: 'numbers', step: 1, icon: '🧪',
+  title: 'Амперсанд & кавычки "тест" подсветки',
+  section: 'Числа: int и float', chip: '', module: 'Тест',
   body: 'служебная запись: амперсанд & и кавычки "тест" в теле'
 };
 

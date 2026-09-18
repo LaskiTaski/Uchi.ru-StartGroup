@@ -1083,6 +1083,9 @@
       .replace(/\s+/g, ' ').trim();
   }
 
+  /* Запасной индекс: единица — шаг, как и в предсобранном
+     (tools/build_search_index.py). Нарезку берём у sectionSteps, а не
+     повторяем здесь: правило «где кончается шаг» должно быть одно. */
   function buildSearchIndex() {
     const index = [];
 
@@ -1092,18 +1095,24 @@
       if (!data) return;
 
       (data.sections || []).forEach((section) => {
-        index.push({
-          mod: meta.id, anchor: section.anchor, icon: section.num,
-          title: section.title, chip: section.chip || '', module: meta.label,
-          body: collectSectionText(section)
+        sectionSteps(section).forEach((step, i) => {
+          const graded = step.kind === 'graded' ? step.block : null;
+          index.push({
+            mod: meta.id, anchor: section.anchor, step: i + 1,
+            icon: graded ? GRADED_BLOCKS[graded.type].icon : section.num,
+            title: stepLabel(step, section),
+            section: section.title, chip: section.chip || '', module: meta.label,
+            body: stepText(section, step, i === 0)
+          });
         });
       });
 
       (data.lessons || []).forEach((lesson) => {
         if (lesson.attestation) return;
         index.push({
-          mod: meta.id, anchor: lessonAnchorOf(meta.id, lesson.num), icon: lesson.num,
-          title: lesson.title, chip: '', module: meta.label, body: cleanText(lesson.desc || '')
+          mod: meta.id, anchor: lessonAnchorOf(meta.id, lesson.num), step: 1,
+          icon: lesson.num, title: lesson.title, section: lesson.title,
+          chip: '', module: meta.label, body: cleanText(lesson.desc || '')
         });
       });
     });
@@ -1111,21 +1120,27 @@
     return index;
   }
 
-  function collectSectionText(section) {
-    const parts = [section.desc || ''];
-    (section.blocks || []).forEach((block) => {
-      parts.push(block.text || '', block.title || '', block.code || '');
-      parts.push((block.head || []).join(' '));            // заголовки таблиц
-      (block.rows || []).forEach((row) => parts.push(row.join(' ')));
-      (block.items || []).forEach((item) => parts.push(item));
-      if (block.good) parts.push(block.good.title || '', block.good.code || '');
-      if (block.bad) parts.push(block.bad.title || '', block.bad.code || '');
-      parts.push(block.hint || '', block.explain || '');    // подсказка и разбор задания
-      // Викторина: вопрос, варианты и пояснение — тоже часть текста раздела
-      (block.questions || []).forEach((q) => {
-        parts.push(q.text || '', (q.options || []).join(' '), q.explain || '');
-      });
+  function blockTextParts(block) {
+    const parts = [block.text || '', block.title || '', block.code || '',
+                   (block.head || []).join(' ')];            // заголовки таблиц
+    (block.rows || []).forEach((row) => parts.push(row.join(' ')));
+    (block.items || []).forEach((item) => parts.push(item));
+    if (block.good) parts.push(block.good.title || '', block.good.code || '');
+    if (block.bad) parts.push(block.bad.title || '', block.bad.code || '');
+    parts.push(block.hint || '', block.explain || '');       // подсказка и разбор задания
+    (block.questions || []).forEach((q) => {
+      parts.push(q.text || '', (q.options || []).join(' '), q.explain || '');
     });
+    return parts;
+  }
+
+  function stepText(section, step, isFirst) {
+    const parts = step.kind === 'graded'
+      ? blockTextParts(step.block)
+      : step.blocks.reduce((all, b) => all.concat(blockTextParts(b.block)), []);
+    // Описание относится ко всему разделу, но искать его логично
+    // на первом шаге — туда ученик и попадёт
+    if (isFirst) parts.unshift(section.desc || '');
     return cleanText(parts.join(' '));
   }
 
@@ -1235,9 +1250,16 @@
           h('span', { class: 'sr-icon' }, esc(result.item.icon)) +
           h('span', { class: 'sr-text' },
             h('span', { class: 'sr-title' }, highlight(result.item.title, result.first, result.firstFull)) +
+            // Заголовок результата — название шага, поэтому нужен ответ
+            // на «а это вообще где»: материал и раздел строкой под ним.
+            // Прежний бейдж материала занимал полстроки и выглядел важнее
+            // самого результата
+            h('span', { class: 'sr-where' },
+              esc(result.item.module) +
+              (result.item.section && result.item.section !== result.item.title
+                ? ' · ' + esc(result.item.section) : '')) +
             h('span', { class: 'sr-snippet' }, highlight(makeSnippet(result.item, result.first), result.first, result.firstFull))
-          ) +
-          h('span', { class: 'sr-module' }, esc(result.item.module))
+          )
         );
       });
       box.innerHTML = html;
@@ -1281,7 +1303,9 @@
     const input = byId('search-input');
     if (input) input.blur();
     closeSearch();
-    goToAnchor(result.item.anchor);
+    // В индексе лежит адрес шага целиком, разбирать якорь заново незачем
+    navigate({ view: 'section', mod: result.item.mod,
+               section: result.item.anchor, step: result.item.step || 1 });
   }
 
   /* ── Экран «Программа» (шаг 3) ──────────────────────────
