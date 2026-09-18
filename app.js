@@ -37,11 +37,26 @@
   const REMEMBER_KEY = 'pa_m5_unlocked';
   const SECRET_PASSWORD = 'NwrBJQF92k&=';
 
+  // Вид материала по-русски — для карточки каталога. Вид однозначно
+  // следует из группы, поэтому в манифесте его нет: вся связь здесь
+  const KIND_LABELS = {
+    video: 'Видеомодуль', my: 'Курс', ref: 'Справочник', extra: 'Внешний курс'
+  };
+
+  const WEEKDAY_LABELS = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
+
+  /* Пункты верхней части панели — переключают весь экран, а не материал */
+  const RAIL_VIEWS = [
+    { view: 'home', icon: '🏠', label: 'Моё обучение' },
+    { view: 'catalog', icon: '📚', label: 'Каталог' }
+  ];
+
   /* ── Состояние ───────────────────────────────────────── */
   const state = {
     modules: [],          // из манифеста
     groups: [],           // из манифеста
     activeModule: null,
+    view: 'home',          // 'home' | 'catalog' | 'material' — какой экран сейчас
     authToken: localStorage.getItem(REMEMBER_KEY) === '1' ? '1' : null
   };
 
@@ -159,20 +174,27 @@
     restorePlace();
   }
 
-  /* ── Где ученик остановился (этап 5) ─────────────────────
+  /* ── Где ученик остановился (этап 5, шаг 2 — плюс экран) ──
      Возврат на сайт не должен стоить четырёх кликов: помним
-     модуль и раскрытые в нём разделы. Хранится отдельно от
+     не только модуль и раскрытые в нём разделы, но и сам экран —
+     «Моё обучение», каталог или материал. Хранится отдельно от
      прогресса, в экспорт не идёт. */
 
   let restoringPlace = false;
 
   function savePlace() {
-    if (!hasPA || restoringPlace || !state.activeModule) return;
-    const open = [];
-    document.querySelectorAll('.lesson.open[id^="ref-"]').forEach((el) => {
-      open.push(el.id.slice(4));
-    });
-    window.PA.store.set('ui', 'place', { mod: state.activeModule, open: open });
+    if (!hasPA || restoringPlace) return;
+    const place = { view: state.view };
+    if (state.view === 'material') {
+      if (!state.activeModule) return;
+      const open = [];
+      document.querySelectorAll('.lesson.open[id^="ref-"]').forEach((el) => {
+        open.push(el.id.slice(4));
+      });
+      place.mod = state.activeModule;
+      place.open = open;
+    }
+    window.PA.store.set('ui', 'place', place);
   }
 
   function savedPlace() {
@@ -195,6 +217,12 @@
 
   function modulesOfGroup(groupId) {
     return state.modules.filter((m) => m.group === groupId);
+  }
+
+  /* Карточка «программы вперёд»: показана, но открыть нечем — файла
+     с контентом ещё нет (см. data/manifest.json, status: planned) */
+  function isPlanned(meta) {
+    return !!meta && meta.status === 'planned';
   }
 
   /* Модули с оглавлением — справочники и курсы */
@@ -237,6 +265,27 @@
     return Promise.all(modules.map((m) =>
       fetchModuleCached(m.id).catch(() => null)
     ));
+  }
+
+  /* «Моё обучение» и «Каталог» считают счётчики и прогресс только по
+     уже загруженным модулям (loaded), чтобы не тянуть все файлы разом
+     и не блокировать экран. Но чтобы цифры не пустовали вечно, один раз
+     за визит тихо подгружаем всё незащищённое в фоне и перерисовываем
+     тот же экран, если ученик всё ещё на нём. Защищённый модуль (пароль)
+     не трогаем — его загрузка не дело фонового процесса. */
+  let backgroundLoadStarted = false;
+
+  function preloadModulesInBackground() {
+    if (backgroundLoadStarted) return;
+    backgroundLoadStarted = true;
+
+    const targets = state.modules.filter((m) => !isPlanned(m) && !m.protected && !loaded.has(m.id));
+    if (!targets.length) return;
+
+    loadAllModules(targets).then(() => {
+      if (state.view === 'home') setContent(renderHome());
+      else if (state.view === 'catalog') setContent(renderCatalog());
+    });
   }
 
   /* ── Панель материалов: постоянная левая колонка ───────
@@ -283,6 +332,24 @@
     return items ? h('div', { class: 'rail-sec-list' }, items) : '';
   }
 
+  /* Два пункта над деревом материалов: переключают весь экран (шаг 2),
+     подсвечиваются так же, как активный материал */
+  function railViewsHtml() {
+    let items = '';
+    RAIL_VIEWS.forEach((v) => {
+      const active = state.view === v.view;
+      items += h('button', {
+        class: 'rail-view' + (active ? ' active' : ''),
+        'data-view': v.view,
+        'aria-current': active ? 'page' : 'false'
+      },
+        h('span', { class: 'rail-view-icon' }, esc(v.icon)) +
+        h('span', { class: 'rail-view-label' }, esc(v.label))
+      );
+    });
+    return h('div', { class: 'rail-views' }, items);
+  }
+
   function renderRail() {
     let html = '';
 
@@ -296,26 +363,34 @@
       );
 
       modules.forEach((meta) => {
-        const active = meta.id === state.activeModule;
-        const count = railCount(meta.id);
+        // Активный пункт — только в виде материала: в «Моём обучении»
+        // и каталоге дерево разделов не рисуем (см. ниже), а подсветку
+        // текущего экрана берут на себя кнопки .rail-view
+        const active = state.view === 'material' && meta.id === state.activeModule;
+        const planned = isPlanned(meta);
+        const count = planned ? null : railCount(meta.id);
 
         html += h('button', modAttrs(meta.id, {
-          class: 'rail-item' + (active ? ' active' : ''),
-          'aria-current': active ? 'page' : 'false'
+          class: 'rail-item' + (active ? ' active' : '') + (planned ? ' rail-item-planned' : ''),
+          'aria-current': active ? 'page' : 'false',
+          'aria-disabled': planned ? 'true' : null
         }),
           h('span', { class: 'rail-item-icon' }, esc(meta.icon)) +
           h('span', { class: 'rail-item-text' },
             h('span', { class: 'rail-item-label' }, esc(meta.label)) +
             (meta.sub ? h('span', { class: 'rail-item-sub' }, esc(meta.sub)) : '')
           ) +
-          (count !== null ? h('span', { class: 'rail-item-count' }, count) : '')
+          (planned ? h('span', { class: 'rail-item-soon' }, 'скоро')
+                   : (count !== null ? h('span', { class: 'rail-item-count' }, count) : ''))
         );
 
+        // Дерево разделов рисуется только в виде 'material' — см. active выше
         if (active) html += railSectionsHtml(meta.id);
       });
     });
 
-    byId('rail').innerHTML = h('nav', { class: 'rail-nav', role: 'navigation', 'aria-label': 'Материалы' }, html);
+    byId('rail').innerHTML = railViewsHtml() +
+      h('nav', { class: 'rail-nav', role: 'navigation', 'aria-label': 'Материалы' }, html);
   }
 
   /* ── Выезжающая на узком экране панель ─────────────────
@@ -334,17 +409,43 @@
     setRailOpen(!byId('rail').classList.contains('open'));
   }
 
-  function onRailItem(el) {
+  /* Материал, на который указывает кликнутый элемент, — или null, если
+     открывать нечего. Единственный рубеж для запланированных: карточка
+     и пункт панели нарисованы, но файла с контентом у них ещё нет,
+     поэтому глубже (switchModule, loadModule) про planned не знают. */
+  function openableModule(el) {
     const modId = parseInt(el.getAttribute('data-mod'), 10);
-    if (modId !== state.activeModule) switchModule(modId);
+    const meta = getModuleMeta(modId);
+    return meta && !isPlanned(meta) ? modId : null;
+  }
+
+  function onRailItem(el) {
+    const modId = openableModule(el);
+    if (modId === null) return;
+    if (modId !== state.activeModule || state.view !== 'material') switchModule(modId);
     window.scrollTo({ top: 0, behavior: scrollBehavior() });
     setRailOpen(false);
   }
 
-  /* ── Переключение модуля ─────────────────────────────── */
+  /* ── Экраны и переключение модуля ───────────────────────
+     Три вида делит один и тот же контейнер #content: showView рисует
+     «Моё обучение»/каталог сразу (данные уже в браузере), а материал —
+     дело switchModule/loadModule, у которых своя загрузка и свой кэш. */
+
+  function showView(view) {
+    state.view = view;
+    preloadModulesInBackground();   // цифрам экранов нужны данные модулей — тянем их в фоне
+    renderRail();
+    if (view === 'home') setContent(renderHome());
+    else if (view === 'catalog') setContent(renderCatalog());
+    savePlace();
+    window.scrollTo({ top: 0, behavior: scrollBehavior() });
+    setRailOpen(false);
+  }
 
   function switchModule(modId) {
     state.activeModule = modId;
+    state.view = 'material';
     renderRail();
 
     // Запоминаем уже после отрисовки: до неё в DOM ещё прошлый модуль
@@ -383,6 +484,253 @@
         '⚠️ Не удалось загрузить модуль. Проверьте, что файл ' +
         esc(meta ? meta.file : '') + ' на месте.'));
     });
+  }
+
+  /* ── Экран «Моё обучение» (шаг 2) ───────────────────────
+     Стартовый экран вместо первого видеомодуля: свод того, что уже
+     сделано, и подсказка, что делать дальше. Все числа — из PA.store,
+     без выдуманных примеров: нет данных — пустое состояние или ноль. */
+
+  /* Раздел экрана: пустое тело — нет и заголовка, иначе «Дальше
+     в программе» висело бы над пустотой */
+  function homeSection(title, body) {
+    return body ? h('div', { class: 'home-section' },
+      (title ? h('div', { class: 'home-title' }, title) : '') + body) : '';
+  }
+
+  /* Плитка материала — общая часть карточки «Продолжить» и строк
+     «Прохожу сейчас» / «Дальше в программе»: цветная иконка, название,
+     подпись и то, что идёт под ней (обычно полоса прогресса) */
+  function tileHtml(meta, sub, extra) {
+    return h('span', { class: 'tile-icon' }, esc(meta.icon)) +
+      h('div', { class: 'tile-body' },
+        h('div', { class: 'tile-label' }, esc(meta.label)) +
+        (sub ? h('div', { class: 'tile-sub' }, esc(sub)) : '') +
+        (extra || '')
+      );
+  }
+
+  /* Общая мини-полоса прогресса: карточка «Продолжить», плитка каталога
+     и строка «Прохожу сейчас» показывают одно и то же по одной формуле */
+  function renderProgressMini(data) {
+    const p = progressOf(data);
+    if (!p.total) return '';
+    const percent = Math.round(p.solved / p.total * 100);
+    return h('div', { class: 'mini-progress' },
+      h('div', { class: 'mini-progress-track' },
+        h('div', { class: 'mini-progress-fill', style: 'width:' + percent + '%' })) +
+      h('div', { class: 'mini-progress-text' }, 'Решено ' + p.solved + ' из ' + p.total)
+    );
+  }
+
+  function renderContinueCard() {
+    // Куда вести: на сохранённое место, а если ученик ещё ничего не открывал —
+    // на первый материал справочника (бесплатный и доступен без пароля)
+    const place = savedPlace();
+    const savedMeta = place && place.view === 'material' ? getModuleMeta(place.mod) : null;
+    const fromPlace = !!savedMeta && !isPlanned(savedMeta);
+    const meta = fromPlace ? savedMeta : modulesOfGroup('ref')[0];
+    if (!meta) return '';
+
+    const open = fromPlace && place.open ? place.open : [];
+    const anchor = open.length ? open[open.length - 1] : null;
+
+    // Карточке нужны слова, а не якорь: у справочников и курсов заголовок
+    // берётся из разделов (data.sections), у видеомодулей — из занятий
+    const data = loaded.get(meta.id);
+    const item = data && anchor
+      ? (data.sections || []).find((s) => s.anchor === anchor) ||
+        (data.lessons || []).find((l) => lessonAnchorOf(data.id, l.num) === anchor)
+      : null;
+    const sub = item
+      ? 'вы остановились на разделе «' + item.title + '»'
+      : (anchor ? 'вы остановились здесь — открываем раздел' : 'откройте материал, чтобы продолжить');
+
+    return h('div', modAttrs(meta.id, { class: 'continue-card' }),
+      tileHtml(meta, sub, data ? renderProgressMini(data) : '') +
+      h('button', {
+        class: 'home-continue', type: 'button',
+        'data-mod': meta.id, 'data-anchor': anchor || ''
+      }, 'Продолжить')
+    );
+  }
+
+  /* ── Недельная активность ───────────────────────────────
+     Источник — ts (секунды) у каждой записи в PA.store('tasks'):
+     свой таймер платформа не ведёт, день считаем прямо по нему. */
+
+  function dayKeyOf(date) {
+    return date.getFullYear() + '-' + (date.getMonth() + 1) + '-' + date.getDate();
+  }
+
+  /* Дней подряд с занятиями, сегодня включительно — считаем назад,
+     пока календарный день числится активным */
+  function currentStreak(days) {
+    let streak = 0;
+    const cursor = new Date();
+    while (days.has(dayKeyOf(cursor))) {
+      streak++;
+      cursor.setDate(cursor.getDate() - 1);
+    }
+    return streak;
+  }
+
+  function renderWeekActivity() {
+    const records = hasPA ? window.PA.store.get('tasks', undefined, {}) : {};
+    const days = new Set();
+    let solved = 0;
+    Object.keys(records).forEach((id) => {
+      const rec = records[id];
+      if (!rec) return;
+      if (rec.ts) days.add(dayKeyOf(new Date(rec.ts * 1000)));
+      if (rec.status === 'solved') solved++;
+    });
+
+    // Пн—Вс текущей недели: getDay() воскресенье — 0, поэтому у него
+    // сдвиг особый (-6), у остальных дней — 1 - номер дня
+    const now = new Date();
+    const shift = now.getDay() === 0 ? -6 : 1 - now.getDay();
+    const today = dayKeyOf(now);
+
+    let cells = '';
+    WEEKDAY_LABELS.forEach((label, i) => {
+      const key = dayKeyOf(new Date(now.getFullYear(), now.getMonth(), now.getDate() + shift + i));
+      const active = days.has(key);
+      cells += h('div', {
+        class: 'week-cell' + (active ? ' week-active' : '') + (key === today ? ' week-today' : '')
+      },
+        h('span', { class: 'week-day' }, label) +
+        h('span', { class: 'week-dot' }, active ? '●' : '')
+      );
+    });
+
+    return h('div', { class: 'week-activity' },
+      h('div', { class: 'week-grid' }, cells) +
+      h('div', { class: 'week-stats' },
+        h('span', { class: 'week-stat' }, 'Решено заданий: ' + solved) +
+        h('span', { class: 'week-stat' }, 'Дней подряд: ' + currentStreak(days))
+      )
+    );
+  }
+
+  /* ── «Прохожу сейчас» и «Дальше в программе» ───────────── */
+
+  /* В работе — то, где есть решённое задание (данные уже должны быть
+     загружены, см. preloadModulesInBackground) или само сохранённое
+     место: ученик мог открыть материал и ещё не решить в нём ничего.
+     Пока такого нет — вместо списка приглашение в каталог. */
+  function renderInProgress() {
+    const place = savedPlace();
+    const placeModId = place && place.view === 'material' ? place.mod : null;
+
+    let rows = '';
+    state.modules.forEach((meta) => {
+      if (isPlanned(meta)) return;
+      const data = loaded.get(meta.id);
+      const solved = data ? progressOf(data).solved : 0;
+      if (!solved && meta.id !== placeModId) return;
+      rows += h('div', modAttrs(meta.id, { class: 'progress-item' }),
+        tileHtml(meta, null, data ? renderProgressMini(data) : '') +
+        h('button', { class: 'pi-open', type: 'button', 'data-mod': meta.id }, 'Открыть')
+      );
+    });
+
+    if (!rows) {
+      return h('div', { class: 'home-empty' },
+        h('p', { class: 'home-empty-text' }, 'Вы ещё не начали.') +
+        h('button', { class: 'home-open-catalog', type: 'button' }, 'Открыть каталог')
+      );
+    }
+    return h('div', { class: 'progress-list' }, rows);
+  }
+
+  function renderPlanned() {
+    let rows = '';
+    state.modules.filter(isPlanned).forEach((meta) => {
+      rows += h('div', modAttrs(meta.id, { class: 'planned-item' }),
+        tileHtml(meta, meta.sub, '') +
+        h('span', { class: 'planned-soon' }, 'скоро')
+      );
+    });
+    return rows ? h('div', { class: 'planned-list' }, rows) : '';
+  }
+
+  function renderHome() {
+    return h('div', { class: 'home-view' },
+      homeSection(null, renderContinueCard()) +
+      homeSection('Активность за неделю', renderWeekActivity()) +
+      homeSection('Прохожу сейчас', renderInProgress()) +
+      homeSection('Дальше в программе', renderPlanned())
+    );
+  }
+
+  /* ── Экран «Каталог» ────────────────────────────────────
+     Все материалы разом, сгруппированные как в манифесте — противовес
+     «Моему обучению»: там то, чем занят ученик, здесь — всё, что есть. */
+
+  function renderCatalogCard(meta) {
+    const planned = isPlanned(meta);
+    const kindLabel = KIND_LABELS[meta.group];
+
+    // Цифры — только по уже загруженным данным (loaded): тянуть все файлы
+    // ради сетки карточек не стоит того
+    const data = planned ? null : loaded.get(meta.id);
+    const progress = data ? progressOf(data) : null;
+    const metricsHtml = data ? h('div', { class: 'catalog-card-metrics' },
+      h('span', { class: 'catalog-card-metric' },
+        railCount(meta.id) + (data.lessons ? ' занятий' : ' разделов')) +
+      (progress.total
+        ? h('span', { class: 'catalog-card-metric' }, 'заданий ' + progress.solved + '/' + progress.total)
+        : '')
+    ) : '';
+
+    let badges = '';
+    if (planned) badges += h('span', { class: 'catalog-card-badge catalog-card-badge-soon' }, 'скоро');
+    if (meta.protected) badges += h('span', { class: 'catalog-card-badge catalog-card-badge-locked' }, 'под паролем');
+
+    return h(planned ? 'div' : 'button', modAttrs(meta.id, {
+      class: 'catalog-card' + (planned ? ' catalog-card-planned' : ''),
+      type: planned ? null : 'button'
+    }),
+      h('span', { class: 'tile-icon' }, esc(meta.icon)) +
+      h('div', { class: 'tile-body' },
+        (kindLabel ? h('div', { class: 'catalog-card-kind' }, esc(kindLabel)) : '') +
+        h('div', { class: 'tile-label' }, esc(meta.label)) +
+        (meta.sub ? h('div', { class: 'tile-sub' }, esc(meta.sub)) : '') +
+        metricsHtml +
+        (data ? renderProgressMini(data) : '')
+      ) +
+      (badges ? h('div', { class: 'catalog-card-badges' }, badges) : '')
+    );
+  }
+
+  function onCatalogCard(el) {
+    const modId = openableModule(el);
+    if (modId === null) return;
+    switchModule(modId);
+    window.scrollTo({ top: 0, behavior: scrollBehavior() });
+  }
+
+  function renderCatalog() {
+    let html = '';
+    state.groups.forEach((group) => {
+      const modules = modulesOfGroup(group.id);
+      if (!modules.length) return;
+
+      let cards = '';
+      modules.forEach((meta) => { cards += renderCatalogCard(meta); });
+
+      html += h('div', { class: 'catalog-group' },
+        h('div', { class: 'catalog-group-head' },
+          h('span', { class: 'catalog-group-icon' }, esc(group.icon)) +
+          h('span', { class: 'catalog-group-label' }, esc(group.label)) +
+          h('span', { class: 'catalog-group-count' }, modules.length)
+        ) +
+        h('div', { class: 'catalog-grid' }, cards)
+      );
+    });
+
+    return h('div', { class: 'catalog-view' }, html);
   }
 
   /* ── Защищённый раздел ───────────────────────────────── */
@@ -1747,6 +2095,15 @@
     ['.qn-chip, .ref-link, .rail-sec, .rm-step[data-anchor]:not([data-anchor=""])',
                           (el, e) => { e.preventDefault(); goToAnchor(el.getAttribute('data-anchor')); }],
     ['.rail-item',        (el) => onRailItem(el)],
+    ['.rail-view',        (el) => showView(el.getAttribute('data-view'))],
+    ['.catalog-card',     (el) => onCatalogCard(el)],
+    ['.home-continue',    (el) => {
+      const anchor = el.getAttribute('data-anchor');
+      if (anchor) goToAnchor(anchor);
+      else switchModule(parseInt(el.getAttribute('data-mod'), 10));
+    }],
+    ['.pi-open',          (el) => switchModule(parseInt(el.getAttribute('data-mod'), 10))],
+    ['.home-open-catalog', () => showView('catalog')],
     ['#rail-toggle',      () => toggleRail()],
     ['.lesson-header',    (el) => setLessonOpen(el.parentElement, !el.parentElement.classList.contains('open'))],
     ['#cert-submit',      () => handleLogin()],
@@ -1956,23 +2313,33 @@
       state.modules = manifest.modules;
       state.searchIndexFile = (manifest.search && manifest.search.index) || 'data/search-index.json';
 
-      // Возвращаем туда, где ученик закрыл вкладку. Защищённый раздел
-      // без запомненного пароля пропускаем — иначе встретим формой входа
-      const place = savedPlace();
-      const placeMeta = place ? getModuleMeta(place.mod) : null;
-      const canReturn = placeMeta && !(placeMeta.protected && !state.authToken);
-
-      const startModule = canReturn ? place.mod : state.modules[0].id;
-      state.activeModule = startModule;
-
-      renderRail();
       const startAnchor = (location.hash || '').replace('#', '');
 
-      return loadModule(startModule).then(() => {
-        if (startAnchor) goToAnchor(startAnchor, false);
-        savePlace();
+      if (startAnchor) {
+        // Прямая ссылка на раздел важнее сохранённого места — сразу в материал
+        state.view = 'material';
+        renderRail();
+        goToAnchor(startAnchor, false);
         registerOffline();
-      });
+        return;
+      }
+
+      // Без якоря возвращаем туда, где ученик закрыл вкладку: в материал,
+      // в каталог или на «Моё обучение» (по умолчанию для первого визита).
+      // Защищённый без запомненного пароля и запланированный материал
+      // пропускаем — открыть их всё равно нечем.
+      const place = savedPlace();
+      const placeMeta = place && place.view === 'material' ? getModuleMeta(place.mod) : null;
+      const canReturnToMaterial = placeMeta && !isPlanned(placeMeta) &&
+        !(placeMeta.protected && !state.authToken);
+
+      if (canReturnToMaterial) {
+        // sw.js регистрируем после материала: его загрузка важнее
+        switchModule(place.mod).then(registerOffline);
+      } else {
+        showView(place && place.view === 'catalog' ? 'catalog' : 'home');
+        registerOffline();
+      }
     })
     .catch(function (error) {
       byId('content').innerHTML = h('div', { class: 'empty-state' },

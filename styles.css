@@ -257,6 +257,30 @@ textarea:focus-visible, select:focus-visible, [tabindex]:focus-visible {
 .rail::-webkit-scrollbar { width: 6px; }
 .rail::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.14); border-radius: 3px; }
 
+/* Два пункта экрана над деревом материалов (шаг 2): «Моё обучение»
+   и «Каталог» переключают весь #content, а не отдельный материал —
+   поэтому визуально отделены рамкой снизу от списка групп */
+.rail-views {
+  display: flex; flex-direction: column; gap: 2px;
+  padding: 10px 10px 12px; border-bottom: 1px solid var(--border);
+}
+/* Кнопка панели — и пункт экрана, и пункт материала: основа у них одна,
+   дальше расходятся только отступы, размер шрифта и подсветка активного */
+.rail-view, .rail-item {
+  display: flex; align-items: center; gap: 10px; width: 100%;
+  border: none; background: transparent;
+  font-family: var(--font); color: var(--text); cursor: pointer;
+  text-align: left; transition: background 0.15s;
+}
+.rail-view:hover, .rail-item:hover { background: rgba(255,255,255,0.04); }
+
+.rail-view {
+  padding: 8px 10px; border-radius: 8px;
+  font-size: 13px; font-weight: 600;
+}
+.rail-view-icon { font-size: 15px; flex-shrink: 0; width: 18px; text-align: center; }
+.rail-view.active { background: rgba(96,165,250,0.12); color: var(--text-bright); }
+
 .rail-nav { display: flex; flex-direction: column; }
 
 .rail-group {
@@ -269,13 +293,7 @@ textarea:focus-visible, select:focus-visible, [tabindex]:focus-visible {
 .rail-group:first-child { padding-top: 12px; }
 .rail-group-icon { font-size: 13px; }
 
-.rail-item {
-  display: flex; align-items: center; gap: 10px; width: 100%;
-  padding: 8px 14px; border: none; background: transparent;
-  font-family: var(--font); color: var(--text); cursor: pointer;
-  text-align: left; transition: background 0.15s;
-}
-.rail-item:hover { background: rgba(255,255,255,0.04); }
+.rail-item { padding: 8px 14px; }   /* основа и :hover — вместе с .rail-view выше */
 
 .rail-item-icon {
   font-size: 16px; line-height: 1; flex-shrink: 0; width: 20px; text-align: center;
@@ -295,6 +313,17 @@ textarea:focus-visible, select:focus-visible, [tabindex]:focus-visible {
 .rail-item.active { background: color-mix(in srgb, var(--mod-color) 13%, transparent); }
 .rail-item.active .rail-item-icon { color: var(--mod-color); }
 .rail-item.active .rail-item-label { color: var(--text-bright); }
+
+/* Карточка «программы вперёд» в дереве материалов: видна, но не кликается —
+   курсор и приглушённые цвета честно об этом говорят */
+.rail-item-planned { cursor: default; opacity: 0.55; }
+.rail-item-planned:hover { background: transparent; }
+.rail-item-soon {
+  font-family: var(--mono); font-size: 9px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted);
+  border: 1px dashed var(--border-active); border-radius: 5px;
+  padding: 2px 6px; flex-shrink: 0;
+}
 
 /* Дерево разделов активного материала — замена бывшему выпадающему меню вкладки */
 .rail-sec-list { display: flex; flex-direction: column; padding: 2px 8px 8px 42px; }
@@ -1136,6 +1165,188 @@ code, pre, .ic { font-variant-ligatures: none; font-feature-settings: "liga" 0, 
 .qn-chip.qn-solved { border-color: rgba(52,211,153,0.35); }
 .qn-chip.qn-solved .qn-code::after { content: ' ✓'; color: #34D399; }
 
+/* ── Экран «Моё обучение» и каталог (шаг 2) ──────────────
+   Общая «плитка»: цветная иконка + название/подпись. Ей пользуются
+   карточка «Продолжить», строки «Прохожу сейчас»/«Дальше в программе»
+   и карточка каталога — один приём вместо четырёх похожих блоков CSS. */
+.tile-icon {
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0; width: 44px; height: 44px; border-radius: 12px;
+  font-size: 20px; color: var(--mod-color);
+  background: color-mix(in srgb, var(--mod-color) 16%, transparent);
+}
+.tile-body { display: flex; flex-direction: column; gap: 3px; min-width: 0; flex: 1; }
+.tile-label {
+  font-size: 14px; font-weight: 700; color: var(--text-bright);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.tile-sub { font-size: 12px; color: var(--text-dim); line-height: 1.4; }
+
+@supports not (background: rgba(from red r g b / 1)) {
+  .tile-icon { background: rgba(255,255,255,0.06); }
+}
+
+/* Мини-полоса прогресса — та же формула, что у .progress-bar, только
+   компактнее: живёт внутри плиток, а не отдельным блоком */
+.mini-progress-track {
+  height: 4px; border-radius: 2px; background: rgba(255,255,255,0.07);
+  overflow: hidden; margin: 6px 0 4px;
+}
+.mini-progress-fill { height: 100%; border-radius: 2px; background: var(--mod-color); transition: width 0.4s ease; }
+/* Цифры под полосой и цифры карточки каталога (.catalog-card-metric)
+   набраны одинаково — это один и тот же мелкий моноширинный счёт */
+.mini-progress-text, .catalog-card-metric {
+  font-family: var(--mono); font-size: 10.5px; color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.home-view { display: flex; flex-direction: column; gap: 22px; max-width: 780px; }
+.home-title {
+  font-family: var(--mono); font-size: 10px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.12em;
+  color: var(--text-dim); margin-bottom: 12px;
+}
+
+/* Карточка «Продолжить» */
+.continue-card {
+  display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+  padding: 20px 22px; border-radius: 14px;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--mod-color) 10%, transparent), transparent);
+  border: 1px solid color-mix(in srgb, var(--mod-color) 22%, var(--border));
+}
+.continue-card .tile-icon { width: 52px; height: 52px; font-size: 24px; }
+.continue-card .tile-body { flex: 1 1 220px; }
+.continue-card .tile-label { font-size: 16px; }
+
+.home-continue {
+  font-family: var(--mono); font-size: 12px; font-weight: 700;
+  color: #0B0E16; background: var(--mod-color, #82AAFF);
+  border: none; border-radius: 8px;
+  padding: 9px 18px; cursor: pointer; transition: filter 0.15s; flex-shrink: 0;
+}
+.home-continue:hover { filter: brightness(1.12); }
+
+@supports not (background: rgba(from red r g b / 1)) {
+  .continue-card { background: var(--bg-card); border-color: var(--border); }
+}
+
+/* Недельная активность: семь клеток пн—вс, точка — в этот день решено
+   хоть одно задание (см. app.js, activityDays) */
+.week-activity {
+  padding: 18px 20px; border-radius: 14px;
+  background: rgba(255,255,255,0.02); border: 1px solid var(--border);
+}
+.week-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; margin-bottom: 14px; }
+.week-cell {
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  padding: 8px 4px; border-radius: 8px;
+  background: rgba(255,255,255,0.02); border: 1px solid var(--border);
+}
+.week-day {
+  font-family: var(--mono); font-size: 9.5px; text-transform: uppercase;
+  letter-spacing: 0.06em; color: var(--text-muted);
+}
+.week-dot { display: block; height: 10px; font-size: 10px; line-height: 1; color: transparent; }
+.week-cell.week-active { background: rgba(52,211,153,0.1); border-color: rgba(52,211,153,0.3); }
+.week-cell.week-active .week-dot { color: #34D399; }
+.week-cell.week-today { border-color: var(--border-active); }
+.week-cell.week-today .week-day { color: var(--text-bright); }
+
+.week-stats { display: flex; gap: 18px; flex-wrap: wrap; }
+.week-stat {
+  font-family: var(--mono); font-size: 12px; color: var(--text-dim);
+  font-variant-numeric: tabular-nums;
+}
+
+/* «Прохожу сейчас» и «Дальше в программе» — однотипные списки плиток */
+.progress-list, .planned-list { display: flex; flex-direction: column; gap: 8px; }
+
+.progress-item, .planned-item {
+  display: flex; align-items: center; gap: 14px;
+  padding: 12px 14px; border-radius: 12px;
+  background: var(--bg-card); border: 1px solid var(--border);
+}
+.planned-item { opacity: 0.7; }
+
+.pi-open {
+  font-family: var(--mono); font-size: 11px; font-weight: 700;
+  color: var(--text-dim); background: rgba(255,255,255,0.03);
+  border: 1px solid var(--border); border-radius: 7px;
+  padding: 6px 12px; cursor: pointer; flex-shrink: 0; transition: all 0.15s;
+}
+.pi-open:hover { color: var(--text-bright); border-color: var(--border-active); }
+
+.planned-soon {
+  font-family: var(--mono); font-size: 9.5px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted);
+  border: 1px dashed var(--border-active); border-radius: 5px;
+  padding: 3px 8px; flex-shrink: 0;
+}
+
+.home-empty {
+  display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+  padding: 16px 18px; border-radius: 12px;
+  background: var(--bg-card); border: 1px dashed var(--border-active);
+}
+.home-empty-text { font-size: 13px; color: var(--text-dim); }
+.home-open-catalog {
+  font-family: var(--mono); font-size: 11px; font-weight: 700;
+  color: var(--text-bright); background: rgba(255,255,255,0.04);
+  border: 1px solid var(--border-active); border-radius: 7px;
+  padding: 7px 14px; cursor: pointer; transition: all 0.15s;
+}
+.home-open-catalog:hover { background: rgba(255,255,255,0.08); }
+
+/* ── Каталог: сетка карточек, сгруппированная как в манифесте ───── */
+.catalog-view { display: flex; flex-direction: column; gap: 28px; }
+
+.catalog-group-head {
+  display: flex; align-items: center; gap: 8px; margin-bottom: 14px;
+  font-family: var(--mono); font-size: 11px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.1em; color: var(--text-dim);
+}
+.catalog-group-count {
+  font-variant-numeric: tabular-nums; color: var(--text-muted);
+  background: rgba(255,255,255,0.05); border-radius: 5px; padding: 1px 7px;
+}
+
+.catalog-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 12px; }
+
+.catalog-card {
+  display: flex; align-items: flex-start; gap: 14px; position: relative;
+  width: 100%; padding: 16px 18px; border-radius: 14px; text-align: left;
+  background: var(--bg-card); border: 1px solid var(--border);
+  font-family: var(--font); cursor: pointer; transition: all 0.15s;
+}
+.catalog-card:hover { background: var(--bg-card-open); border-color: color-mix(in srgb, var(--mod-color) 35%, var(--border)); }
+.catalog-card .tile-body { padding-right: 60px; }   /* место под метку в углу */
+
+.catalog-card-planned { cursor: default; border-style: dashed; opacity: 0.7; }
+.catalog-card-planned:hover { background: var(--bg-card); border-color: var(--border); }
+
+.catalog-card-kind {
+  font-family: var(--mono); font-size: 9.5px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted);
+}
+
+.catalog-card-metrics { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 6px; }
+
+.catalog-card-badges {
+  position: absolute; top: 12px; right: 12px;
+  display: flex; flex-direction: column; gap: 4px; align-items: flex-end;
+}
+.catalog-card-badge {
+  font-family: var(--mono); font-size: 9px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.05em;
+  padding: 2px 7px; border-radius: 5px; white-space: nowrap;
+}
+.catalog-card-badge-soon { color: var(--text-muted); border: 1px dashed var(--border-active); }
+.catalog-card-badge-locked { color: #FBBF24; background: rgba(251,191,36,0.1); border: 1px solid rgba(251,191,36,0.2); }
+
+@supports not (background: rgba(from red r g b / 1)) {
+  .catalog-card:hover { border-color: var(--border-active); }
+}
+
 /* ── Responsive ────────────────────────────────────────── */
 /* Планшеты: шапке с поиском и контактами тесно в один ряд —
    переносим строки и даём поиску собственную строку целиком */
@@ -1168,6 +1379,10 @@ code, pre, .ic { font-variant-ligatures: none; font-feature-settings: "liga" 0, 
   .rail.open { transform: translateX(0); }
 
   .rail-scrim.open { display: block; }
+
+  /* Карточкам каталога тесно в две колонки рядом с текстом такой ширины —
+     одна колонка читается спокойнее */
+  .catalog-grid { grid-template-columns: 1fr; }
 }
 
 /* Планшеты уже: две колонки конспекта не влезают — сворачиваем в одну */
@@ -1197,6 +1412,11 @@ code, pre, .ic { font-variant-ligatures: none; font-feature-settings: "liga" 0, 
   .course-card { flex-wrap: nowrap; }
   .course-name { min-width: unset; }
   .course-tags { width: 100%; }
+
+  /* .catalog-grid уже в одну колонку — с 900px, см. выше */
+  .continue-card { padding: 16px 18px; }
+  .week-activity { padding: 14px 16px; }
+  .week-grid { gap: 4px; }
 }
 
 /* Песочница на узком экране: гаттер и подписи съедают ширину кода */

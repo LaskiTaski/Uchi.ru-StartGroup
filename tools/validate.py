@@ -5,7 +5,9 @@
     python3 tools/validate.py
 
 Что проверяется:
-  * манифест: уникальность id, наличие файлов, ссылки на существующие группы;
+  * манифест: уникальность id, наличие файлов (кроме status: planned — это
+    карточка «программы вперёд» без контента), ссылки на существующие группы,
+    status/level из известных значений;
   * структура блоков: известный тип, обязательные поля;
   * якоря: уникальность по всем модулям;
   * перекрёстные ссылки [текст](#anchor) ведут на существующий якорь;
@@ -62,6 +64,12 @@ KNOWN_TAGS = {
     'free', 'paid', 'easy', 'medium', 'hard', 'heavy',
     'useful', 'super', 'start', 'optional', 'unknown',
 }
+
+# Готовность материала (у карточки «программы вперёд» файла с контентом
+# ещё нет) и уровень сложности — то же, что показывает карточка
+# в каталоге (см. app.js, renderCatalogCard)
+KNOWN_STATUSES = {'ready', 'planned'}
+KNOWN_LEVELS = {'начальный', 'средний', 'продвинутый'}
 LINK_RE = re.compile(r'\]\(#([A-Za-z0-9_-]+)\)')
 # YouTube id — ровно 11 символов; если в поле затесался «&list=...»
 # из скопированной ссылки на плейлист, видео на странице не встанет
@@ -88,6 +96,7 @@ def check_manifest() -> list[dict]:
     manifest = json.loads(path.read_text(encoding='utf-8'))
     group_ids = {g['id'] for g in manifest['groups']}
     seen_ids: set[int] = set()
+    with_file: list[dict] = []
 
     for module in manifest['modules']:
         where = f"модуль {module.get('id')}"
@@ -97,16 +106,31 @@ def check_manifest() -> list[dict]:
 
         if module['group'] not in group_ids:
             error(f"{where}: неизвестная группа {module['group']}")
-        if not (ROOT / module['file']).exists():
-            error(f"{where}: файл {module['file']} не найден")
         if not re.fullmatch(r'#[0-9A-Fa-f]{6}', module.get('color', '')):
             error(f'{where}: цвет должен быть в формате #RRGGBB')
+
+        if module.get('status') not in KNOWN_STATUSES:
+            error(f"{where}: status «{module.get('status')}» не из {sorted(KNOWN_STATUSES)}")
+        if 'level' in module and module['level'] not in KNOWN_LEVELS:
+            error(f"{where}: level «{module['level']}» не из {sorted(KNOWN_LEVELS)}")
+
+        # Карточка-заглушка «программы вперёд»: показывает, что впереди,
+        # контента и файла для неё ещё нет — проверять контент нечем
+        if module.get('status') == 'planned':
+            continue
+
+        if not module.get('file'):
+            error(f'{where}: нет обязательного поля file')
+        elif not (ROOT / module['file']).exists():
+            error(f"{where}: файл {module['file']} не найден")
+        else:
+            with_file.append(module)
 
     for group in manifest['groups']:
         if not any(m['group'] == group['id'] for m in manifest['modules']):
             warn(f"группа {group['id']} пуста")
 
-    return manifest['modules']
+    return with_file
 
 
 def iter_blocks(section: dict):

@@ -83,14 +83,69 @@ const ok = (name, cond, extra='') => { cond ? pass++ : fail++; console.log(`${co
 
 (async () => {
   await wait(600);
-  console.log('НАВИГАЦИЯ');
+
+  console.log('ЭКРАНЫ');
+  // Шаг 2: сайт больше не открывается сразу первым видеомодулем —
+  // стартовый экран «Моё обучение», модуль показывается только по выбору
+  ok('стартовый экран — «Моё обучение»', q('.home-view') !== null && q('.module-header') === null);
+  ok('в панели есть оба пункта вида', qa('.rail-view').length === 2);
+  ok('при старте активен пункт «Моё обучение»',
+     q('.rail-view[data-view="home"]')?.classList.contains('active') &&
+     q('.rail-view[data-view="home"]')?.getAttribute('aria-current') === 'page');
+  ok('пункт «Каталог» пока не активен',
+     q('.rail-view[data-view="catalog"]')?.getAttribute('aria-current') === 'false');
+
+  // Клик по «Каталогу» показывает карточки всех материалов манифеста,
+  // включая три запланированные — с меткой «скоро»
+  q('.rail-view[data-view="catalog"]').dispatchEvent(new w.MouseEvent('click', {bubbles:true}));
+  await wait(200);
+  ok('каталог показан, «Моё обучение» скрыто', q('.catalog-view') !== null && q('.home-view') === null);
+  ok('пункт «Каталог» стал активным', q('.rail-view[data-view="catalog"]')?.classList.contains('active'));
+  ok('в каталоге карточки всех 15 материалов манифеста',
+     qa('.catalog-card').length === 15, qa('.catalog-card').length+'');
+  const plannedCards = qa('.catalog-card-planned');
+  ok('запланированных карточек три', plannedCards.length === 3, plannedCards.length+'');
+  ok('у каждой запланированной карточки метка «скоро»',
+     plannedCards.every((c) => /скоро/.test(c.textContent)));
+
+  // Клик по обычной (не запланированной) карточке открывает материал
+  // и переводит панель в режим материала
+  const openableCard = qa('.catalog-card').find((c) => !c.classList.contains('catalog-card-planned'));
+  openableCard.dispatchEvent(new w.MouseEvent('click', {bubbles:true}));
+  await wait(400);
+  ok('клик по карточке открывает материал', q('.module-header') !== null && q('.catalog-view') === null);
+  ok('панель переходит в режим материала — есть активный пункт',
+     q('.rail-item.active')?.getAttribute('aria-current') === 'page');
+
+  // Запланированная карточка не открывается: клик по ней ничего не меняет
+  q('.rail-view[data-view="catalog"]').dispatchEvent(new w.MouseEvent('click', {bubbles:true}));
+  await wait(200);
+  q('.catalog-card-planned').dispatchEvent(new w.MouseEvent('click', {bubbles:true}));
+  await wait(150);
+  ok('клик по запланированной карточке ничего не меняет — каталог на месте',
+     q('.catalog-view') !== null && q('.module-header') === null);
+
+  // То же для пункта запланированного материала в самой панели
+  const plannedRailItem = q('.rail-item-planned');
+  ok('в панели есть запланированный пункт', plannedRailItem !== null);
+  plannedRailItem.dispatchEvent(new w.MouseEvent('click', {bubbles:true}));
+  await wait(150);
+  ok('клик по запланированному пункту панели ничего не меняет',
+     q('.catalog-view') !== null && q('.module-header') === null);
+
+  console.log('\nНАВИГАЦИЯ');
   ok('манифест загружен первым', fetched[0] === 'data/manifest.json');
   // Панель — не лента: все группы и их материалы видны в ней сразу,
   // без промежуточного клика по группе
   ok('заголовков групп в панели: 4', qa('.rail-group').length === 4);
-  ok('пунктов материалов в панели: 12', qa('.rail-item').length === 12, qa('.rail-item').length+'');
+  ok('пунктов материалов в панели: 15', qa('.rail-item').length === 15, qa('.rail-item').length+'');
   ok('цвет из манифеста инлайном', q('.rail-item').getAttribute('style').includes('--mod-color'));
-  ok('модуль 1 отрисован', q('.module-header') !== null);
+  // «Модуль 1 отрисован при старте» раньше проверялось буквально при
+  // загрузке страницы — теперь старт «Моё обучение» (см. раздел ЭКРАНЫ),
+  // а материал открывается по выбору; открываем его здесь явно
+  q('.rail-item[data-mod="1"]').dispatchEvent(new w.MouseEvent('click', {bubbles:true}));
+  await wait(400);
+  ok('материал открывается и отрисовывает module-header', q('.module-header') !== null);
   ok('активный пункт помечен aria-current="page"', q('.rail-item.active')?.getAttribute('aria-current') === 'page');
 
   console.log('\nПЕРЕКЛЮЧЕНИЕ ГРУПП');
@@ -584,6 +639,17 @@ const ok = (name, cond, extra='') => { cond ? pass++ : fail++; console.log(`${co
      w.PA.store.isSolved('plan-understand') === false &&
      /Решено 0 из 5/.test(q('.pb-text').textContent), q('.pb-text').textContent);
 
+  console.log('\nЭКРАНЫ: ПРОГРЕСС НА ГЛАВНОЙ');
+  // markTask пишет напрямую в хранилище, минуя рендер — «Моё обучение»
+  // считает решённые задания по PA.store('tasks') в момент отрисовки,
+  // поэтому переход на экран после отметки уже должен видеть счёт
+  w.PA.store.markTask('screens-home-progress', 'solved');
+  q('.rail-view[data-view="home"]').dispatchEvent(new w.MouseEvent('click', {bubbles:true}));
+  await wait(200);
+  ok('«Моё обучение» показывает ненулевой счёт решённых заданий',
+     qa('.week-stat').some((el) => /Решено заданий:\s*[1-9]/.test(el.textContent)),
+     qa('.week-stat').map((el) => el.textContent).join(' | '));
+
   console.log('\nВОЗВРАТ НА СТРАНИЦУ');
   q('.rail-item[data-mod="8"]').dispatchEvent(new w.MouseEvent('click', {bubbles:true}));
   await wait(600);
@@ -627,6 +693,36 @@ const ok = (name, cond, extra='') => { cond ? pass++ : fail++; console.log(`${co
   ok('раскрытый раздел остался раскрытым',
      !!d2.getElementById('ref-' + openAnchor) &&
      d2.getElementById('ref-' + openAnchor).classList.contains('open'));
+
+  console.log('\nЭКРАНЫ: ВОЗВРАТ НА СОХРАНЁННЫЙ ВИД');
+  // Сохранённое место — это не только модуль, но и сам экран (шаг 2):
+  // уходим в каталог, перезагружаем страницу тем же приёмом — второе
+  // окно с тем же localStorage — и проверяем, что открылся каталог,
+  // а не последний открытый материал
+  q('.rail-view[data-view="catalog"]').dispatchEvent(new w.MouseEvent('click', {bubbles:true}));
+  await wait(200);
+  w.PA.store.flush();
+  const catalogPlace = w.PA.store.get('ui', 'place', null);
+  ok('вид «каталог» записан в место', !!catalogPlace && catalogPlace.view === 'catalog',
+     JSON.stringify(catalogPlace));
+
+  const dom3 = new JSDOM(fs.readFileSync(P + 'index.html', 'utf8'),
+    { runScripts: 'outside-only', pretendToBeVisual: true, url: 'http://localhost/' });
+  const w3 = dom3.window, d3 = w3.document;
+  ['scrollBy','scrollTo','scrollIntoView'].forEach(m => w3.Element.prototype[m] = function(){});
+  w3.scrollTo = () => {};
+  w3.fetch = (f) => Promise.resolve({
+    ok: true, json: () => Promise.resolve(JSON.parse(fs.readFileSync(P + f, 'utf8'))) });
+  w3.Worker = FakeWorker;
+  w3.localStorage.setItem('pa_progress_v1', w.localStorage.getItem('pa_progress_v1'));
+  w3.eval(fs.readFileSync(P + 'sandbox.js', 'utf8'));
+  w3.eval(fs.readFileSync(P + 'app.js', 'utf8'));
+  await wait(900);
+  ok('после перезагрузки открыт сохранённый вид «каталог»',
+     d3.querySelector('.catalog-view') !== null && d3.querySelector('.module-header') === null);
+  ok('в панели активен пункт «Каталог», не материал',
+     d3.querySelector('.rail-view[data-view="catalog"]')?.classList.contains('active') === true &&
+     d3.querySelector('.rail-item.active') === null);
 
   console.log(`\nИТОГ: ${pass} пройдено, ${fail} провалено`);
   process.exit(fail ? 1 : 0);
